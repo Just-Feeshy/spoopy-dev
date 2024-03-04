@@ -1,6 +1,6 @@
 <xml>
     <files id="spoopy-toolkit-volk-depends">
-        <depend name="lib/volk/volk.h" />
+	<depend name="lib/volk/volk.h" />
     </files>
 
     <files id="spoopy-toolkit-volk" tags="">
