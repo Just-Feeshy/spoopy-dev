@@ -8,7 +8,7 @@
 
 	<set name="ios" value="1" if="iphone" />
 	<set name="tvos" value="1" if="appletv" />
-    <set name="mac" value="1" if="macos" />
+	<set name="mac" value="1" if="macos" />
 
 	<set name="SPOOPY_HASHLINK" value="1" if="hashlink" />
 	<set name="SPOOPY_SDL" value="1" />
@@ -64,16 +64,17 @@
 
 		<compilerflag value="-DLIME_OPENGL" if="LIME_OPENGL" />
 
-		<section if="SPOOPY_DEBUG">
-            <linkerflag value="-fsanitize=thread" />
+		<section if="SPOOPY_VULKAN">
+			<compilerflag value="-DVK_USE_IMAGE_ACQUIRE_FENCES=1" />
+			<compilerflag value="-DVK_MAX_BACK_BUFFERS=4" />
+			<compilerflag value="-DVK_BACK_BUFFERS_COUNT=3" />
+
+			<compilerflag value="-Ithirdparty/vk" />
+			<compilerflag value="-IVulkanSDK/include" />
 		</section>
 
-		<section if="SPOOPY_VOLK">
-			<compilerflag value="-DSPOOPY_VOLK" />
-			<!--<compilerflag value="-DLIME_VOLK" />-->
-			<!--<compilerflag value="-DVK_NO_PROTOTYPES" />-->
-			<!--<compilerflag value="-DVOLK_IMPLEMENTATION" />-->
-			<compilerflag value="-Ilib/volk/" />
+		<section if="SPOOPY_DEBUG">
+            		<linkerflag value="-fsanitize=thread" />
 		</section>
 
 		<section if="SPOOPY_SPIRV_CROSS">
@@ -86,6 +87,14 @@
 		<section if="SPOOPY_ROCKET">
 		    <compilerflag value="-DSPOOPY_ROCKET" />
 		    <compilerflag value="-Ilib/rocket/" />
+		</section>
+
+		<section if="SPOOPY_VOLK">
+			<compilerflag value="-DSPOOPY_VOLK" />
+			<!--<compilerflag value="-DLIME_VOLK" />-->
+			<!--<compilerflag value="-DVK_NO_PROTOTYPES" />-->
+			<!--<compilerflag value="-DVOLK_IMPLEMENTATION" />-->
+			<compilerflag value="-Ilib/volk/" />
 		</section>
 
 		<section if="SPOOPY_DEBUG">
@@ -105,17 +114,11 @@
 		<compilerflag value="-DUSE_CUSTOM_SDL_DEFINITIONS" if="USE_CUSTOM_SDL_DEFINITIONS"/>
 
 		<section if="SPOOPY_VULKAN">
-		    <compilerflag value="-DVK_USE_IMAGE_ACQUIRE_FENCES=1" />
-		    <compilerflag value="-DVK_MAX_BACK_BUFFERS=4" />
-		    <compilerflag value="-DVK_BACK_BUFFERS_COUNT=3" />
-
-		    <compilerflag value="-Ithirdparty/vk" />
-
-		    <file name="thirdparty/vk/vk_mem_alloc.cpp" />
-		    <file name="src/graphics/vulkan/shaders/PipelineShader.cpp" />
-		    <file name="src/graphics/vulkan/shaders/Shader.cpp" />
-		    <!--<file name="src/graphics/vulkan/images/Image.cpp" />-->
-		    <file name="src/graphics/vulkan/PipelineVulkan.cpp" />
+			<file name="thirdparty/vk/vk_mem_alloc.cpp" />
+			<file name="src/graphics/vulkan/shaders/PipelineShader.cpp" />
+			<file name="src/graphics/vulkan/shaders/Shader.cpp" />
+			<!--<file name="src/graphics/vulkan/images/Image.cpp" />-->
+			<file name="src/graphics/vulkan/PipelineVulkan.cpp" />
 			<file name="src/graphics/vulkan/ContextVulkan.cpp" />
 			<file name="src/graphics/vulkan/ContextStage.cpp" />
 			<file name="src/graphics/vulkan/GraphicsHandlerVulkan.cpp" />
@@ -138,6 +141,7 @@
 			<file name="src/device/Surface.cpp" />
 
 			<file name="src/device/MacVulkanBindings.mm" if="mac" />
+
 		</section>
 
         <file name="src/utils/MemoryReader.cpp" />
