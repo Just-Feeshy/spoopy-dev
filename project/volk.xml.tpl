@@ -5,6 +5,7 @@
 
     <files id="spoopy-toolkit-volk" tags="">
         <depend files="spoopy-toolkit-volk-depends" />
+	<compilerflag value="-IVulkanSDK/include" />
 
         <file name="lib/volk/volk.c" />
     </files>
