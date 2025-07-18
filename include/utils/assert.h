@@ -12,7 +12,7 @@
 
 inline void runtime_assert(bool expr, const char* message) {
     SPOOPY_LOG_ERROR("Runtime assertion failed: %s", message);
-    assert(expr != NULL);
+    assert(expr);
 }
 
 #if defined(__STDC_VERSION__)

@@ -30,6 +30,7 @@ typedef enum spoopy_thread_priority {
 } spoopy_thread_priority_t;
 
 typedef uint64_t spoopy_thread_id_t;
+typedef unsigned long spoopy_thread_index_t;
 typedef void *(*spoopy_thread_process_t)(void* arg);
 
 typedef struct spoopy_thread_buffers {
@@ -48,12 +49,12 @@ typedef struct {
 #ifdef __SPOOPY_USE_CORE_THREAD_DESIGN
 
 typedef struct spoopy_global_thread_wrapper {
+    spoopy_thread_index_t index;
     spoopy_thread_id_t id;
     spoopy_thread_buffers_t buffers;
     void (*safely_detach)(void* buff);
     void (*safely_finalize)(struct spoopy_global_thread_wrapper* buff);
 } spoopy_global_thread_wrapper_t;
-
 
 
 // Maximum number of threads that can be created is 64 only or 32 for lower-end systems.
@@ -68,11 +69,14 @@ typedef struct spoopy_global_thread_wrapper {
 
 typedef struct {
     spoopy_thread_id_t main_thread_id;
-    unsigned long chunk_thread_capacity;
+    spoopy_thread_index_t chunk_thread_capacity;
     spoopy_global_thread_wrapper_t* global_threads;
 } spoopy_thread_manager_t;
 
 extern spoopy_thread_manager_t threads;
+
+SPOOPY_FUNC_CORE void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* thread_buffer);
+SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper_t* thread_buffer);
 
 #endif
 
@@ -113,9 +117,6 @@ _spoopy_thread(sdl,
 )
 
 #endif // SPOOPY_SUPPORT_SDL_THREADS
-
-SPOOPY_FUNC_CORE void _spoopy_internal_thread_set(void* thread_buffer);
-SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(void* thread_buffer);
 
 SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
     spoopy_core_thread_data_t* data,
