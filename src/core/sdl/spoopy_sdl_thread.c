@@ -102,11 +102,36 @@ void spoopy_create_core_thread_data(
 
 void spoopy_sdl_thread_init(void) {
     threads.main_thread_id = SDL_GetCurrentThreadID();
-    threads.chunk_thread_capacity = ~0L; // Empty values
+    threads.chunk_thread_capacity = ~0UL; // Empty values
     threads.global_threads = (spoopy_global_thread_wrapper_t*)calloc(
         sizeof(threads.chunk_thread_capacity) * 8,
         sizeof(spoopy_global_thread_wrapper_t)
     );
+}
+
+void spoopy_sdl_thread_shutdown(void) {
+    for(spoopy_thread_index_t i=0; i<sizeof(threads.chunk_thread_capacity)*8; ++i) {
+        spoopy_global_thread_wrapper_t* global_thrd = &threads.global_threads[i];
+        spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
+        int nref = SDL_GetAtomicInt(&thrd->ref_count);
+        SPOOPY_LOG_ERROR("Thread '%s' still has %d references, cannot shutdown thread manager",
+            thrd->name,
+            nref
+        );
+
+        SDL_Thread* sdl_thrd = SDL_SetAtomicPointer(
+            (void**)&thrd->thrd,
+            NULL
+        );
+
+        if(sdl_thrd) {
+            SDL_DetachThread(sdl_thrd);
+        }
+    }
+
+    spoopy_heap_free(threads.global_threads);
+    threads.global_threads = NULL;
+    threads.chunk_thread_capacity = ~0UL; // Reset capacity
 }
 
 spoopy_sdl_thread_t* spoopy_sdl_thread_create(

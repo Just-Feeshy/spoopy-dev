@@ -93,6 +93,7 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper
     }; \
     typedef struct spoopy_##t##_thread spoopy_##t##_thread_t; \
     void spoopy_##t##_thread_init(void); \
+    void spoopy_##t##_thread_shutdown(void); \
     spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data);
 
 #endif
@@ -103,6 +104,7 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper
 #define _spoopy_thread(t, _thrd, _atomics) \
     typedef struct spoopy_##t##_thread spoopy_##t##_thread_t; \
     SPOOPY_FUNC_CORE void spoopy_##t##_thread_init(void); \
+    SPOOPY_FUNC_CORE void spoopy_##t##_thread_shutdown(void); \
     SPOOPY_FUNC_CORE spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data);
 
 #endif // _spoopy_thread
