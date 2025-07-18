@@ -1,0 +1,153 @@
+#define SPOOPY_ALLOW_THREAD_DESIGN
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_mutex.h>
+
+#include <spoopy_thread.h>
+#include <spoopy_log.h>
+#include <memory/spoopy_memory.h>
+
+#include "spoopy_core.h"
+
+static_assert(SPOOPY_THREAD_PRIO_LOW == (int)SDL_THREAD_PRIORITY_LOW, "");
+static_assert(SPOOPY_THREAD_PRIO_NORMAL == (int)SDL_THREAD_PRIORITY_NORMAL, "");
+static_assert(SPOOPY_THREAD_PRIO_HIGH == (int)SDL_THREAD_PRIORITY_HIGH, "");
+static_assert(SPOOPY_THREAD_PRIO_CRITICAL == (int)SDL_THREAD_PRIORITY_TIME_CRITICAL, "");
+
+
+static void sdl_thread_try_detach(void* thrd) {
+    spoopy_sdl_thread_t* raw_thrd = (spoopy_sdl_thread_t*)thrd;
+    SDL_Thread* sdl_thrd = SDL_SetAtomicPointer((void**)&raw_thrd->thrd, NULL);
+
+    if(sdl_thrd) {
+        SDL_DetachThread(sdl_thrd);
+    }
+}
+
+static void sdl_thread_finalize(spoopy_global_thread_wrapper_t* global_thrd) {
+    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
+    assert(thrd->thrd == NULL);
+
+    _spoopy_internal_thread_unset(global_thrd);
+    spoopy_heap_free(global_thrd->buffers.thread_buffer);
+}
+
+static void sdl_thread_try_finalize(spoopy_global_thread_wrapper_t* global_thrd) {
+    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
+    if(SDL_CompareAndSwapAtomicInt(&thrd->thread_state,
+                                              SPOOPY_THREAD_STATE_FINISHED,
+                                              SPOOPY_THREAD_STATE_CLEANUP)) {
+        sdl_thread_finalize(global_thrd);
+    }
+}
+
+static int SDLCALL sdl_thread_entry(void* data) {
+    spoopy_core_thread_data_t core_data = *(spoopy_core_thread_data_t*)data;
+    spoopy_thread_id_t id = SDL_GetCurrentThreadID();
+
+    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)core_data.buffers.thread_buffer;
+    thrd->id = id;
+    spoopy_global_thread_wrapper_t global_thread = {
+        .id = id,
+        .buffers = core_data.buffers,
+        .safely_detach = sdl_thread_try_detach,
+        .safely_finalize = sdl_thread_try_finalize
+    };
+
+    _spoopy_internal_thread_set(&global_thread);
+
+    SDL_Semaphore* semaphore = (SDL_Semaphore*)core_data.buffers.semaphore_buffer;
+    SDL_SignalSemaphore(semaphore);
+
+    if(!SDL_SetCurrentThreadPriority((SDL_ThreadPriority)core_data.priority)) {
+        SPOOPY_LOG_WARN(
+            "Failed to set thread priority for thread '%s': %s",
+            thrd->name,
+            SDL_GetError()
+        );
+    }
+
+    thrd->data = core_data.process(core_data.args_buff);
+    bool cas_ok = SDL_CompareAndSwapAtomicInt(&thrd->thread_state,
+                                              SPOOPY_THREAD_STATE_RUNNING,
+                                              SPOOPY_THREAD_STATE_FINISHED);
+    assert(cas_ok);
+
+    if(SDL_GetAtomicInt(&thrd->ref_count) < 1) {
+        sdl_thread_try_detach(thrd);
+        sdl_thread_finalize(&global_thread);
+    }
+
+    return 0;
+}
+
+
+void spoopy_create_core_thread_data(
+    spoopy_core_thread_data_t* data,
+    spoopy_thread_process_t process,
+    void* args_buff,
+    spoopy_thread_priority_t priority
+) {
+    if(SPOOPY_UNLIKELY(!SDL_GetCurrentThreadID())) {
+        SPOOPY_LOG_WARN("Recommend to call spoopy_create_core_thread_data() from a valid thread context, as SDL_GetCurrentThreadID() returned NULL");
+    }
+
+    assert(data != NULL);
+    assert(process != NULL);
+
+    data->process = process;
+    data->args_buff = args_buff;
+    data->priority = priority;
+}
+
+
+void spoopy_sdl_thread_init(void) {
+    threads.main_thread_id = SDL_GetCurrentThreadID();
+    threads.chunk_thread_capacity = ~0L; // Empty values
+    threads.global_threads = (spoopy_global_thread_wrapper_t*)calloc(
+        sizeof(threads.chunk_thread_capacity) * 8,
+        sizeof(spoopy_global_thread_wrapper_t)
+    );
+}
+
+spoopy_sdl_thread_t* spoopy_sdl_thread_create(
+    const char* name,
+    spoopy_core_thread_data_t core_data
+) {
+    if(SPOOPY_UNLIKELY(!SDL_GetCurrentThreadID())) {
+        SPOOPY_LOG_ERROR("Failed to create thread '%s': SDL_GetCurrentThreadID() returned NULL", name);
+        return NULL;
+    }
+
+    size_t name_size = strlen(name) + 1;
+    spoopy_sdl_thread_t* thread = SPOOPY_FLEX_ALLOC(spoopy_sdl_thread_t, name_size, spoopy_heap);
+    SDL_memcpy(thread->name, name, name_size);
+    thread->ref_count.value = 1;
+    thread->thread_state.value = SPOOPY_THREAD_STATE_RUNNING;
+
+    SDL_Semaphore* smph = SDL_CreateSemaphore(0);
+
+    if(SPOOPY_UNLIKELY(!smph)) {
+        SPOOPY_LOG_ERROR("Failed to create semaphore for thread '%s': %s", name, SDL_GetError());
+        goto thread_fail;
+    }
+
+    thread->thrd = SDL_CreateThread(
+        sdl_thread_entry,
+        name,
+        &core_data
+    );
+
+    if(SPOOPY_UNLIKELY(!thread->thrd)) {
+        SPOOPY_LOG_ERROR("Failed to create thread '%s': %s", name, SDL_GetError());
+goto thread_fail;
+    }
+
+    SDL_WaitSemaphore(smph);
+    SDL_DestroySemaphore(smph);
+    return thread;
+
+thread_fail:
+    SDL_DestroySemaphore(smph);
+    spoopy_heap_free(thread);
+    return NULL;
+}
