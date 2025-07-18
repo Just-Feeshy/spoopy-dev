@@ -30,28 +30,12 @@ extern "C" {
 
 #endif
 
-#if defined(__cplusplus) && __cplusplus >= 202002L && \
-(defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))
-
-#define SPOOPY_HAVE_CPP20_ATTRIBUTES 1
-
-#else
-
-#define SPOOPY_HAVE_CPP20_ATTRIBUTES 0
-
-#endif
-
 
 /* =============================================================================
  * BRANCH PREDICTION HINTS
  * ============================================================================= */
 
-#if SPOOPY_HAVE_CPP20_ATTRIBUTES
-
-#define SPOOPY_LIKELY(expr)   (expr) [[likely]]
-#define SPOOPY_UNLIKELY(expr) (expr) [[unlikely]]
-
-#elif SPOOPY_HAS_BUILTIN_EXPECT
+#if SPOOPY_HAS_BUILTIN_EXPECT
 
 #define SPOOPY_LIKELY(expr)   __builtin_expect(!!(expr), 1)
 #define SPOOPY_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
