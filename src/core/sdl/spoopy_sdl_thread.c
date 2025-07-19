@@ -23,20 +23,28 @@ static void sdl_thread_try_detach(void* thrd) {
     }
 }
 
-static void sdl_thread_finalize(spoopy_global_thread_wrapper_t* global_thrd) {
-    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
+static void sdl_thread_finalize(spoopy_sdl_thread_t* thrd) {
     assert(thrd->thrd == NULL);
 
-    _spoopy_internal_thread_unset(global_thrd);
-    spoopy_heap_free(global_thrd->buffers.thread_buffer);
+    _spoopy_internal_thread_unset(thrd->set_index);
+    spoopy_heap_free(thrd);
 }
 
-static void sdl_thread_try_finalize(spoopy_global_thread_wrapper_t* global_thrd) {
-    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
+static void sdl_thread_try_finalize(void* thread_buffer) {
+    spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)thread_buffer;
     if(SDL_CompareAndSwapAtomicInt(&thrd->thread_state,
                                               SPOOPY_THREAD_STATE_FINISHED,
                                               SPOOPY_THREAD_STATE_CLEANUP)) {
-        sdl_thread_finalize(global_thrd);
+        sdl_thread_finalize(thrd);
+    }
+}
+
+static void sdl_thread_decref_internal(spoopy_sdl_thread_t* thrd) {
+    int prev_ref_count = SDL_AddAtomicInt(&thrd->ref_count, -1);
+    assert(prev_ref_count > 0);
+
+    if(prev_ref_count == 1) {
+        sdl_thread_try_finalize(thrd);
     }
 }
 
@@ -74,7 +82,7 @@ static int SDLCALL sdl_thread_entry(void* data) {
 
     if(SDL_GetAtomicInt(&thrd->ref_count) < 1) {
         sdl_thread_try_detach(thrd);
-        sdl_thread_finalize(&global_thread);
+        sdl_thread_finalize(thrd);
     }
 
     return 0;
@@ -110,14 +118,25 @@ void spoopy_sdl_thread_init(void) {
 }
 
 void spoopy_sdl_thread_shutdown(void) {
-    for(spoopy_thread_index_t i=0; i<sizeof(threads.chunk_thread_capacity)*8; ++i) {
+
+    // Get all threads that are still running and detach them
+    // since free meant 1, then if we invert the capacity,
+    // we get all the threads that are still running marked as 1
+    spoopy_thread_index_t existing_threads = ~threads.chunk_thread_capacity;
+    while(existing_threads) {
+        spoopy_thread_index_t i = __builtin_ctzl(existing_threads);
+
         spoopy_global_thread_wrapper_t* global_thrd = &threads.global_threads[i];
         spoopy_sdl_thread_t* thrd = (spoopy_sdl_thread_t*)global_thrd->buffers.thread_buffer;
         int nref = SDL_GetAtomicInt(&thrd->ref_count);
-        SPOOPY_LOG_ERROR("Thread '%s' still has %d references, cannot shutdown thread manager",
-            thrd->name,
-            nref
-        );
+
+        if(nref > 0) {
+            SPOOPY_LOG_ERROR(
+                "Thread '%s' still has %d references, cannot shutdown thread manager",
+                thrd->name,
+                nref
+            );
+        }
 
         SDL_Thread* sdl_thrd = SDL_SetAtomicPointer(
             (void**)&thrd->thrd,
@@ -127,6 +146,8 @@ void spoopy_sdl_thread_shutdown(void) {
         if(sdl_thrd) {
             SDL_DetachThread(sdl_thrd);
         }
+
+        existing_threads &= existing_threads - 1; // Clear the bit at index i
     }
 
     spoopy_heap_free(threads.global_threads);
@@ -164,8 +185,11 @@ spoopy_sdl_thread_t* spoopy_sdl_thread_create(
 
     if(SPOOPY_UNLIKELY(!thread->thrd)) {
         SPOOPY_LOG_ERROR("Failed to create thread '%s': %s", name, SDL_GetError());
-goto thread_fail;
+        goto thread_fail;
     }
+
+    core_data.buffers.thread_buffer = thread;
+    core_data.buffers.semaphore_buffer = smph;
 
     SDL_WaitSemaphore(smph);
     SDL_DestroySemaphore(smph);
@@ -175,4 +199,28 @@ thread_fail:
     SDL_DestroySemaphore(smph);
     spoopy_heap_free(thread);
     return NULL;
+}
+
+void* spoopy_sdl_thread_wait(spoopy_sdl_thread_t* thrd) {
+    SDL_Thread* sdl_thrd = SDL_SetAtomicPointer((void**)&thrd->thrd, NULL);
+
+    if(sdl_thrd) {
+        SDL_WaitThread(sdl_thrd, NULL);
+    }
+
+    void* r = thrd->data;
+    sdl_thread_decref_internal(thrd);
+    return r;
+}
+
+bool spoopy_sdl_thread_get_result(spoopy_sdl_thread_t* thread, void** result) {
+    if(SDL_GetAtomicInt(&thread->thread_state) == SPOOPY_THREAD_STATE_RUNNING) {
+        return false;
+    }
+
+    if(result) {
+        *result = thread->data;
+    }
+
+    return true;
 }

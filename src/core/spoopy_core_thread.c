@@ -10,24 +10,36 @@ void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* thread_buffer) 
         return;
     }
 
-    thread_buffer->index = __builtin_ctzl(threads.chunk_thread_capacity);
-    threads.chunk_thread_capacity = threads.chunk_thread_capacity
-                                    & (threads.chunk_thread_capacity - 1);
+    // What I'm doing is very dangerous
+    // So, I'm checking if the thread buffer is large enough to hold the thread index
+    if(SPOOPY_UNLIKELY(sizeof(thread_buffer->buffers.thread_buffer) < sizeof(spoopy_thread_index_t))) {
+        SPOOPY_LOG_ERROR("Thread buffer is too small to hold thread index, minimum size is %zu bytes", sizeof(spoopy_thread_index_t));
+        return;
+    }
+
+    // Very Dangerous, but we are using it to get the index of the thread buffer
+    // Kids, don't try this at home!
+    *(spoopy_thread_index_t*)thread_buffer->buffers.thread_buffer =
+        __builtin_ctzl(threads.chunk_thread_capacity);
+    spoopy_thread_index_t index = *(spoopy_thread_index_t*)thread_buffer->buffers.thread_buffer;
+
+    // Clear the bit at the index we are setting since it's now occupied
+    // This is a bit manipulation trick to clear the bit at th index
+    threads.chunk_thread_capacity &= (threads.chunk_thread_capacity - 1);
 
     memcpy(
-        &threads.global_threads[thread_buffer->index],
+        &threads.global_threads[index],
         thread_buffer,
         sizeof(spoopy_global_thread_wrapper_t)
     );
 }
 
-void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper_t* thread_buffer) {
+void _spoopy_internal_thread_unset(spoopy_thread_index_t index) {
     if(threads.chunk_thread_capacity == ~0UL) {
         SPOOPY_LOG_WARN("No thread buffer set, cannot unset thread buffer");
         return;
     }
 
-    unsigned long index = thread_buffer->index;
     threads.chunk_thread_capacity |= (1UL << index);
 
     memset(

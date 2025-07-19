@@ -49,11 +49,10 @@ typedef struct {
 #ifdef __SPOOPY_USE_CORE_THREAD_DESIGN
 
 typedef struct spoopy_global_thread_wrapper {
-    spoopy_thread_index_t index;
     spoopy_thread_id_t id;
     spoopy_thread_buffers_t buffers;
     void (*safely_detach)(void* buff);
-    void (*safely_finalize)(struct spoopy_global_thread_wrapper* buff);
+    void (*safely_finalize)(void* buff);
 } spoopy_global_thread_wrapper_t;
 
 
@@ -75,8 +74,8 @@ typedef struct {
 
 extern spoopy_thread_manager_t threads;
 
-SPOOPY_FUNC_CORE void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* thread_buffer);
-SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper_t* thread_buffer);
+SPOOPY_FUNC_CORE void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* global_thread);
+SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index);
 
 #endif
 
@@ -85,6 +84,7 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper
 
 #define _spoopy_thread(t, _thrd, _atomics) \
     struct spoopy_##t##_thread { \
+        spoopy_thread_index_t set_index; \
         void* data; \
         spoopy_thread_id_t id; \
         _thrd; \
@@ -94,7 +94,9 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper
     typedef struct spoopy_##t##_thread spoopy_##t##_thread_t; \
     void spoopy_##t##_thread_init(void); \
     void spoopy_##t##_thread_shutdown(void); \
-    spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data);
+    spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data); \
+    void* spoopy_##t##_thread_wait(spoopy_##t##_thread_t* thrd); \
+    bool spoopy_##t##_thread_get_result(spoopy_##t##_thread_t* thread, void** result); \
 
 #endif
 
@@ -105,7 +107,9 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_global_thread_wrapper
     typedef struct spoopy_##t##_thread spoopy_##t##_thread_t; \
     SPOOPY_FUNC_CORE void spoopy_##t##_thread_init(void); \
     SPOOPY_FUNC_CORE void spoopy_##t##_thread_shutdown(void); \
-    SPOOPY_FUNC_CORE spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data);
+    SPOOPY_FUNC_CORE spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data); \
+    SPOOPY_FUNC_CORE void* spoopy_##t##_thread_wait(spoopy_##t##_thread_t* thrd); \
+    SPOOPY_FUNC_CORE bool spoopy_##t##_thread_get_result(spoopy_##t##_thread_t* thread, void** result);
 
 #endif // _spoopy_thread
 
