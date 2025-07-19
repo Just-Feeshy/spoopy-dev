@@ -95,8 +95,10 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 // and I want to keep the code portable for everyone.
 // TODO: Change this to `spoopy_aligned`
 #define SPOOPY_FLEX_ALLOC(_type, extra_size, alloc_type) ({\
-    runtime_assert(alloc_type >= spoopy_heap && alloc_type <= spoopy_stack, "Invalid allocation type for SPOOPY_FLEX_ALLOC, must be a value in the `spoopy_memory_type` enum");\
-    (_type*)alloc_type##_alloc(sizeof(_type) + extra_size);\
+    runtime_assert((enum spoopy_memory_type)alloc_type >= spoopy_heap \
+        && (enum spoopy_memory_type)alloc_type <= spoopy_stack, \
+        "Invalid allocation type for SPOOPY_FLEX_ALLOC, must be a value in the `spoopy_memory_type` enum"); \
+    (_type*)alloc_type##_alloc(sizeof(_type) + extra_size); \
 });
 
 #endif
