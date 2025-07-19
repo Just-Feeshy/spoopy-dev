@@ -48,3 +48,7 @@ void _spoopy_internal_thread_unset(spoopy_thread_index_t index) {
         sizeof(spoopy_global_thread_wrapper_t)
     );
 }
+
+spoopy_thread_index_t spoopy_get_main_id(void) {
+    return threads.main_thread_id;
+}

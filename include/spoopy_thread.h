@@ -97,6 +97,7 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index)
     spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data); \
     void* spoopy_##t##_thread_wait(spoopy_##t##_thread_t* thrd); \
     bool spoopy_##t##_thread_get_result(spoopy_##t##_thread_t* thread, void** result); \
+    bool spoopy_##t##_current_is_main(void);
 
 #endif
 
@@ -109,7 +110,8 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index)
     SPOOPY_FUNC_CORE void spoopy_##t##_thread_shutdown(void); \
     SPOOPY_FUNC_CORE spoopy_##t##_thread_t* spoopy_##t##_thread_create(const char* name, spoopy_core_thread_data_t core_data); \
     SPOOPY_FUNC_CORE void* spoopy_##t##_thread_wait(spoopy_##t##_thread_t* thrd); \
-    SPOOPY_FUNC_CORE bool spoopy_##t##_thread_get_result(spoopy_##t##_thread_t* thread, void** result);
+    SPOOPY_FUNC_CORE bool spoopy_##t##_thread_get_result(spoopy_##t##_thread_t* thread, void** result); \
+    SPOOPY_FUNC_CORE bool spoopy_##t##_current_is_main(void);
 
 #endif // _spoopy_thread
 
@@ -130,6 +132,8 @@ SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
     void* args_buff,
     spoopy_thread_priority_t priority
 );
+
+SPOOPY_FUNC_CORE spoopy_thread_index_t spoopy_get_main_id(void);
 
 #ifdef __cplusplus
 }

@@ -115,6 +115,9 @@ void spoopy_sdl_thread_init(void) {
         sizeof(threads.chunk_thread_capacity) * 8,
         sizeof(spoopy_global_thread_wrapper_t)
     );
+
+    assert_unlikely(threads.global_threads != NULL);
+    assert_unlikely(threads.chunk_thread_capacity == ~0UL);
 }
 
 void spoopy_sdl_thread_shutdown(void) {
@@ -223,4 +226,8 @@ bool spoopy_sdl_thread_get_result(spoopy_sdl_thread_t* thread, void** result) {
     }
 
     return true;
+}
+
+bool spoopy_sdl_current_is_main(void) {
+    return spoopy_get_main_id() == SDL_GetCurrentThreadID();
 }
