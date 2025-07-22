@@ -1,0 +1,11 @@
+option('pthreads',
+    type : 'feature',
+    value : 'auto',
+    description : 'Use POSIX threads for multi-threading'
+)
+
+option('win32_threads',
+    type : 'feature',
+    value : 'auto',
+    description : 'Use Win32 threads for multi-threading (Windows)'
+)

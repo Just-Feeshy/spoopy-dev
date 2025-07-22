@@ -1,8 +1,5 @@
-export/
-project/obj
 .DS_Store
-update-lime.sh
+.archive/
 
-ndll
-ndll-vulkan
-ndll-metal
+build/
+spoopy_build_config.h
