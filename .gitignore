@@ -1,6 +1,7 @@
 .DS_Store
 .archive/
 scripts/common/__pycache__/
+subprojects/spoopy_renderer/scripts/common/__pycache__/
 
 build/
 spoopy_build_config.h

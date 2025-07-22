@@ -20,7 +20,6 @@
 
 #endif // SPOOPY_FUNC_CORE (if not defined)
 
-
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
 

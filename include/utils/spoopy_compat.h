@@ -1,6 +1,7 @@
 #ifndef SPOOPY_COMPAT_H
 #define SPOOPY_COMPAT_H
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>

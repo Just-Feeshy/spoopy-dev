@@ -13,7 +13,6 @@ sdl3_options.add_cmake_defines({
     'SDL_RENDER': false,                # No 2D rendering API
 
     'SDL_AUDIO': false,                 # No audio playback/recording
-    'SDL_VIDEO': false,                 # No windows/graphics (headless)
     'SDL_POWER': false,                 # No battery/power management
     'SDL_HAPTIC': false,                # No force feedback/rumble
     'SDL_SENSOR': false,                # No accelerometer/gyroscope

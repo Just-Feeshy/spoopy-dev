@@ -10,12 +10,18 @@ option('deprecation_warnings',
     description : 'Treatment of deprecation warnings'
 )
 
-option('tests',
+option('enable_tests',
     type: 'feature',
     description: 'Build various test programs'
 )
 
-option('sdl_threads_support',
+option('enable_kore',
+    type: 'feature',
+    value: 'auto',
+    description: 'Enable Kore support for Spoopy'
+)
+
+option('have_sdl_thread_support',
     type: 'boolean',
     value: true,
     description: 'Use SDL threads for multi-threading'

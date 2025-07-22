@@ -1,0 +1,5 @@
+[wrap-file]
+directory = spoopy_renderer
+
+[provide]
+dependency_names = spoopy_renderer

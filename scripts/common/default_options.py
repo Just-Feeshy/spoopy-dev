@@ -13,7 +13,7 @@ class ConfigValidationError(common.SpoopyError):
 
 CONFIG_FALLBACK = {
     'build_type': 'auto',
-    'language': 'c',
+    'language': 'c', # Useful for later
 }
 
 VALID_LANGUAGES = ['c', 'c++']
