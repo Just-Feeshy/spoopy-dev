@@ -279,7 +279,7 @@ if not spoopy_sdl_threads_support
 endif
 
 subdir('src')
-# subdir('test')
+subdir('test')
 
 summary({
     'System Type': systype,
