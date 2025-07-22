@@ -12,7 +12,7 @@ project('spoopy', 'c',
     default_options: run_command([
         files('scripts/default_options.py'),
         '--language', 'c',
-        '--build-type', 'auto', # TODO: Make this configurable (through custom make.py)
+        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.py)
     ], check: true).stdout().strip().split('\n')
 )
 
