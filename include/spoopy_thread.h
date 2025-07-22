@@ -135,19 +135,13 @@ SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
 
 SPOOPY_FUNC_CORE spoopy_thread_index_t spoopy_get_main_id(void);
 
+#undef _spoopy_thread
+
 #ifdef __cplusplus
 }
 #endif
 
-
-#undef _spoopy_thread
-
-#ifdef __SPOOPY_USE_CORE_THREAD_DESIGN
 #undef __SPOOPY_USE_CORE_THREAD_DESIGN
-#endif // __SPOOPY_USE_CORE_THREAD_DESIGN
-
-#ifdef SPOOPY_ALLOW_THREAD_DESIGN
 #undef SPOOPY_ALLOW_THREAD_DESIGN
-#endif // SPOOPY_ALLOW_THREAD_DESIGN
 
 #endif

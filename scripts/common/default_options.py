@@ -42,7 +42,6 @@ class Config(object):
         options.extend([
             'c_std=c11',
             'default_library=static',
-            'unity=on'
         ])
 
         if self.build_type == 'debug':

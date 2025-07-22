@@ -1,5 +1,13 @@
 #define __SPOOPY_USE_CORE_THREAD_DESIGN
 #include "spoopy_core.h"
+
+#if SPOOPY_SUPPORT_SDL_THREADS
+
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_atomic.h>
+
+#endif
+
 #include <spoopy_thread.h>
 
 spoopy_thread_manager_t threads = {0};
