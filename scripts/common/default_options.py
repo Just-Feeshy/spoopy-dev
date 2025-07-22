@@ -13,8 +13,10 @@ class ConfigValidationError(common.SpoopyError):
 
 CONFIG_FALLBACK = {
     'build_type': 'auto',
+    'language': 'c',
 }
 
+VALID_LANGUAGES = ['c', 'c++']
 VALID_BUILD_TYPES = ['debug', 'release', 'auto']
 OVERRIDE_FILE_NAME = '.BUILDCONFIG'
 
@@ -26,9 +28,7 @@ class Config(object):
             config_dict = CONFIG_FALLBACK.copy()
 
         self.build_type = config_dict.get('build_type', 'debug')
-
-        if self.build_type not in ['debug', 'release', 'auto']:
-            raise ConfigFormatError(f"Invalid build_type: {self.build_type}. Must be 'debug', 'release', or 'auto'")
+        self.language = config_dict.get('language', 'c')
 
         self.options = self._generate_options()
         self.meson_string = self._make_meson_string()
@@ -39,8 +39,13 @@ class Config(object):
     def _generate_options(self):
         options = []
 
+        if self.language not in VALID_LANGUAGES:
+            raise ConfigValidationError(f"Invalid language: {self.language}. Must be one of {VALID_LANGUAGES}")
+
+        if self.build_type not in ['debug', 'release', 'auto']:
+            raise ConfigFormatError(f"Invalid build_type: {self.build_type}. Must be 'debug', 'release', or 'auto'")
+
         options.extend([
-            'c_std=c11',
             'default_library=static',
         ])
 
@@ -84,15 +89,21 @@ class Config(object):
 
         if sys.platform == 'win32':
             options.extend([
+                'c_std=c11',
+                'cpp_std=c++20',
                 'cpp_winlibs=[]',
                 'b_vscrt=md',
             ])
         elif sys.platform == 'darwin':
             options.extend([
+                'c_std=gnu11',
+                'cpp_std=gnu++20',
                 'objc_std=c11',
             ])
         elif sys.platform.startswith('linux'):
             options.extend([
+                'c_std=gnu11',
+                'cpp_std=gnu++20',
                 'prefer_static=true',
             ])
 

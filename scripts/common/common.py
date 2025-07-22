@@ -16,7 +16,6 @@ class DefaultArgs(object):
 default_args = DefaultArgs()
 
 
-
 def add_common_args(parser, *, depfile=False):
     parser.add_argument('--rootdir',
         type=Path,
@@ -28,6 +27,12 @@ def add_common_args(parser, *, depfile=False):
         type=Path,
         default=default_args.builddir,
         help='Spoopy build root directory (default: %(default)s)'
+    )
+
+    parser.add_argument('--language',
+        type=str,
+        default='c',
+        help='Programming language to use (default: c)'
     )
 
     if depfile:

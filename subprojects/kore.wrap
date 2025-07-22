@@ -1,0 +1,9 @@
+[wrap-git]
+directory = kore
+method = cmake
+url = https://github.com/Kode/Kore.git
+revision = main
+depth = 1
+
+[provide]
+kore = kore_dep

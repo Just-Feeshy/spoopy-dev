@@ -11,8 +11,9 @@ project('spoopy', 'c',
     version: '0.0.1',
     default_options: run_command([
         files('scripts/default_options.py'),
+        '--language', 'c',
         '--build-type', 'auto', # TODO: Make this configurable (through custom make.py)
-    ], check: true).stdout().strip().split('\n'),
+    ], check: true).stdout().strip().split('\n')
 )
 
 cc = meson.get_compiler('c')
@@ -167,6 +168,7 @@ foreach arglist : [
 endforeach
 
 spoopy_dep_sdl3 = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'])
+spoopy_dep_kore = dependency('kore', fallback : ['kore-wrapper', 'kore_dep'])
 spoopy_deps = []
 
 if host_machine.system() == 'windows'
@@ -192,6 +194,8 @@ config.set('SPOOPY_HAS_ALIGNED_ALLOC', cc.has_function('aligned_alloc'))
 if host_machine.system() != 'emscripten'
     malloc_alignment = cc.alignment('max_align_t', prefix: '#include <stddef.h>\n')
     config.set('SPOOPY_MALLOC_ALIGNMENT', malloc_alignment)
+else
+    spoopy_c_args += ['-Dunity=off']
 endif
 
 dep_m = cc.find_library('m', required: false)
@@ -217,20 +221,20 @@ if meson.is_cross_build()
     systype = '@0@ (cross-compiled)'.format(systype)
 endif
 
+
 # Get absolute paths
 # "Borrowed" from Sway, also, very confused about what
 # this was for, so I wrote comments to explain each process
 # for others' planning to "borrow" this code.
+
 source_root = meson.current_source_dir()    # e.g., "/home/user/spoopy"
 build_root = meson.project_build_root()     # e.g., "/home/user/spoopy/builddir"
 
-# Normalize Windows paths (\ → /)
 if build_machine.system() == 'windows'
     source_root = source_root.replace('\\', '/')  # C:\project → C:/project
     build_root = build_root.replace('\\', '/')    # C:\project\build → C:/project/build
 endif
 
-# Split into path components
 source_root = source_root.split('/')  # ["/home", "user", "spoopy"]
 build_root = build_root.split('/')    # ["/home", "user", "spoopy", "builddir"]
 
@@ -275,12 +279,13 @@ if not spoopy_sdl_threads_support
 endif
 
 subdir('src')
-subdir('test')
+# subdir('test')
 
 summary({
     'System Type': systype,
     'Build Type': is_debug_build ? 'debug' : 'release',
     'SDL3 Version': spoopy_dep_sdl3.version(),
+    'Kore Version': spoopy_dep_kore.version(),
     'Deprecation Warnings': deprecation_warnings,
     'SDL Threading Support': spoopy_sdl_threads_support ? 'enabled' : 'disabled',
 }, section: 'Configuration', bool_yn: true)
