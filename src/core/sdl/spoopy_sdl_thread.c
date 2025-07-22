@@ -6,7 +6,6 @@
 #include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
 
-#include "spoopy_core.h"
 #include "../spoopy_core.h"
 
 static_assert(SPOOPY_THREAD_PRIO_LOW == (int)SDL_THREAD_PRIORITY_LOW, "");
