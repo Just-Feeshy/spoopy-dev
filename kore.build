@@ -1,0 +1,89 @@
+project('Kore', 'c', 'cpp', version: '3.0.0')
+
+# Add Objective-C support only if we're on Darwin
+if host_machine.system() == 'darwin'
+    add_languages('objc', required: false)
+endif
+
+kore_sources = files(
+    'subprojects/kore/sources/2d/2dunit.c',
+    'subprojects/kore/sources/audio/audio.c',
+    'subprojects/kore/sources/gpu/gpuunit.c', 
+    'subprojects/kore/sources/input/inputunit.c',
+    'subprojects/kore/sources/io/iounit.c',
+    'subprojects/kore/sources/math/mathunit.c',
+    'subprojects/kore/sources/mixer/mixerunit.c',
+    'subprojects/kore/sources/network/networkunit.c',
+    'subprojects/kore/sources/root/rootunit.c',
+    'subprojects/kore/sources/util/utilunit.c',
+    'subprojects/kore/sources/libs/offalloc/offalloc.c'
+)
+
+kore_includes = [
+    include_directories('subprojects/kore/includes')
+]
+
+kore_args = ['-DKORE_LZ4X']
+kore_deps = []
+
+# Platform-specific configuration for Darwin
+if host_machine.system() == 'darwin'
+    kore_sources += files(
+        'subprojects/kore/backends/system/apple/sources/appleunit.m',
+        'subprojects/kore/backends/system/macos/sources/macosunit.m',
+        'subprojects/kore/backends/system/macos/sources/audio.c',
+        'subprojects/kore/backends/system/posix/sources/posixunit.c',
+        'subprojects/kore/backends/gpu/metal/sources/metalunit.m'
+    )
+    
+    kore_includes += [
+        include_directories('subprojects/kore/backends/system/apple/includes'),
+        include_directories('subprojects/kore/backends/system/macos/includes'),
+        include_directories('subprojects/kore/backends/system/macos/includes/kore3/backend'),
+        include_directories('subprojects/kore/backends/system/posix/includes'),
+        include_directories('subprojects/kore/backends/gpu/metal/includes')
+    ]
+    
+    kore_args += ['-DKORE_METAL']
+    
+    # Apple framework dependencies
+    kore_deps += [
+        dependency('Metal'),
+        dependency('MetalKit'),
+        dependency('IOKit'),
+        dependency('Cocoa'),
+        dependency('AppKit'),
+        dependency('CoreAudio'),
+        dependency('Foundation')
+    ]
+
+# Platform-specific configuration for Emscripten
+elif host_machine.system() == 'emscripten'
+    kore_sources += files(
+        'subprojects/kore/backends/system/emscripten/sources/emscriptenunit.c',
+        'subprojects/kore/backends/gpu/webgpu/sources/webgpuunit.c'
+    )
+    
+    kore_includes += [
+        include_directories('subprojects/kore/backends/system/emscripten/includes'),
+        include_directories('subprojects/kore/backends/gpu/webgpu/includes')
+    ]
+    
+    kore_args += ['-DKORE_EMSCRIPTEN', '-DKORE_WEBGPU']
+endif
+
+kore_lib = static_library('kore',
+    kore_sources,
+    include_directories: kore_includes,
+    dependencies: kore_deps,
+    c_args: kore_args,
+    cpp_args: kore_args,
+    objc_args: kore_args,
+    install: false
+)
+
+kore_dep = declare_dependency(
+    link_with: kore_lib,
+    include_directories: kore_includes,
+    dependencies: kore_deps
+)

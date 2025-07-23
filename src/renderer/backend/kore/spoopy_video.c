@@ -1,10 +1,15 @@
 #include <spoopy_video.h>
-#include <kore3/system.h>
+
+// Forward declarations for bridge functions
+void spoopy_kore_video_init(const spoopy_video_init_params_t* params);
+void spoopy_kore_video_shutdown(void);
 
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
-    kore_init(params->title, params->width, params->height, NULL, NULL);
+    // Use the bridge function instead of calling Kore directly
+    spoopy_kore_video_init(params);
 }
 
 void spoopy_video_shutdown(void) {
-    // Not yet
+    // Use the bridge function instead of calling Kore directly
+    spoopy_kore_video_shutdown();
 }

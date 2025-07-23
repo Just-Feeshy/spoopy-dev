@@ -5,7 +5,7 @@ spoopy_r_backend_path = ''
 spoopy_renderer_src = []
 
 if opt_kore.enabled()
-    spoopy_backend_dep = dependency('kore', fallback: ['kore', 'kore_dep'])
+    spoopy_backend_dep = dependency('kore', fallback: ['kore-wrapper', 'kore_dep'])
     spoopy_r_backend_path = join_paths(meson.current_source_dir(), 'backend/kore/')
     spoopy_renderer_src = files(spoopy_r_backend_path + 'spoopy_video.c')
 endif
