@@ -1,6 +1,0 @@
-project('Kore', ['c', 'cpp'], version: '3.0.0')
-cmake = import('cmake')
-cmake_opts = cmake.subproject_options()
-cmake_opts.add_cmake_defines({'CMAKE_BUILD_TYPE': get_option('buildtype')})
-kore_subproject = cmake.subproject('kore', options: cmake_opts)
-kore_dep = kore_subproject.dependency('kore')

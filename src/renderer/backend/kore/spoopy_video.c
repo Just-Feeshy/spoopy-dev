@@ -1,11 +1,10 @@
-#ifdef SPOOPY_KORE_VIDEO_H
-#define SPOOPY_KORE_VIDEO_H
-
-#include <spoopy_system.h>
+#include <spoopy_video.h>
 #include <kore3/system.h>
 
-void spoopy_video_init(const spoopy_video_init_params_t params) {
-    kore_init(params.title, params.width, params.height);
+void spoopy_video_init(const spoopy_video_init_params_t* params) {
+    kore_init(params->title, params->width, params->height, NULL, NULL);
 }
 
-#endif
+void spoopy_video_shutdown(void) {
+    // Not yet
+}

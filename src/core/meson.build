@@ -1,4 +1,4 @@
-spoopy_core_src = files(
+spoopy_core_src += files(
     'spoopy_core_thread.c',
     'memory/spoopy_memory.c',
     'sdl/spoopy_sdl_thread.c'
@@ -8,16 +8,16 @@ if host_machine.system() == 'emscripten'
     spoopy_core_lib = static_library('spoopy',
         sources: spoopy_core_src,
         include_directories: [spoopy_includes],
-        dependencies: [spoopy_dep_sdl3] + spoopy_deps,
+        dependencies: [spoopy_deps] + [spoopy_src_deps],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         install: false
     )
 else
     spoopy_core_lib = shared_library('spoopy',
-        sources: spoopy_core_src,
+        sources: [spoopy_core_src],
         include_directories: [spoopy_includes],
-        dependencies: [spoopy_dep_sdl3] + spoopy_deps,
+        dependencies: [spoopy_deps] + [spoopy_src_deps],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         version: meson.project_version(),

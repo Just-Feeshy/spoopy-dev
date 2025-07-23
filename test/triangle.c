@@ -1,5 +1,8 @@
 #include <spoopy.h>
 
-int main(int argc, char** argv) {
+#include "test_renderer.h"
+
+int kickstart(int argc, char** argv) {
+    test_init();
     return 0;
 }

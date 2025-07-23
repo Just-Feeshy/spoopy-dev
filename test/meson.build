@@ -6,6 +6,7 @@ if opt_tests.disabled()
 endif
 
 test_inc = include_directories('.')
+test_links = []
 
 tests = [
     'triangle'
@@ -18,17 +19,11 @@ endif
 foreach test : tests
     test_deps = spoopy_deps
 
-    if test != 'parallel'
-        test_deps += [spoopy_dep_renderer]
-    endif
-
     executable(test,
         '@0@.c'.format(test),
         dependencies: test_deps,
-        link_with: spoopy_core_lib,
+        link_with: [spoopy_core_lib, spoopy_renderer_lib],
         include_directories: [test_inc, spoopy_includes],
         install: false,
     )
-
-    # test(test, test_exe)
 endforeach

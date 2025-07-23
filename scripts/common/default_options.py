@@ -61,7 +61,7 @@ class Config(object):
             options.extend([
                 'buildtype=release',
                 'strip=true',
-                'b_lto=true',
+                'b_lto=false',
                 'b_ndebug=if-release',
                 'optimization=3',
             ])
@@ -77,7 +77,7 @@ class Config(object):
                 options.extend([
                     'buildtype=release',
                     'strip=true',
-                    'b_lto=true',
+                    'b_lto=false',
                     'b_ndebug=if-release',
                 ])
 

@@ -19,19 +19,18 @@ project('spoopy', 'c',
 cc = meson.get_compiler('c')
 config = configuration_data()
 
+if host_machine.system() == 'darwin'
+    add_languages('objc', required: true)
+endif
 
 spoopy_includes = include_directories('include', 'include')
 
 is_debug_build = get_option('is_debug')
 deprecation_warnings = get_option('deprecation_warnings')
 
-spoopy_dep_sdl3 = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
-spoopy_dep_renderer = dependency('spoopy_renderer', fallback : ['spoopy_renderer', 'spoopy_renderer_dep'], required: false)
 spoopy_deps = []
 
-if host_machine.system() == 'windows'
-    spoopy_deps += [cc.find_library('shlwapi')]
-endif
+spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
@@ -52,11 +51,6 @@ config.set('SPOOPY_HAS_ALIGNED_ALLOC', cc.has_function('aligned_alloc'))
 if host_machine.system() != 'emscripten'
     malloc_alignment = cc.alignment('max_align_t', prefix: '#include <stddef.h>\n')
     config.set('SPOOPY_MALLOC_ALIGNMENT', malloc_alignment)
-endif
-
-dep_m = cc.find_library('m', required: false)
-if dep_m.found()
-    spoopy_deps += dep_m
 endif
 
 config.set('SPOOPY_BUILD_DEBUG', is_debug_build)
@@ -140,7 +134,6 @@ subdir('test')
 summary({
     'System Type': systype,
     'Build Type': is_debug_build ? 'debug' : 'release',
-    'SDL3 Version': spoopy_dep_sdl3.version(),
     'Deprecation Warnings': deprecation_warnings,
     'SDL Threading Support': spoopy_sdl_threads_support ? 'enabled' : 'disabled',
 }, section: 'Configuration', bool_yn: true)

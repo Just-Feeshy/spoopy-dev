@@ -1,6 +1,6 @@
 [wrap-git]
 directory = kore
-method = cmake
+method = meson
 url = https://github.com/Kode/Kore.git
 revision = main
 depth = 1

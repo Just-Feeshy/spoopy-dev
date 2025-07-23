@@ -17,7 +17,7 @@ option('enable_tests',
 
 option('enable_kore',
     type: 'feature',
-    value: 'auto',
+    value: 'enabled',
     description: 'Enable Kore support for Spoopy'
 )
 

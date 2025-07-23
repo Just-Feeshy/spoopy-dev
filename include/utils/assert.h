@@ -1,7 +1,6 @@
 #ifndef SPOOPY_ASSERT_H
 #define SPOOPY_ASSERT_H
 
-#include <spoopy.h>
 #include <spoopy_log.h>
 
 #define assert_unlikely(expr) \
@@ -16,7 +15,7 @@
         abort(); \
     }
 
-inline void runtime_assert(bool expr, const char* message) {
+static inline void runtime_assert(bool expr, const char* message) {
     if(!expr) {
         SPOOPY_LOG_ERROR("Runtime assertion failed: %s", message);
         abort();

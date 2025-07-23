@@ -141,6 +141,20 @@ foreach arglist : [
     endif
 endforeach
 
+spoopy_src_deps = []
+
+if host_machine.system() == 'windows'
+    spoopy_src_deps += [cc.find_library('shlwapi')]
+endif
+
+dep_m = cc.find_library('m', required: false)
+if dep_m.found()
+    spoopy_src_deps += dep_m
+endif
+
+spoopy_core_src = []
+
+subdir('renderer')
 subdir('core')
 
 configure_file(

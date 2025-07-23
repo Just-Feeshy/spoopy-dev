@@ -1,1 +1,0 @@
-option('enable_kore', type: 'feature', value: 'enabled', description: 'Enable Kore renderer backend')
