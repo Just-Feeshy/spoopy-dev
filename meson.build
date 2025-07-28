@@ -128,6 +128,12 @@ subdir('scripts')
 subdir('src')
 subdir('test')
 
+spoopy_sdl_threads_support = get_option('have_sdl_thread_support')
+
+if not spoopy_sdl_threads_support
+    config.set('SPOOPY_SUPPORT_SDL_THREADS', 0)
+endif
+
 summary({
     'System Type': systype,
     'Build Type': is_debug_build ? 'debug' : 'release',

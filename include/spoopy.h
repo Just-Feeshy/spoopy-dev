@@ -23,6 +23,7 @@
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
 
+
 // Include all necessary headers to act as an API for the developer
 #ifdef SPOOPY_MAIN_PROJECT
 

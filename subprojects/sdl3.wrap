@@ -1,0 +1,9 @@
+[wrap-git]
+directory = sdl3
+method = cmake
+url = https://github.com/libsdl-org/SDL.git
+revision = main
+depth = 1
+
+[provide]
+sdl3 = SDL3_static_dep

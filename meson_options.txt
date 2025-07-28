@@ -1,0 +1,28 @@
+option('is_debug',
+    type: 'boolean',
+    value: false,
+    description: 'Enable debug mode for Spoopy'
+)
+
+option('deprecation_warnings',
+    choices : ['default', 'error', 'no-error', 'ignore'],
+    type : 'combo',
+    description : 'Treatment of deprecation warnings'
+)
+
+option('enable_tests',
+    type: 'feature',
+    description: 'Build various test programs'
+)
+
+option('enable_kore',
+    type: 'feature',
+    value: 'enabled',
+    description: 'Enable Kore support for Spoopy'
+)
+
+option('have_sdl_thread_support',
+    type: 'boolean',
+    value: true,
+    description: 'Use SDL threads for multi-threading'
+)

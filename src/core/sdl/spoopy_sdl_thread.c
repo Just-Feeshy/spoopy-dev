@@ -132,6 +132,9 @@ void spoopy_sdl_thread_shutdown(void) {
         SPOOPY_LOG_WARN("Thread manager is not initialized, cannot shutdown");
         return;
     }
+}
+
+void spoopy_sdl_thread_shutdown(void) {
 
     // Get all threads that are still running and detach them
     // since free meant 1, then if we invert the capacity,

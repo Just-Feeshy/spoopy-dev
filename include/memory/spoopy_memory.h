@@ -14,6 +14,8 @@ enum spoopy_memory_type {
 };
 
 SPOOPY_FUNC_CORE inline void* spoopy_stack_alloc(size_t size)
+
+SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
     SPOOPY_ATTR_SIZE(1);
 
 SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
@@ -45,7 +47,6 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 // Obviously, this allocator should be a struct with multiple callbacks for each type of memory allocation, thus if I ever want to use Zig to make proper custom allocators,
 // it will be easier to implement and create reusable code.
 // Also, it will be referred to as `spoopy_allocator_t` or something similar.
-
 
 #if defined(__GNUC__) || defined(__clang__)
 
@@ -98,7 +99,7 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 #endif
 
 #ifndef SPOOPY_FLEX_ALLOC
-
+  
 
 // I did this because `__builtin_choose_expr` is not supported for non GNU compilers,
 // and I want to keep the code portable for everyone

@@ -1,8 +1,7 @@
-export/
-project/obj
 .DS_Store
-update-lime.sh
+.archive/
+scripts/common/__pycache__/
+subprojects/spoopy_renderer/scripts/common/__pycache__/
 
-ndll
-ndll-vulkan
-ndll-metal
+build/
+spoopy_build_config.h

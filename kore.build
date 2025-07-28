@@ -35,7 +35,7 @@ if host_machine.system() == 'darwin'
         'subprojects/kore/backends/system/posix/sources/posixunit.c',
         'subprojects/kore/backends/gpu/metal/sources/metalunit.m'
     )
-
+    
     kore_includes += [
         include_directories('subprojects/kore/backends/system/apple/includes'),
         include_directories('subprojects/kore/backends/system/macos/includes'),
@@ -43,9 +43,8 @@ if host_machine.system() == 'darwin'
         include_directories('subprojects/kore/backends/system/posix/includes'),
         include_directories('subprojects/kore/backends/gpu/metal/includes')
     ]
-
+    
     kore_args += ['-DKORE_METAL']
-
     # Apple framework dependencies
     kore_deps += [
         dependency('Metal'),
@@ -63,12 +62,10 @@ elif host_machine.system() == 'emscripten'
         'subprojects/kore/backends/system/emscripten/sources/emscriptenunit.c',
         'subprojects/kore/backends/gpu/webgpu/sources/webgpuunit.c'
     )
-
     kore_includes += [
         include_directories('subprojects/kore/backends/system/emscripten/includes'),
         include_directories('subprojects/kore/backends/gpu/webgpu/includes')
     ]
-
     kore_args += ['-DKORE_EMSCRIPTEN', '-DKORE_WEBGPU']
 endif
 
