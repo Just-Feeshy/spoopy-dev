@@ -13,8 +13,6 @@ enum spoopy_memory_type {
     spoopy_aligned,
 };
 
-SPOOPY_FUNC_CORE inline void* spoopy_stack_alloc(size_t size)
-
 SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
     SPOOPY_ATTR_SIZE(1);
 
