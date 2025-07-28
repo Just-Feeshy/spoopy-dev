@@ -97,7 +97,7 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 #endif
 
 #ifndef SPOOPY_FLEX_ALLOC
-  
+
 
 // I did this because `__builtin_choose_expr` is not supported for non GNU compilers,
 // and I want to keep the code portable for everyone
