@@ -11,6 +11,7 @@
 #include <spoopy_thread.h>
 
 spoopy_thread_manager_t threads = {0};
+bool spoopy_threads_initialized = false;
 
 void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* thread_buffer) {
     if(SPOOPY_UNLIKELY(threads.chunk_thread_capacity == 0UL)) {

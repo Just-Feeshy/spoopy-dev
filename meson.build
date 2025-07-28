@@ -10,9 +10,9 @@ project('spoopy', 'c',
     meson_version: '>=0.63.0',
     version: '0.0.1',
     default_options: run_command([
-        files('scripts/default_options.py'),
+        files('scripts/default_options.js'),
         '--language', 'c',
-        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.py)
+        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.js)
     ], check: true).stdout().strip().split('\n')
 )
 
@@ -47,6 +47,8 @@ endif
 
 config.set('SPOOPY_HAS_POSIX', has_posix)
 config.set('SPOOPY_HAS_ALIGNED_ALLOC', cc.has_function('aligned_alloc'))
+config.set('SPOOPY_HAS_POSIX_MEMALIGN',
+    cc.has_function('posix_memalign') and host_machine.system() != 'nx')
 
 if host_machine.system() != 'emscripten'
     malloc_alignment = cc.alignment('max_align_t', prefix: '#include <stddef.h>\n')
@@ -122,14 +124,15 @@ else
     config.set_quoted('SPOOPY_REAL_SRC_DIR', relative_src_dir)
 endif
 
+subdir('scripts')
+subdir('src')
+subdir('test')
+
 spoopy_sdl_threads_support = get_option('have_sdl_thread_support')
 
 if not spoopy_sdl_threads_support
     config.set('SPOOPY_SUPPORT_SDL_THREADS', 0)
 endif
-
-subdir('src')
-subdir('test')
 
 summary({
     'System Type': systype,

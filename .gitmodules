@@ -1,3 +1,3 @@
-[submodule "subprojects/kore-wrapper/kore"]
-	path = subprojects/kore-wrapper/kore
+[submodule "src/renderer/Kore"]
+	path = src/renderer/Kore
 	url = https://github.com/Kode/Kore.git

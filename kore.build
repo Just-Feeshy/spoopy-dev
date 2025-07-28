@@ -8,7 +8,7 @@ endif
 kore_sources = files(
     'subprojects/kore/sources/2d/2dunit.c',
     'subprojects/kore/sources/audio/audio.c',
-    'subprojects/kore/sources/gpu/gpuunit.c', 
+    'subprojects/kore/sources/gpu/gpuunit.c',
     'subprojects/kore/sources/input/inputunit.c',
     'subprojects/kore/sources/io/iounit.c',
     'subprojects/kore/sources/math/mathunit.c',
@@ -45,7 +45,6 @@ if host_machine.system() == 'darwin'
     ]
     
     kore_args += ['-DKORE_METAL']
-    
     # Apple framework dependencies
     kore_deps += [
         dependency('Metal'),
@@ -63,12 +62,10 @@ elif host_machine.system() == 'emscripten'
         'subprojects/kore/backends/system/emscripten/sources/emscriptenunit.c',
         'subprojects/kore/backends/gpu/webgpu/sources/webgpuunit.c'
     )
-    
     kore_includes += [
         include_directories('subprojects/kore/backends/system/emscripten/includes'),
         include_directories('subprojects/kore/backends/gpu/webgpu/includes')
     ]
-    
     kore_args += ['-DKORE_EMSCRIPTEN', '-DKORE_WEBGPU']
 endif
 
