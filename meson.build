@@ -8,7 +8,9 @@
 project('spoopy', 'c',
     license: 'mit',
     meson_version: '>=0.63.0',
-    version: '0.0.1',
+    version: run_command([
+        'node', '-e', 'console.log(require("./package.json").version)'
+    ], check: true).stdout().strip(),
     default_options: run_command([
         files('scripts/default_options.js'),
         '--language', 'c',
