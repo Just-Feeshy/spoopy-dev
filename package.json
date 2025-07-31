@@ -1,0 +1,7 @@
+{
+  "name": "spoopy",
+  "version": "0.0.1",
+  "dependencies": {
+    "argparse": "^2.0.1"
+  }
+}

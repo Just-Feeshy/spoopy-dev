@@ -23,29 +23,29 @@ const defaultArgs = new DefaultArgs();
 function addCommonArgs(parser, options = {}) {
     const { depfile = false } = options;
 
-    parser.option('--rootdir', {
-        type: 'string',
+    parser.add_argument('--rootdir', {
+        type: 'str',
         default: defaultArgs.rootdir,
-        description: `Spoopy source root directory (default: ${defaultArgs.rootdir})`
+        help: `Spoopy source root directory (default: ${defaultArgs.rootdir})`
     });
 
-    parser.option('--builddir', {
-        type: 'string', 
+    parser.add_argument('--builddir', {
+        type: 'str', 
         default: defaultArgs.builddir,
-        description: `Spoopy build root directory (default: ${defaultArgs.builddir})`
+        help: `Spoopy build root directory (default: ${defaultArgs.builddir})`
     });
 
-    parser.option('--language', {
-        type: 'string',
+    parser.add_argument('--language', {
+        type: 'str',
         default: 'c',
-        description: 'Programming language to use (default: c)'
+        help: 'Programming language to use (default: c)'
     });
 
     if (depfile) {
-        parser.option('--depfile', {
-            type: 'string',
+        parser.add_argument('--depfile', {
+            type: 'str',
             default: defaultArgs.depfile,
-            description: `Path to the dependency file (default: ${defaultArgs.depfile})`
+            help: `Path to the dependency file (default: ${defaultArgs.depfile})`
         });
     }
 }

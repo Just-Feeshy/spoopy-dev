@@ -185,7 +185,7 @@ function main(args) {
     });
 
     common.addCommonArgs(parser);
-    const parsedArgs = parser.parse_args(args.slice(1));
+    const parsedArgs = parser.parse_args(args.slice(2));
     console.log(get({ args: parsedArgs }).format(parsedArgs.format));
 }
 
