@@ -7,4 +7,3 @@ node_modules/
 
 build/
 spoopy_build_config.h
-package-lock.json
