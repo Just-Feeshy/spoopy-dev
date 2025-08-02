@@ -7,14 +7,14 @@
 
 project('spoopy', 'c',
     license: 'mit',
-    meson_version: '>=0.63.0',
+     meson_version: '>=1.5.2',
     version: run_command([
         'node', '-e', 'console.log(require("./package.json").version)'
     ], check: true).stdout().strip(),
     default_options: run_command([
         files('scripts/default_options.js'),
         '--language', 'c',
-        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.js)
+        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.js) + have a npm install script
     ], check: true).stdout().strip().split('\n')
 )
 
@@ -22,7 +22,7 @@ cc = meson.get_compiler('c')
 config = configuration_data()
 
 if host_machine.system() == 'darwin'
-    add_languages('objc', required: true)
+    add_project_arguments('-mmacosx-version-min=12.0', language: ['c', 'objc'])
 endif
 
 spoopy_includes = include_directories('include', 'include')
