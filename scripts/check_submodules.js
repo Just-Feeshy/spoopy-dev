@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const { execMain } = require('./common/common');
 const { execSync } = require('child_process');
 const path = require('path');
@@ -26,7 +27,8 @@ function initializeSubmodule(modulePath, cwd) {
 }
 
 function main(args) {
-    const cwd = process.env.SPOOPY_SOURCE_ROOT || path.dirname(__filename);
+
+    const cwd = /*process.env.SPOOPY_SOURCE_ROOT ||*/ path.dirname(__filename);
     const uninitializedModules = [];
 
     try {

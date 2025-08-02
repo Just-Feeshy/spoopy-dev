@@ -22,7 +22,7 @@ foreach test : tests
     executable(test,
         '@0@.c'.format(test),
         dependencies: test_deps,
-        link_with: [spoopy_core_lib, spoopy_renderer_lib],
+        link_with: [spoopy_core_lib],
         include_directories: [test_inc, spoopy_includes],
         install: false,
     )

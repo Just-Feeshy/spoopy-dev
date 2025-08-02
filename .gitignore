@@ -2,6 +2,9 @@
 .archive/
 scripts/common/__pycache__/
 subprojects/spoopy_renderer/scripts/common/__pycache__/
+src/renderer/output/
+node_modules/
 
 build/
 spoopy_build_config.h
+package-lock.json
