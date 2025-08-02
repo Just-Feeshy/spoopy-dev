@@ -1,4 +1,4 @@
-#include "spoopy_core.h"
+#include "../spoopy_core.h"
 #include <memory/spoopy_memory.h>
 #include <utils/assert.h>
 

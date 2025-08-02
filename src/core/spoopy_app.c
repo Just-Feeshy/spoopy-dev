@@ -1,9 +1,9 @@
-#include <spoopy_rhi.h>
+// #include <spoopy_rhi.h>
 #include <spoopy_app.h>
 
 void spoopy_app_init(void) { // "Flixelize" this IG
     spoopy_sdl_thread_init();
-    spoopy_new_rhi();
+    // spoopy_new_rhi();
 }
 
 void spoopy_app_shutdown(void) {

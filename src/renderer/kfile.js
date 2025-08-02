@@ -16,11 +16,12 @@ if (target_platform === Platform.OSX) {
 }
 
 project.addIncludeDir('Kore/backends/system/' + target_platform + '/includes/kore3/backend');
-project.addExclude('Kore/sources/root/rootcppunit.cpp');
 
 project.addCFlag('-std=c11');
 project.addFile('src/**');
 project.addKongDir('shaders');
+project.addExclude('**.cpp');
+project.addExcludes();
 
 project.flatten();
 resolve(project);

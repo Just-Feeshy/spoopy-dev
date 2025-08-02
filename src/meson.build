@@ -154,7 +154,7 @@ endif
 
 spoopy_core_src = []
 
-subdir('renderer')
+# subdir('renderer')
 subdir('core')
 
 configure_file(
