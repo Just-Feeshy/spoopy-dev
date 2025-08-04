@@ -14,7 +14,7 @@ project('spoopy', 'c',
     default_options: run_command([
         files('scripts/default_options.js'),
         '--language', 'c',
-        '--build-type', 'auto', # TODO (Framework): Make this configurable (through custom make.js) + have a npm install script
+        '--build-type', 'auto',
     ], check: true).stdout().strip().split('\n')
 )
 
@@ -127,6 +127,12 @@ else
 endif
 
 subdir('scripts')
+
+renderer_subproject = subproject('spoopy-renderer',
+    default_options: subproject_default_options + ['rust_abi=c']
+)
+spoopy_renderer_dep = renderer_subproject.get_variable('spoopy_renderer_dep')
+
 subdir('src')
 subdir('test')
 

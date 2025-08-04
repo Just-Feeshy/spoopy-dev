@@ -70,6 +70,7 @@ function main(args) {
         const cmdArgs = [
             '-g', graphicsAPI,
             '--lib',
+            '--noshaders',
             '--meson', // Not supported by precompiled binary
             // '--dev', kmakePath,
             '--from', sourceDir,

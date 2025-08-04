@@ -108,7 +108,11 @@ class Config {
             options.push(
                 'c_std=gnu11',
                 'cpp_std=gnu++20',
-                'objc_std=c11'
+                'objc_std=c11',
+                'c_args=-mmacosx-version-min=11.0',
+                'objc_args=-mmacosx-version-min=11.0',
+                'c_link_args=-mmacosx-version-min=11.0',
+                'objc_link_args=-mmacosx-version-min=11.0'
             );
         } else if (process.platform.startsWith('linux')) {
             options.push(
