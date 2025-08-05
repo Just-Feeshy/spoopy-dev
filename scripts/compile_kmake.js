@@ -62,7 +62,6 @@ function main(args) {
                     console.log('Process argv:', JSON.stringify(process.argv));
                     console.log('NODE_PATH:', process.env.NODE_PATH);
                     console.log('PATH:', process.env.PATH);
-
                     break;
             }
         }
@@ -71,26 +70,26 @@ function main(args) {
             '-g', graphicsAPI,
             '--lib',
             '--noshaders',
-            // '--meson', // Not supported by precompiled binary
+            '--meson', // Generate Meson build files
             // '--dev', kmakePath,
             '--from', sourceDir,
             '--to', outputDir
         ];
 
-        console.log(`Running kmake with graphics API: ${graphicsAPI}`);
-        console.log(`Output directory: ${outputDir}`);
-        console.log(`Kmake path: ${kmakePath}`);
-        console.log(`Target architecture: ${arch}`);
-
-        let kmakeExecutable;
-        if (platform === 'win32') {
-            kmakeExecutable = path.join(koreDir, 'make.exe');
-        } else {
-            kmakeExecutable = path.join(koreDir, 'make');
+        let command;
+        const arm64KmakePath = path.join(koreDir, 'tools', 'macos_arm64', 'kmake');
+        if (platform === 'darwin' && require('fs').existsSync(arm64KmakePath)) {
+            command = `"${arm64KmakePath}" ${cmdArgs.join(' ')}`;
+        } else { // TODO (Framework): Add support for developer to change architecture for all platforms
+            let kmakeExecutable;
+            if (platform === 'win32') {
+                kmakeExecutable = path.join(koreDir, 'make.exe');
+            } else {
+                kmakeExecutable = path.join(koreDir, 'make');
+            }
+            command = `"${kmakeExecutable}" ${cmdArgs.join(' ')}`;
         }
-        console.log(`Using precompiled binary: ${kmakeExecutable}`);
 
-        const command = `"${kmakeExecutable}" ${cmdArgs.join(' ')}`;
         const result = execSync(command, {
             cwd: sourceDir,
             encoding: 'utf8',
@@ -98,10 +97,13 @@ function main(args) {
         });
 
         console.log('✅ Kmake generation successful');
-        console.log(result.trim());
 
     } catch (error) {
         console.error('❌ Error during compilation:', error.message);
+        console.error('Exit code:', error.status);
+        if (error.stdout) {
+            console.error('Stdout:', error.stdout.trim());
+        }
         if (error.stderr) {
             console.error('Stderr:', error.stderr.trim());
         }
