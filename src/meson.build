@@ -154,8 +154,8 @@ endif
 
 spoopy_core_src = []
 
+subdir('renderer')
 subdir('core')
-# Renderer is now handled as a subproject
 
 configure_file(
     configuration: config,

@@ -127,12 +127,6 @@ else
 endif
 
 subdir('scripts')
-
-renderer_subproject = subproject('spoopy-renderer',
-    default_options: subproject_default_options + ['rust_abi=c']
-)
-spoopy_renderer_dep = renderer_subproject.get_variable('spoopy_renderer_dep')
-
 subdir('src')
 subdir('test')
 

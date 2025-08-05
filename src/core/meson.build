@@ -10,6 +10,7 @@ if host_machine.system() == 'emscripten'
         sources: spoopy_core_src,
         include_directories: [spoopy_includes],
         dependencies: [spoopy_deps] + [spoopy_src_deps],
+        link_with: [spoopy_renderer],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         install: false
@@ -19,6 +20,7 @@ else
         sources: [spoopy_core_src],
         include_directories: [spoopy_includes],
         dependencies: [spoopy_deps] + [spoopy_src_deps],
+        link_with: [spoopy_renderer],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         version: meson.project_version(),
