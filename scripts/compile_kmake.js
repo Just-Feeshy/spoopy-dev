@@ -71,7 +71,7 @@ function main(args) {
             '-g', graphicsAPI,
             '--lib',
             '--noshaders',
-            '--meson', // Not supported by precompiled binary
+            // '--meson', // Not supported by precompiled binary
             // '--dev', kmakePath,
             '--from', sourceDir,
             '--to', outputDir
