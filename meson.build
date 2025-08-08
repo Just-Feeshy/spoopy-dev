@@ -34,16 +34,6 @@ spoopy_deps = []
 
 spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
 
-slang_dep = dependency('slang', version: '>=0.10.0', fallback : ['slang-cmake-wrapper', 'slang_dep'], required: true)
-spoopy_deps += slang_dep
-
-slang_subproject = subproject('slang-cmake-wrapper')
-
-slang_fiddle_gen = slang_subproject.get_variable('slang_fiddle_gen')
-slang_cap_gen = slang_subproject.get_variable('slang_cap_gen')
-
-alias_target('generate-slang', [slang_fiddle_gen, slang_cap_gen])
-
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
 if has_posix
