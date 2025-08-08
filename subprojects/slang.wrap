@@ -1,0 +1,9 @@
+[wrap-git]
+directory=slang
+method=cmake
+url=https://github.com/shader-slang/slang.git
+push-url=git@github.com:shader-slang/slang.git
+revision=master
+
+[provide]
+slang = slang_static_dep

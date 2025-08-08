@@ -33,6 +33,20 @@ deprecation_warnings = get_option('deprecation_warnings')
 spoopy_deps = []
 
 spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+slang_dep = dependency('slang', version: '>=0.10.0', fallback : ['slang-cmake-wrapper', 'slang_dep'], required: true)
+spoopy_deps += slang_dep
+
+slang_subproject = subproject('slang-cmake-wrapper')
+slang_cmake_build_dir = slang_subproject.get_variable('slang_cmake_build_dir')
+
+generate_slang_target = custom_target('generate-slang',
+    command: ['ninja', '-C', slang_cmake_build_dir,
+             'slang-capability-generator', 'slang-fiddle', 'slang-embed',
+             'slang-fiddle-output'],
+    output: 'slang-generated.stamp',
+    build_always_stale: true,
+    console: true
+)
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
@@ -41,7 +55,6 @@ if has_posix
         config.set('_POSIX_C_SOURCE', '200809L')
     endif
 
-    # For good measure
     if host_machine.system() == 'darwin'
         config.set('_DARWIN_C_SOURCE', true)
     endif
@@ -115,7 +128,6 @@ endforeach
 relative_dir = join_paths(relative_dir_parts)
 relative_src_dir = relative_dir + '/src/'
 
-# Set the source directory relative to the build directory
 if cc.has_argument('-fmacro-prefix-map=/prefix/to/hide=')
     add_project_arguments(
         '-fmacro-prefix-map=@0@=.'.format(relative_src_dir),
