@@ -5,7 +5,7 @@
 # https://github.com/taisei-project/taisei
 
 
-project('spoopy', 'c',
+project('spoopy', ['rust', 'c'],
     license: 'mit',
      meson_version: '>=1.5.2',
     version: run_command([
@@ -27,7 +27,7 @@ endif
 
 spoopy_includes = include_directories('include', 'include')
 
-is_debug_build = get_option('is_debug')
+is_debug_build = get_option('debug')
 deprecation_warnings = get_option('deprecation_warnings')
 
 spoopy_deps = []

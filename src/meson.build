@@ -1,5 +1,7 @@
+is_msvc_style = cc.get_argument_syntax() == 'msvc' or cc.get_define('_MSC_VER') != ''
+
 # Cross-platform warning arguments
-if cc.get_id() == 'msvc'
+if is_msvc_style
 
     # MSVC warning flags
     spoopy_c_args = [
@@ -156,6 +158,7 @@ spoopy_core_src = []
 
 subdir('renderer')
 subdir('core')
+subdir('visuals') # I prefer to keep this as the last subdir
 
 configure_file(
     configuration: config,

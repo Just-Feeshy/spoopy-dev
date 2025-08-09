@@ -1,9 +1,3 @@
-option('is_debug',
-    type: 'boolean',
-    value: false,
-    description: 'Enable debug mode for Spoopy'
-)
-
 option('deprecation_warnings',
     choices : ['default', 'error', 'no-error', 'ignore'],
     type : 'combo',
@@ -25,4 +19,16 @@ option('have_sdl_thread_support',
     type: 'boolean',
     value: true,
     description: 'Use SDL threads for multi-threading'
+)
+
+option('triplet',
+    type: 'string',
+    value: '',
+    description : 'Rust target triplet (if needed)'
+)
+
+option('rustc-version',
+    type: 'string',
+    value: '',
+    description : 'Minimum Rust compiler version (if needed)'
 )

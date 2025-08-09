@@ -30,7 +30,7 @@ function addCommonArgs(parser, options = {}) {
     });
 
     parser.add_argument('--builddir', {
-        type: 'str', 
+        type: 'str',
         default: defaultArgs.builddir,
         help: `Spoopy build root directory (default: ${defaultArgs.builddir})`
     });
@@ -50,20 +50,58 @@ function addCommonArgs(parser, options = {}) {
     }
 }
 
-function injectSpoopyFrameworkPath() {
-    const sp = path.resolve(__dirname, '..', '..');
-    const pythonPath = process.env.PYTHONPATH || '';
-    const pp = pythonPath.split(path.delimiter);
+function addCargoArgs(parser) {
+    parser.add_argument('--command', {
+        required: true,
+        choices: ['cbuild', 'test', 'build'],
+        help: 'Cargo command to execute (cbuild, test, build)'
+    });
 
-    if (!pp.includes(sp)) {
-        pp.unshift(sp);
-        process.env.PYTHONPATH = pp.join(path.delimiter);
-    }
+    parser.add_argument('--cargo', {
+        required: true,
+        type: 'str',
+        help: 'Path to the Cargo executable'
+    });
+
+    parser.add_argument('--manifest-path', {
+        type: 'str',
+        required: true,
+        help: 'Path to the Cargo manifest (Cargo.toml)'
+    });
+
+    parser.add_argument('--project-build-root', {
+        type: 'str',
+        required: true,
+        help: 'Path to the project build root directory'
+    });
+
+    parser.add_argument('--prefix', {
+        type: 'str',
+        required: true,
+        help: 'Prefix for the build artifacts'
+    });
+
+    parser.add_argument('--libdir', {
+        type: 'str',
+        required: true,
+        help: 'Directory for library files'
+    });
+
+    const g = parser.add_argument_group('Optimizations');
+    const group = parser.add_mutually_exclusive_group({ required: false });
+
+    group.add_argument('--release', {
+        action: 'store_true',
+        help: 'Build artifacts in release mode'
+    });
+
+    group.add_argument('--optimization', {
+        choices: ['0', '1', '2', '3', 's'],
+        help: 'Set optimization level for the build (0, 1, 2, 3, s)',
+    });
 }
 
 function execMain(func, args = null) {
-    injectSpoopyFrameworkPath();
-
     if (args === null) {
         args = process.argv;
     }
@@ -76,6 +114,6 @@ module.exports = {
     DefaultArgs,
     defaultArgs,
     addCommonArgs,
-    injectSpoopyFrameworkPath,
+    addCargoArgs,
     execMain
 };
