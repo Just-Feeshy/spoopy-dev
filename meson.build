@@ -5,7 +5,7 @@
 # https://github.com/taisei-project/taisei
 
 
-project('spoopy', ['rust', 'c'],
+project('spoopy', ['c'],
     license: 'mit',
      meson_version: '>=1.5.2',
     version: run_command([
