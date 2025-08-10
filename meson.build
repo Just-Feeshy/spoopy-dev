@@ -125,6 +125,7 @@ else
 endif
 
 subdir('scripts')
+subdir('shaders')
 subdir('src')
 subdir('test')
 
