@@ -75,6 +75,16 @@ function addCargoArgs(parser) {
         help: 'Path to the project build root directory'
     });
 
+    parser.add_argument('--current-build-dir', {
+        type: 'str',
+        help: 'Current build directory (Meson @OUTDIR@)'
+    });
+
+    parser.add_argument('--current-source-dir', {
+        type: 'str',
+        help: 'Current source directory'
+    });
+
     parser.add_argument('--prefix', {
         type: 'str',
         required: true,
@@ -85,6 +95,10 @@ function addCargoArgs(parser) {
         type: 'str',
         required: true,
         help: 'Directory for library files'
+    });
+
+    parser.add_argument('--extension', {
+        help: 'filename extension for the library (so, a, dll, lib, dylib)'
     });
 
     const g = parser.add_argument_group('Optimizations');

@@ -16,44 +16,47 @@ endif
 
 cargo_toml = meson.current_source_dir() / 'Cargo.toml'
 
-cargo_wrapper_args = [
-    '--command', 'cbuild',
-    '--cargo', cargo.full_path(),
-    '--manifest-path', cargo_toml,
-    '--project-build-root', meson.project_build_root(),
-    '--prefix', get_option('prefix'),
-    '--libdir', get_option('libdir'),
-]
+cargo_build_args = []
 
 if is_debug_build
     optimization = get_option('optimization')
 
     if optimization in ['0', '1', '2', '3', 's']
-        cargo_wrapper_args += ['--optimization', optimization]
+        cargo_build_args += ['--optimization', optimization]
     elif optimization != 'plain'
-        cargo_wrapper_args += ['--optimization', '1']
+        cargo_build_args += ['--optimization', '1']
     endif
 else
-    cargo_wrapper_args += ['--release']
+    cargo_build_args += ['--release']
 endif
 
-spoopy_visuals_src = files(
+visuals_sources = files(
     'Cargo.toml',
     'src/lib.rs',
 )
 
-spoopy_visuals_stuff = custom_target('spoopy_visuals_lib',
-    output: ['@0@spoopy_visuals.@1@'.format(lib_prefix, ext_static)],
+rust_artifacts = custom_target(
+    'spoopy-visuals',
     build_by_default: true,
+    output: '@0@spoopy_visuals.@1@'.format(lib_prefix, ext_static),
     console: true,
-    depend_files: spoopy_visuals_src,
+    depend_files: visuals_sources,
     command: [
-        cargo_wrapper
-    ] + cargo_wrapper_args,
+        cargo_wrapper,
+        '--command', 'cbuild',
+        '--cargo', cargo.full_path(),
+        '--manifest-path', cargo_toml,
+        '--current-build-dir', '@OUTDIR@',
+        '--current-source-dir', meson.current_source_dir(),
+        '--project-build-root', meson.project_build_root(),
+        '--prefix', get_option('prefix'),
+        '--libdir', get_option('libdir'),
+        '--extension', ext_static,
+    ] + cargo_build_args,
     install: false,
 )
 
-spoopy_visuals_lib = spoopy_visuals_stuff[0]
+spoopy_visuals_lib = rust_artifacts
 
 spoopy_visuals_dep = declare_dependency(
     link_with: spoopy_visuals_lib,

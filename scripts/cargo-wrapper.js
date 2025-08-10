@@ -47,10 +47,32 @@ function main(args) {
 
     try {
         const result = execSync(`cargo-cbuild ${cargo_args.join(' ')}`, {
-            cwd: process.cwd(),
+            cwd: parsed_args.current_source_dir || process.cwd(),
             stdio: 'inherit',
             shell: true
         });
+
+        if (parsed_args.extension && parsed_args.current_build_dir && parsed_args.current_source_dir) {
+            const fs = require('fs');
+            const path = require('path');
+            const glob = require('glob');
+
+            const buildtype = parsed_args.release ? 'release' : 'debug';
+
+            const cargo_target_dir = path.join(parsed_args.current_source_dir, 'target');
+            const pattern = path.join(cargo_target_dir, '**', buildtype, `*.${parsed_args.extension}`);
+            const files = glob.sync(pattern);
+
+            for (const file of files) {
+                const dest = path.join(parsed_args.current_build_dir, path.basename(file));
+                fs.copyFileSync(file, dest);
+                console.log(`Copied ${file} to ${dest}`);
+            }
+
+            if (files.length === 0) {
+                console.warn(`Warning: No .${parsed_args.extension} files found in ${pattern}`);
+            }
+        }
     } catch (error) {
         process.exit(error.status || 1);
     }

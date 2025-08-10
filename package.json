@@ -2,6 +2,7 @@
   "name": "spoopy",
   "version": "0.0.1",
   "dependencies": {
-    "argparse": "^2.0.1"
+    "argparse": "^2.0.1",
+    "glob": "^10.3.10"
   }
 }

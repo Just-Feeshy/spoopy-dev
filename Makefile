@@ -1,4 +1,4 @@
-.PHONY: setup build clean install rust-visuals rust-clean
+.PHONY: setup build clean install
 
 # Detect OS
 UNAME_S := $(shell uname -s)
@@ -14,22 +14,12 @@ else
 	meson setup build/
 endif
 
-# Build the Rust visuals library
-rust-visuals:
-	cd src/visuals && cargo-cbuild cbuild --manifest-path ./Cargo.toml --release
-	mkdir -p build/src/visuals
-	cp src/visuals/target/aarch64-apple-darwin/release/libspoopy_visuals.a build/src/visuals/
-
 # Build the project
-build: rust-visuals
+build:
 	meson compile -C build/
 
-# Clean Rust build artifacts
-rust-clean:
-	cd src/visuals && cargo clean
-
 # Clean build directory
-clean: rust-clean
+clean:
 	rm -rf build/
 
 # Install the project
