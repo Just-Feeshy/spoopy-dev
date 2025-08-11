@@ -17,8 +17,12 @@ if slang_lib_dir == ''
 endif
 
 if slang_include_dir == '' and slang_dir != ''
-  slang_include_dir = slang_dir
+    slang_include_dir = slang_dir
 endif
+
+slangc = find_program(slang_lib_dir / 'slangc',
+                     slang_dir / 'bin' / 'slangc',
+                     required: true)
 
 if opt_kore.enabled()
     check_submodules_result = run_command(check_submodules_command, check: false)
