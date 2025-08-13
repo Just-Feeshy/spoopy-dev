@@ -1,8 +1,7 @@
 #ifndef SPOOPY_SPOOPY_SHADER_H
 #define SPOOPY_SPOOPY_SHADER_H
 
-// #include <spoopy.h>
-// #include <shaderlib/defs.h>
+#include <spoopy.h>
 
 #ifdef __cplusplus
 extern "C" {

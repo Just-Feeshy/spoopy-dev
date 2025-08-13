@@ -7,10 +7,10 @@ add_library(visuals STATIC
 
 get_filename_component(SPOOPY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../include" ABSOLUTE)
 message(STATUS "SPOOPY_INCLUDE_DIR resolved to: ${SPOOPY_INCLUDE_DIR}")
-target_include_directories(visuals PUBLIC
-    $<BUILD_INTERFACE:${SPOOPY_INCLUDE_DIR}>
-    $<INSTALL_INTERFACE:include>
-)
+
+# Add include directory as compile flag directly
+target_compile_options(visuals PRIVATE "-I${SPOOPY_INCLUDE_DIR}")
+target_include_directories(visuals PUBLIC "${SPOOPY_INCLUDE_DIR}")
 
 target_compile_features(visuals PUBLIC c_std_99)
 include(GNUInstallDirs)
