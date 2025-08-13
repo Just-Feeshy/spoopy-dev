@@ -1,13 +1,6 @@
-# Spoopy - A lightweight C game framework
-# Build system "inspired" by Taisei Project
-
-# Go check the project out (I'm a Touhou fan):
-# https://github.com/taisei-project/taisei
-
-
 project('spoopy', ['c'],
     license: 'mit',
-     meson_version: '>=1.5.2',
+    meson_version: '>=1.5.2',
     version: run_command([
         'node', '-e', 'console.log(require("./package.json").version)'
     ], check: true).stdout().strip(),

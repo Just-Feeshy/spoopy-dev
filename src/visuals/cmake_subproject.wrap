@@ -1,0 +1,5 @@
+[wrap-file]
+directory = cmake_subproject
+
+[provide]
+visuals = visuals_dep
