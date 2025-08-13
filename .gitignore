@@ -7,6 +7,6 @@ src/renderer/output/
 node_modules/
 src/visuals/target/
 docs/
-
 build/
+
 spoopy_build_config.h
