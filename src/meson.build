@@ -158,9 +158,6 @@ spoopy_core_src = []
 
 subdir('renderer')
 subdir('core')
-subdir('visuals')
-
-spoopy_deps += visuals_dep
 
 configure_file(
     configuration: config,
