@@ -10,7 +10,7 @@ extern "C" {
 enum spoopy_memory_type {
     spoopy_heap,
     spoopy_stack,
-    // spoopy_aligned,
+    spoopy_aligned,
 };
 
 SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
@@ -22,12 +22,20 @@ SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
     SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
     SPOOPY_ATTR_SIZE(1);
 
+SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
+    SPOOPY_ATTR(malloc)
+    SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
+    SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
+    SPOOPY_ATTR_SIZE(1);
+    SPOOPY_ATTR_ALIGN(2);
+
 static inline char* spoopy_heap_strdup(const char* str) {
     size_t len = strlen(str) + 1;
     return memcpy(spoopy_heap_alloc(len), str, len);
 }
 
 SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
+
 
 // I don't like using too many macros, but this is a good way to handle platform-specific memory allocation, and pretty much everything else.
 
@@ -37,7 +45,6 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 // Obviously, this allocator should be a struct with multiple callbacks for each type of memory allocation, thus if I ever want to use Zig to make proper custom allocators,
 // it will be easier to implement and create reusable code.
 // Also, it will be referred to as `spoopy_allocator_t` or something similar.
-
 
 #if defined(__GNUC__) || defined(__clang__)
 
@@ -91,12 +98,15 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 
 #ifndef SPOOPY_FLEX_ALLOC
 
+
 // I did this because `__builtin_choose_expr` is not supported for non GNU compilers,
-// and I want to keep the code portable for everyone.
-// TODO: Change this to `spoopy_aligned`
+// and I want to keep the code portable for everyone
+//
+// Your welcome LMAO
+
 #define SPOOPY_FLEX_ALLOC(_type, extra_size, alloc_type) ({\
     runtime_assert((enum spoopy_memory_type)alloc_type >= spoopy_heap \
-        && (enum spoopy_memory_type)alloc_type <= spoopy_stack, \
+        && (enum spoopy_memory_type)alloc_type <= spoopy_aligned, \
         "Invalid allocation type for SPOOPY_FLEX_ALLOC, must be a value in the `spoopy_memory_type` enum"); \
     (_type*)alloc_type##_alloc(sizeof(_type) + extra_size); \
 });

@@ -6,7 +6,7 @@
 #include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
 
-#include "spoopy_core.h"
+#include "../spoopy_core.h"
 
 static_assert(SPOOPY_THREAD_PRIO_LOW == (int)SDL_THREAD_PRIORITY_LOW, "");
 static_assert(SPOOPY_THREAD_PRIO_NORMAL == (int)SDL_THREAD_PRIORITY_NORMAL, "");
@@ -109,6 +109,11 @@ void spoopy_create_core_thread_data(
 
 
 void spoopy_sdl_thread_init(void) {
+    if(spoopy_threads_initialized) {
+        SPOOPY_LOG_WARN("Any/All spoopy initialization functions should be called only once");
+        return;
+    }
+
     threads.main_thread_id = SDL_GetCurrentThreadID();
     threads.chunk_thread_capacity = ~0UL; // Empty values
     threads.global_threads = (spoopy_global_thread_wrapper_t*)calloc(
@@ -118,9 +123,15 @@ void spoopy_sdl_thread_init(void) {
 
     assert_unlikely(threads.global_threads != NULL);
     assert_unlikely(threads.chunk_thread_capacity == ~0UL);
+
+    spoopy_threads_initialized = true;
 }
 
 void spoopy_sdl_thread_shutdown(void) {
+    if(SPOOPY_UNLIKELY(!spoopy_threads_initialized)) {
+        SPOOPY_LOG_WARN("Thread manager is not initialized, cannot shutdown");
+        return;
+    }
 
     // Get all threads that are still running and detach them
     // since free meant 1, then if we invert the capacity,

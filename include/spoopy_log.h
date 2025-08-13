@@ -1,7 +1,7 @@
 #ifndef SPOOPY_LOG_H
 #define SPOOPY_LOG_H
 
-#include <spoopy.h>
+#include <utils/spoopy_compat.h>
 
 
 // Why is my neovim using regular tabs instead of spaces for this file only?
