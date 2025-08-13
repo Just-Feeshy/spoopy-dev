@@ -158,7 +158,6 @@ else
 endif
 
 if host_machine.system() == 'windows'
-
     slang_lib = declare_dependency(
         include_directories: include_directories('external/slang/include'),
         dependencies: [

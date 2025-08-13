@@ -1,32 +1,8 @@
 opt_kore = get_option('enable_kore')
-fs = import('fs')
-
-slang_dir = get_option('slang_dir')
-if slang_dir == ''
-    slang_dir = run_command('printenv', 'SLANG_DIR', check: false).stdout().strip()
-endif
-
-slang_include_dir = get_option('slang_include_dir')
-if slang_include_dir == ''
-    slang_include_dir = run_command('printenv', 'SLANG_INCLUDE_DIR', check: false).stdout().strip()
-endif
-
-slang_lib_dir = get_option('slang_lib_dir')
-if slang_lib_dir == ''
-    slang_lib_dir = run_command('printenv', 'SLANG_LIB_DIR', check: false).stdout().strip()
-endif
-
-if slang_include_dir == '' and slang_dir != ''
-    slang_include_dir = slang_dir
-endif
-
-slangc = find_program(slang_lib_dir / 'slangc',
-                     slang_dir / 'bin' / 'slangc',
-                     required: true)
-
 if opt_kore.enabled()
-    check_submodules_result = run_command(check_submodules_command, check: false)
+    config.set('SPOOPY_GPU_IMPL(x)', 'KORE_GPU_IMPL(x)')
 
+    check_submodules_result = run_command(check_submodules_command, check: false)
     if check_submodules_result.stdout() != ''
         error('Failed to check/initialize submodules')
     endif
