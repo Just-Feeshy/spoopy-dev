@@ -5,8 +5,10 @@ add_library(visuals STATIC
     shader.c
 )
 
+get_filename_component(SPOOPY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../include" ABSOLUTE)
+message(STATUS "SPOOPY_INCLUDE_DIR resolved to: ${SPOOPY_INCLUDE_DIR}")
 target_include_directories(visuals PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
+    $<BUILD_INTERFACE:${SPOOPY_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
 
