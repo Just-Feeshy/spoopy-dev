@@ -1,9 +1,8 @@
 opt_kore = get_option('enable_kore')
-fs = import('fs')
-
 if opt_kore.enabled()
-    check_submodules_result = run_command(check_submodules_command, check: false)
+    config.set('SPOOPY_GPU_IMPL(x)', 'KORE_GPU_IMPL(x)')
 
+    check_submodules_result = run_command(check_submodules_command, check: false)
     if check_submodules_result.stdout() != ''
         error('Failed to check/initialize submodules')
     endif

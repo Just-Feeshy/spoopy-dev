@@ -1,13 +1,6 @@
-# Spoopy - A lightweight C game framework
-# Build system "inspired" by Taisei Project
-
-# Go check the project out (I'm a Touhou fan):
-# https://github.com/taisei-project/taisei
-
-
-project('spoopy', ['rust', 'c'],
+project('spoopy', ['c'],
     license: 'mit',
-     meson_version: '>=1.5.2',
+    meson_version: '>=1.5.2',
     version: run_command([
         'node', '-e', 'console.log(require("./package.json").version)'
     ], check: true).stdout().strip(),
@@ -84,6 +77,8 @@ source_root = meson.current_source_dir()    # e.g., "/home/user/spoopy"
 build_root = meson.project_build_root()     # e.g., "/home/user/spoopy/builddir"
 
 if build_machine.system() == 'windows'
+    add_languages('cpp')
+
     source_root = source_root.replace('\\', '/')  # C:\project → C:/project
     build_root = build_root.replace('\\', '/')    # C:\project\build → C:/project/build
 endif
@@ -125,6 +120,61 @@ else
 endif
 
 subdir('scripts')
+
+slang_version = '2025.14.3'
+
+fs = import('fs')
+slang_dir = meson.current_source_dir() / 'external' / 'slang'
+slang_paths_file = slang_dir / 'slang_paths.txt'
+
+if not fs.exists(slang_paths_file)
+    message('Downloading Slang paths binaries...')
+
+    download_result = run_command([
+        slang_fetch_script,
+        slang_version,
+        slang_dir,
+    ], check: true)
+
+    if download_result.returncode() != 0
+        error('Failed to download Slang paths binaries. Return code: ' + download_result.returncode().to_string())
+    endif
+endif
+
+slang_paths = {}
+if fs.exists(slang_paths_file)
+    paths_content = fs.read(slang_paths_file).strip().split('\n')
+
+    foreach line : paths_content
+        if line != ''
+            parts = line.split('=')
+            if parts.length() == 2
+                slang_paths += {parts[0]: parts[1]}
+            endif
+        endif
+    endforeach
+else
+    error('Slang paths file not found')
+endif
+
+if host_machine.system() == 'windows'
+    slang_lib = declare_dependency(
+        include_directories: include_directories('external/slang/include'),
+        dependencies: [
+            meson.get_compiler('cpp').find_library('slang',
+                dirs: [fs.parent(slang_paths['lib'])],
+                static: false
+            )
+        ]
+    )
+else
+    slang_lib = declare_dependency(
+        include_directories: include_directories('external/slang/include'),
+        link_args: [slang_paths['lib']]
+    )
+endif
+
+subdir('shaders')
 subdir('src')
 subdir('test')
 

@@ -17,12 +17,12 @@ if host_machine.system() != 'emscripten'
 endif
 
 foreach test : tests
-    test_deps = spoopy_deps
+    test_deps = spoopy_deps + [slang_lib]
 
     executable(test,
         '@0@.c'.format(test),
         dependencies: test_deps,
-        link_with: [spoopy_core_lib, spoopy_renderer, spoopy_visuals_lib],
+        link_with: [spoopy_core_lib, spoopy_renderer],
         include_directories: [test_inc, spoopy_includes],
         install: false,
     )

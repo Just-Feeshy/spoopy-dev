@@ -9,7 +9,6 @@
 
 #ifdef _WIN32
 
-#define SPOOPY_FUNC_CORE __declspec(dllexport)
 #define SPOOPY_FUNC_CORE __declspec(dllimport)
 
 #elif !defined(_MSC_VER)
