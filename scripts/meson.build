@@ -8,4 +8,4 @@ default_options_script = find_program('default_options.js')
 default_options_command = [default_options_script, '--language', 'c', '--build-type', 'auto']
 subproject_default_options = run_command(default_options_command, check: true).stdout().strip().split('\n')
 
-slang_fetch_script = find_program('slang_fetch.js')
+cargo_wrapper = find_program('cargo-wrapper.js')

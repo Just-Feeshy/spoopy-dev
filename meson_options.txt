@@ -21,17 +21,17 @@ option('have_sdl_thread_support',
     description: 'Use SDL threads for multi-threading'
 )
 
-# option('triplet',
-#     type: 'string',
-#     value: '',
-#     description : 'Rust target triplet (if needed)'
-# )
-#
-# option('rustc-version',
-#     type: 'string',
-#     value: '',
-#     description : 'Minimum Rust compiler version (if needed)'
-# )
+option('triplet',
+    type: 'string',
+    value: '',
+    description : 'Rust target triplet (if needed)'
+)
+
+option('rustc-version',
+    type: 'string',
+    value: '',
+    description : 'Minimum Rust compiler version (if needed)'
+)
 
 option('slang_dir',
     type: 'string',

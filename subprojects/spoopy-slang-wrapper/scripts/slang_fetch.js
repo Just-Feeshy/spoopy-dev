@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { execMain } = require('./common/common');
+const { execMain } = require('../../../scripts/common/common');
 const { execSync } = require('child_process');
 const os = require('os');
 const fs = require('fs');

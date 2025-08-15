@@ -1,0 +1,19 @@
+[package]
+name = "visuals"
+version = "0.0.1"
+edition = "2024"
+rustc-version = "1.88.0"
+description = "The component library for Spoopy to draw stuff on the screen."
+license = "MIT"
+
+[profile.overflow]
+inherits = "release"
+overflow-checks = true
+
+[lib]
+name = "spoopy_visuals"
+crate-type = ["cdylib", "staticlib"]
+
+[features]
+default = ["capi"]
+capi = []

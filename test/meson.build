@@ -17,7 +17,7 @@ if host_machine.system() != 'emscripten'
 endif
 
 foreach test : tests
-    test_deps = spoopy_deps + [slang_lib]
+    test_deps = spoopy_deps
 
     executable(test,
         '@0@.c'.format(test),

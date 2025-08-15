@@ -11,6 +11,8 @@ project('spoopy', ['c'],
     ], check: true).stdout().strip().split('\n')
 )
 
+fs = import('fs')
+
 cc = meson.get_compiler('c')
 config = configuration_data()
 
@@ -26,6 +28,7 @@ deprecation_warnings = get_option('deprecation_warnings')
 spoopy_deps = []
 
 spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
@@ -119,62 +122,9 @@ else
     config.set_quoted('SPOOPY_REAL_SRC_DIR', relative_src_dir)
 endif
 
+# spoopy_includes = [spoopy_includes, slang_include]
+
 subdir('scripts')
-
-slang_version = '2025.14.3'
-
-fs = import('fs')
-slang_dir = meson.current_source_dir() / 'external' / 'slang'
-slang_paths_file = slang_dir / 'slang_paths.txt'
-
-if not fs.exists(slang_paths_file)
-    message('Downloading Slang paths binaries...')
-
-    download_result = run_command([
-        slang_fetch_script,
-        slang_version,
-        slang_dir,
-    ], check: true)
-
-    if download_result.returncode() != 0
-        error('Failed to download Slang paths binaries. Return code: ' + download_result.returncode().to_string())
-    endif
-endif
-
-slang_paths = {}
-if fs.exists(slang_paths_file)
-    paths_content = fs.read(slang_paths_file).strip().split('\n')
-
-    foreach line : paths_content
-        if line != ''
-            parts = line.split('=')
-            if parts.length() == 2
-                slang_paths += {parts[0]: parts[1]}
-            endif
-        endif
-    endforeach
-else
-    error('Slang paths file not found')
-endif
-
-if host_machine.system() == 'windows'
-    slang_lib = declare_dependency(
-        include_directories: include_directories('external/slang/include'),
-        dependencies: [
-            meson.get_compiler('cpp').find_library('slang',
-                dirs: [fs.parent(slang_paths['lib'])],
-                static: false
-            )
-        ]
-    )
-else
-    slang_lib = declare_dependency(
-        include_directories: include_directories('external/slang/include'),
-        link_args: [slang_paths['lib']]
-    )
-endif
-
-subdir('shaders')
 subdir('src')
 subdir('test')
 
