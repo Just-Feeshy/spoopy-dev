@@ -3,11 +3,15 @@
 
 #include <spoopy.h>
 
+#ifndef SPOOPY_NO_HEADER_SLANG
+#include <spoopy_slang.h>
+#endif // SPOOPY_NO_HEADER_SLANG
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int spoopy_shader_target_t;
+typedef SlangCompileTarget spoopy_shader_target_t;
 
 typedef enum spoopy_optimization_level {
     SPOOPY_OPTIMIZATION_LEVEL_NONE = 0,
@@ -27,11 +31,16 @@ typedef struct spoopy_shader_macro {
     const char* value;
 } spoopy_shader_macro_t;
 
+typedef struct spoopy_shader_lang {
+    spoopy_shader_target_t target;
+    const char* profile; // Optional, can be NULL
+} spoopy_shader_lang_t;
+
 typedef struct spoopy_transpile_options {
     spoopy_shader_macro_t* macros;
 	size_t macro_count;
     // spoopy_optimization_level_t optimization_level;
-    spoopy_shader_target_t target;
+    spoopy_shader_lang_t lang;
     const char* profile;
     const char* filename;
 	uint8_t flags;
@@ -44,12 +53,6 @@ typedef struct spoopy_shader_source {
     const char* entry_point;
     const char* module_name; // Optional, can be NULL
 } spoopy_shader_source_t;
-
-// I prefer to use char* instead of void* for clarity
-typedef struct spoopy_shader_info {
-	spoopy_shader_target_t target; // The target platform for the shader
-	const char* profile;
-} spoopy_shader_info_t;
 
 typedef struct spoopy_context spoopy_context_t;
 extern spoopy_context_t global_context_pool;

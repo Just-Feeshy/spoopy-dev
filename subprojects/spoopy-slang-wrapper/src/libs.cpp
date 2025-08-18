@@ -1,3 +1,5 @@
+#define SPOOPY_NO_HEADER_SLANG
+
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <spoopy_log.h>
@@ -39,25 +41,8 @@ void spoopy_shader_cleanup() {
     global_context_pool.compile_request = NULL;
 }
 
-bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_info_t* info) {
+bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info) {
     uint32_t family = 0;
-
-    switch(info->target) {
-        case SLANG_SPIRV:
-        case SLANG_SPIRV_ASM:
-        case SLANG_HLSL:
-        case SLANG_DXBC:
-        case SLANG_DXBC_ASM:
-        case SLANG_DXIL:
-        case SLANG_DXIL_ASM:
-        case SLANG_METAL:
-        case SLANG_METAL_LIB:
-        case SLANG_METAL_LIB_ASM:
-            break;
-        default:
-            return false;
-    }
-
     const char* want_profile = NULL;
 
 #if defined(KORE_METAL)
@@ -89,7 +74,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
 
     if(!global_context_pool.session->findProfile(want_profile) && transpile_opts) {
         transpile_opts->profile = want_profile;
-        transpile_opts->target = info->target;
+        transpile_opts->lang.target = info->target;
     }
 
     if(family &= (1 << info->target)) {
@@ -108,7 +93,7 @@ bool spoopy_api_shader_transpile(
 
     SessionDesc sessionDesc = {};
     TargetDesc targetDesc = {};
-    targetDesc.format = (SlangCompileTarget)transpile_opts->target;
+    targetDesc.format = (SlangCompileTarget)transpile_opts->lang.target;
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
     targetDesc.profile = global_context_pool.session->findProfile(transpile_opts->profile);
 
@@ -213,3 +198,5 @@ void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name,
     options->macros[options->macro_count].value = value;
     options->macro_count++;
 }
+
+#undef SPOOPY_NO_HEADER_SLANG
