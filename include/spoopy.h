@@ -22,10 +22,10 @@
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
 
-
 // Include all necessary headers to act as an API for the developer
 #ifdef SPOOPY_MAIN_PROJECT
 
+#include <memory/spoopy_memory.h>
 #include <spoopy_shader.h>
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
@@ -34,4 +34,4 @@
 
 #endif // SPOOPY_MAIN_PROJECT
 
-#endif // SPOOPY_H
+#endif

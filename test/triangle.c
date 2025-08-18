@@ -1,4 +1,4 @@
-#include <spoopy.h>
+#include <spoopy_api.h>
 
 #include "test_renderer.h"
 
