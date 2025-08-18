@@ -11,7 +11,13 @@
 extern "C" {
 #endif
 
+void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value);
 bool spoopy_api_shader_supported(spoopy_context_t* context);
+bool spoopy_api_shader_transpile(
+	spoopy_shader_source_t* source,
+	spoopy_shader_source_t* target,
+	spoopy_transpile_options_t* transpile_opts
+);
 
 #ifdef __cplusplus
 }

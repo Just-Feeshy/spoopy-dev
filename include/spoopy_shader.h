@@ -27,29 +27,24 @@ typedef struct spoopy_shader_macro {
     const char* value;
 } spoopy_shader_macro_t;
 
-typedef struct spoopy_compile_options {
-    spoopy_shader_macro_t* macros;
-    spoopy_optimization_level_t optimization_level;
-    const char* filename;
-} spoopy_compile_options_t;
-
-typedef struct spoopy_decompile_options {
-    spoopy_shader_target_t target;
-    uint8_t flags;
-} spoopy_decompile_options_t;
-
 typedef struct spoopy_transpile_options {
-    spoopy_compile_options_t compile;
-    spoopy_decompile_options_t decompile;
+    spoopy_shader_macro_t* macros;
+	size_t macro_count;
+    // spoopy_optimization_level_t optimization_level;
+    spoopy_shader_target_t target;
+    const char* profile;
+    const char* filename;
+	uint8_t flags;
 } spoopy_transpile_options_t;
 
 typedef struct spoopy_shader_source {
     const char* context;
-    size_t context_length;
+	size_t context_size;
     spoopy_shader_stage_t stage;
     const char* entry_point;
+    const char* module_name; // Optional, can be NULL
 } spoopy_shader_source_t;
-//
+
 // I prefer to use char* instead of void* for clarity
 typedef struct spoopy_shader_info {
 	spoopy_shader_target_t target; // The target platform for the shader
