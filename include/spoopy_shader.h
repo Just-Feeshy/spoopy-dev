@@ -13,6 +13,12 @@ extern "C" {
 
 typedef SlangCompileTarget spoopy_shader_target_t;
 
+struct spoopy_shader_lang {
+    spoopy_shader_target_t target;
+    const char* profile; // Optional, can be NULL
+};
+typedef struct spoopy_shader_lang spoopy_shader_lang_t;
+
 typedef enum spoopy_optimization_level {
     SPOOPY_OPTIMIZATION_LEVEL_NONE = 0,
     SPOOPY_OPTIMIZATION_LEVEL_DEFAULT,
@@ -31,16 +37,11 @@ typedef struct spoopy_shader_macro {
     const char* value;
 } spoopy_shader_macro_t;
 
-typedef struct spoopy_shader_lang {
-    spoopy_shader_target_t target;
-    const char* profile; // Optional, can be NULL
-} spoopy_shader_lang_t;
-
 typedef struct spoopy_transpile_options {
     spoopy_shader_macro_t* macros;
 	size_t macro_count;
     // spoopy_optimization_level_t optimization_level;
-    spoopy_shader_lang_t lang;
+	spoopy_shader_target_t target;
     const char* profile;
     const char* filename;
 	uint8_t flags;
@@ -50,6 +51,7 @@ typedef struct spoopy_shader_source {
     const char* context;
 	size_t context_size;
     spoopy_shader_stage_t stage;
+    spoopy_shader_lang_t lang;
     const char* entry_point;
     const char* module_name; // Optional, can be NULL
 } spoopy_shader_source_t;

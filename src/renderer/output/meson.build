@@ -24,6 +24,7 @@ cpp_args = [
 
 sources = [
 	  '../src/spoopy_video.c',
+	  '../src/metal/pipeline_ext.m',
 	  '../Kore/backends/gpu/metal/sources/metalunit.m',
 	  '../Kore/backends/system/apple/sources/appleunit.m',
 	  '../Kore/backends/system/macos/sources/macosunit.m',

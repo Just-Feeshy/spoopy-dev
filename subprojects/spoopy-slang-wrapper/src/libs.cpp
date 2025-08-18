@@ -74,7 +74,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
 
     if(!global_context_pool.session->findProfile(want_profile) && transpile_opts) {
         transpile_opts->profile = want_profile;
-        transpile_opts->lang.target = info->target;
+        transpile_opts->target = info->target;
     }
 
     if(family &= (1 << info->target)) {
@@ -93,7 +93,7 @@ bool spoopy_api_shader_transpile(
 
     SessionDesc sessionDesc = {};
     TargetDesc targetDesc = {};
-    targetDesc.format = (SlangCompileTarget)transpile_opts->lang.target;
+    targetDesc.format = (SlangCompileTarget)transpile_opts->target;
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
     targetDesc.profile = global_context_pool.session->findProfile(transpile_opts->profile);
 

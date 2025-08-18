@@ -19,6 +19,7 @@ project.addIncludeDir('../../include');
 project.addIncludeDir('Kore/backends/system/' + target_platform + '/includes/kore3/backend');
 
 project.addFile('src/**');
+project.addFile('src/metal/**');
 project.addExclude('**.cpp');
 
 project.flatten();
