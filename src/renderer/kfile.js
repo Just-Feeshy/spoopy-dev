@@ -13,13 +13,12 @@ await project.addProject(findKore());
 let target_platform = platform;
 if (target_platform === Platform.OSX) {
     target_platform = 'macos';
+    project.addFile('src/kore2/metal/**');
 }
 
 project.addIncludeDir('../../include');
-project.addIncludeDir('Kore/backends/system/' + target_platform + '/includes/kore3/backend');
 
-project.addFile('src/**');
-project.addFile('src/metal/**');
+project.addFile('src/kore2/**');
 project.addExclude('**.cpp');
 
 project.flatten();
