@@ -18,13 +18,12 @@ static_assert(SPOOPY_STAGE_FRAGMENT == (int)SLANG_STAGE_FRAGMENT, "");
 
 struct spoopy_context {
     SlangSession* session;
-    SlangCompileRequest* compile_request;
 };
 
-spoopy_context_t global_context_pool = {0};
+spoopy_context_t global_context = {0};
 
 bool spoopy_global_context_init() {
-    SlangResult result = createGlobalSession(SLANG_API_VERSION, &global_context_pool.session);
+    SlangResult result = createGlobalSession(SLANG_API_VERSION, &global_context.session);
     if(SLANG_FAILED(result)) {
         SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
         return false;
@@ -34,11 +33,10 @@ bool spoopy_global_context_init() {
 }
 
 void spoopy_shader_cleanup() {
-    if (global_context_pool.session) {
-        global_context_pool.session->release();
-        global_context_pool.session = NULL;
+    if (global_context.session) {
+        global_context.session->release();
+        global_context.session = NULL;
     }
-    global_context_pool.compile_request = NULL;
 }
 
 bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info) {
@@ -48,8 +46,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
 #if defined(KORE_METAL)
     want_profile = "metallib_2_0";
 
-    family  |= (1 << SLANG_METAL)
-            |  (1 << SLANG_METAL_LIB)
+    family  |= (1 << SLANG_METAL_LIB)
             |  (1 << SLANG_METAL_LIB_ASM);
 #elif defined(KORE_DIRECT3D11)
     want_profile = "sm_4_0";
@@ -72,7 +69,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
             |  (1 << SLANG_SPIRV_ASM)
 #endif
 
-    if(!global_context_pool.session->findProfile(want_profile) && transpile_opts) {
+    if(!global_context.session->findProfile(want_profile) && transpile_opts) {
         transpile_opts->profile = want_profile;
         transpile_opts->target = info->target;
     }
@@ -95,7 +92,7 @@ bool spoopy_api_shader_transpile(
     TargetDesc targetDesc = {};
     targetDesc.format = (SlangCompileTarget)transpile_opts->target;
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
-    targetDesc.profile = global_context_pool.session->findProfile(transpile_opts->profile);
+    targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
 
     ISession* session;
     IModule* module = NULL;
@@ -113,7 +110,7 @@ bool spoopy_api_shader_transpile(
     sessionDesc.targets = &targetDesc;
     sessionDesc.targetCount = 1;
 
-    result  = global_context_pool.session->createSession(sessionDesc, &session);
+    result  = global_context.session->createSession(sessionDesc, &session);
     if(SLANG_FAILED(result)) {
         goto slang_fail;
     }

@@ -2,16 +2,13 @@
 #include <spoopy_video.h>
 #include <spoopy_shader.h>
 #include <spoopy_log.h>
-#include <kore3/gpu/device.h>
-#include <kore3/system.h>
+#include <memory/spoopy_memory.h>
+#include <kinc/system.h>
 
-#include "../../spoopy_system_info.h"
+#include "../../../spoopy_system_info.h"
+#include "spoopy_kinc_shader.h"
 
 static bool video_initialized = false;
-
-struct spoopy_device {
-    kore_gpu_device* device;
-};
 
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
     if(SPOOPY_UNLIKELY(video_initialized)) {
@@ -19,15 +16,10 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
         return;
     }
 
-    kore_init(params->title, params->width, params->height, NULL, NULL);
+    kinc_init(params->title, params->width, params->height, NULL, NULL);
     assert(spoopy_global_context_init());
 
     video_initialized = true;
-}
-
-void spoopy_video_new_device(spoopy_device_t* device) {
-    kore_gpu_device_wishlist wishlist = {0};
-    kore_gpu_device_create(device->device, &wishlist);
 }
 
 void spoopy_video_shutdown(void) {

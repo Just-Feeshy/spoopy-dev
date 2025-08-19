@@ -52,7 +52,7 @@ static void* worker_func(void* args) {
     return result;
 }
 
-int main(int argc, char** argv) {
+int kickstart(int argc, char** argv) {
     SPOOPY_LOG_INFO("Multi-Thread Parallel Test Application - Creating %d threads", THREAD_COUNT);
 
     // Initialize thread system

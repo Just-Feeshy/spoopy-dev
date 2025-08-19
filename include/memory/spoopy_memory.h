@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+typedef enum spoopy_header {
+	SPOOPY_HEADER_FREE = 0,
+	SPOOPY_HEADER_TAKEN = 1,
+} spoopy_header_t;
+
 enum spoopy_memory_type {
     spoopy_heap,
     spoopy_stack,

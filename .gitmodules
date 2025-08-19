@@ -1,6 +1,4 @@
-[submodule "src/renderer/Kore"]
-	path = src/renderer/Kore
-	url = https://github.com/Just-Feeshy/Kore.git
-[submodule "src/renderer/kmake"]
-	path = src/renderer/kmake
-	url = https://github.com/Just-Feeshy/kmake.git
+[submodule "src/renderer/kore"]
+	path = src/renderer/kore
+	url = https://github.com/Kode/Kore.git
+	branch = v2

@@ -16,10 +16,36 @@ if (target_platform === Platform.OSX) {
     project.addFile('src/kore2/metal/**');
 }
 
+project.addIncludeDir('include/kore2');
 project.addIncludeDir('../../include');
 
 project.addFile('src/kore2/**');
 project.addExclude('**.cpp');
+
+const warningFlags = [
+    '-Wno-unused-variable',
+    '-Wno-unused-function',
+    '-Wno-unused-parameter',
+    '-Wno-deprecated-declarations',
+    '-Wno-sign-compare',
+    '-Wno-format-security',
+    '-Wno-incompatible-pointer-types',
+    '-Wno-implicit-function-declaration',
+    '-Wno-gnu-folding-constant',
+    '-Wno-macro-redefined',
+    '-Wno-unguarded-availability-new',
+    '-Wno-return-mismatch',
+    '-Wno-int-conversion',
+    '-Wno-missing-braces',
+    '-Wno-unused-but-set-variable',
+    '-Wno-format',
+    '-Wno-switch'
+];
+
+for (const flag of warningFlags) {
+    project.addCFlag(flag);
+    project.addCppFlag(flag);
+}
 
 project.flatten();
 resolve(project);

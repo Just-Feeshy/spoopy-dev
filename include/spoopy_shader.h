@@ -18,6 +18,8 @@ struct spoopy_shader_lang {
     const char* profile; // Optional, can be NULL
 };
 typedef struct spoopy_shader_lang spoopy_shader_lang_t;
+typedef struct spoopy_shader_object spoopy_shader_object_t;
+typedef struct spoopy_context spoopy_context_t;
 
 typedef enum spoopy_optimization_level {
     SPOOPY_OPTIMIZATION_LEVEL_NONE = 0,
@@ -56,8 +58,8 @@ typedef struct spoopy_shader_source {
     const char* module_name; // Optional, can be NULL
 } spoopy_shader_source_t;
 
-typedef struct spoopy_context spoopy_context_t;
-extern spoopy_context_t global_context_pool;
+extern spoopy_context_t global_context;
+extern size_t spoopy_shader_object_size;
 
 bool spoopy_global_context_init(void);
 void spoopy_shader_cleanup(void);

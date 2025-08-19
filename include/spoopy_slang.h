@@ -13,7 +13,6 @@ typedef enum {
     SLANG_DXBC_ASM,
     SLANG_DXIL,
     SLANG_DXIL_ASM,
-    SLANG_METAL,
     SLANG_METAL_LIB,
     SLANG_METAL_LIB_ASM,
 } SlangCompileTarget;
