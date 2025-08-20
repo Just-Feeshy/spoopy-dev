@@ -83,7 +83,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
         transpile_opts->target = info->target;
     }
 
-    if(family &= (1 << info->target)) {
+    if(family & (1 << info->target)) {
         return true;
     }
 
