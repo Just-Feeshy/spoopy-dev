@@ -18,9 +18,9 @@ typedef enum {
         LOG_SUCCESS
 } spoopyLogType;
 
-static inline void spoopy_log(spoopyLogType type, const char* fmt, ...)
-        SPOOPY_ATTR(format(printf, 2, 3))
-        SPOOPY_ATTR(nonnull(2));
+static inline void spoopy_log_internal(spoopyLogType type, const char* file, int line, const char* fmt, ...)
+        SPOOPY_ATTR(format(printf, 4, 5))
+        SPOOPY_ATTR(nonnull(4));
 
 static inline const char* spoopy_log_prefix(spoopyLogType type) {
         switch (type) {
@@ -42,8 +42,8 @@ static inline const char* spoopy_log_color(spoopyLogType type) {
         }
 }
 
-static inline void spoopy_log(spoopyLogType type, const char* fmt, ...) {
-        printf("\033[1m\033[37m%s\033[0m %s", spoopy_log_prefix(type), spoopy_log_color(type));
+static inline void spoopy_log_internal(spoopyLogType type, const char* file, int line, const char* fmt, ...) {
+        printf("\033[1m\033[37m%s\033[0m %s[%s:%d] ", spoopy_log_prefix(type), spoopy_log_color(type), file, line);
 
         va_list args;
         va_start(args, fmt);
@@ -53,10 +53,10 @@ static inline void spoopy_log(spoopyLogType type, const char* fmt, ...) {
         printf("\033[0m\n");
 }
 
-#define SPOOPY_LOG_INFO(...)    spoopy_log(LOG_INFO, __VA_ARGS__)
-#define SPOOPY_LOG_WARN(...)    spoopy_log(LOG_WARN, __VA_ARGS__)
-#define SPOOPY_LOG_ERROR(...)   spoopy_log(LOG_ERROR, __VA_ARGS__)
-#define SPOOPY_LOG_SUCCESS(...) spoopy_log(LOG_SUCCESS, __VA_ARGS__)
+#define SPOOPY_LOG_INFO(...)    spoopy_log_internal(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
+#define SPOOPY_LOG_WARN(...)    spoopy_log_internal(LOG_WARN, __FILE__, __LINE__, __VA_ARGS__)
+#define SPOOPY_LOG_ERROR(...)   spoopy_log_internal(LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__)
+#define SPOOPY_LOG_SUCCESS(...) spoopy_log_internal(LOG_SUCCESS, __FILE__, __LINE__, __VA_ARGS__)
 
 #ifdef __cplusplus
 }
