@@ -47,5 +47,10 @@ for (const flag of warningFlags) {
     project.addCppFlag(flag);
 }
 
+// Define KINC_NO_MAIN to prevent the main function from being compiled
+// since this is a library, not a standalone application
+project.addDefine('KINC_NO_MAIN');
+project.addDefine('KINC_NO_KORE');
+
 project.flatten();
 resolve(project);

@@ -7,6 +7,9 @@
 
 using namespace slang;
 
+// Those that know me personally, I REALLY don't like the C++ style of programming.
+extern "C" {
+
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_NONE == (int)SLANG_OPTIMIZATION_LEVEL_NONE, "");
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL_DEFAULT, "");
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_HIGH == (int)SLANG_OPTIMIZATION_LEVEL_HIGH, "");
@@ -23,7 +26,13 @@ struct spoopy_context {
 spoopy_context_t global_context = {0};
 
 bool spoopy_global_context_init() {
-    SlangResult result = createGlobalSession(SLANG_API_VERSION, &global_context.session);
+    SlangGlobalSessionDesc desc = {};
+    desc.structureSize = sizeof(SlangGlobalSessionDesc);
+    desc.apiVersion = SLANG_API_VERSION;
+    desc.minLanguageVersion = SLANG_LANGUAGE_VERSION_2025;
+    desc.enableGLSL = false;
+
+    SlangResult result = createGlobalSession(&desc, &global_context.session);
     if(SLANG_FAILED(result)) {
         SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
         return false;
@@ -195,5 +204,7 @@ void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name,
     options->macros[options->macro_count].value = value;
     options->macro_count++;
 }
+
+} // extern "C"
 
 #undef SPOOPY_NO_HEADER_SLANG

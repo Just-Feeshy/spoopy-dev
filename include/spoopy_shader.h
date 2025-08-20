@@ -1,7 +1,9 @@
 #ifndef SPOOPY_SPOOPY_SHADER_H
 #define SPOOPY_SPOOPY_SHADER_H
 
-#include <spoopy.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifndef SPOOPY_NO_HEADER_SLANG
 #include <spoopy_slang.h>

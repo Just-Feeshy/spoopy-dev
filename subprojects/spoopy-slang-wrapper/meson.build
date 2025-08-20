@@ -75,5 +75,25 @@ spoopy_slang_dep = declare_dependency(
     dependencies: slang_lib,
 )
 
+# Copy the slang dylib to the build directory for runtime linking
+slang_dylib_source = slang_paths['lib']
+slang_dylib_dest = meson.global_build_root() / 'src' / 'core' / 'libslang.dylib'
+
+# Use a custom target to copy the dylib during build
+copy_slang_dylib = custom_target('copy_slang_dylib',
+    input: [],
+    output: 'libslang_copied',
+    command: [
+        'cp', slang_dylib_source, slang_dylib_dest
+    ],
+    build_by_default: true,
+    build_always_stale: true
+)
+
 # Export the dependency for the parent project
-spoopy_slang_wrapper_dep = spoopy_slang_dep
+spoopy_slang_wrapper_dep = declare_dependency(
+    link_with: spoopy_slang_lib,
+    include_directories: slang_include,
+    dependencies: slang_lib,
+    sources: copy_slang_dylib
+)

@@ -9,5 +9,6 @@ node_modules/
 src/visuals/target/
 docs/
 build/
+.cache/
 
 spoopy_build_config.h

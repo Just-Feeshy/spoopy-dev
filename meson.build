@@ -17,7 +17,7 @@ cc = meson.get_compiler('c')
 config = configuration_data()
 
 if host_machine.system() == 'darwin'
-    add_project_arguments('-mmacosx-version-min=10.11', language: ['c', 'objc'])
+    add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
 endif
 
 spoopy_includes = include_directories('include', 'include')

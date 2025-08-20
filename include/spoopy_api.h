@@ -4,8 +4,13 @@
 // For more general API functions for the user to use.
 // Everything here is meant to be used by the developer
 
-#define SPOOPY_MAIN_PROJECT
 #include <spoopy.h>
+#include <memory/spoopy_memory.h>
+#include <spoopy_shader.h>
+#include <spoopy_thread.h>
+#include <spoopy_log.h>
+#include <spoopy_video.h>
+#include <spoopy_app.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +28,5 @@ bool spoopy_api_shader_transpile(
 #ifdef __cplusplus
 }
 #endif // extern "C"
-
-#undef SPOOPY_MAIN_PROJECT
 
 #endif
