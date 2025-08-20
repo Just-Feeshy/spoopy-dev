@@ -1,9 +1,10 @@
-#ifndef SPOOPY_SLANG_H
-#define SPOOPY_SLANG_H
+#pragma once
 
 // A more controlled way to handle Slang compilation targets
 // without going the extra mile and having to have switch statements
 // or if-else chains everywhere in the codebase.
+
+#ifndef SPOOPY_NO_HEADER_SLANG
 
 typedef enum {
     SLANG_SPIRV,
@@ -17,4 +18,14 @@ typedef enum {
     SLANG_METAL_LIB_ASM,
 } SlangCompileTarget;
 
+#endif // SPOOPY_NO_HEADER_SLANG
+
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+extern uint32_t spoopy_slang_family;
+
+#ifdef __cplusplus
+}
+#endif // extern "C"

@@ -1,5 +1,4 @@
-#ifndef SPOOPY_KORE_SHADER_H
-#define SPOOPY_KORE_SHADER_H
+#pragma once
 
 #include <spoopy_shader.h>
 #include <kinc/graphics5/shader.h>
@@ -9,5 +8,3 @@ struct spoopy_shader_object {
 };
 
 void spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
-
-#endif

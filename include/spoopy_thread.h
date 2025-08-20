@@ -1,5 +1,4 @@
-#ifndef SPOOPY_THREAD_H
-#define SPOOPY_THREAD_H
+#pragma once
 
 #include <spoopy.h>
 
@@ -148,5 +147,3 @@ SPOOPY_FUNC_CORE spoopy_thread_index_t spoopy_get_main_id(void);
 
 #undef __SPOOPY_USE_CORE_THREAD_DESIGN
 #undef SPOOPY_ALLOW_THREAD_DESIGN
-
-#endif

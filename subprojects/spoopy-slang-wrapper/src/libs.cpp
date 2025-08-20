@@ -7,6 +7,8 @@
 
 using namespace slang;
 
+static uint32_t available_targets = 0;
+
 // Those that know me personally, I REALLY don't like the C++ style of programming.
 extern "C" {
 
@@ -75,7 +77,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
     want_profile = "spirv_1_0";
 
     family  |= (1 << SLANG_SPIRV)
-            |  (1 << SLANG_SPIRV_ASM)
+            |  (1 << SLANG_SPIRV_ASM);
 #endif
 
     if(!global_context.session->findProfile(want_profile) && transpile_opts) {
@@ -83,11 +85,7 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
         transpile_opts->target = info->target;
     }
 
-    if(family & (1 << info->target)) {
-        return true;
-    }
-
-    return false;
+    return family & (1 << info->target);
 }
 
 bool spoopy_api_shader_transpile(
@@ -198,7 +196,8 @@ void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name,
     }
 
     options->macros = (spoopy_shader_macro_t*)realloc(options->macros,
-        (options->macro_count + 1) * sizeof(spoopy_shader_macro_t));
+        (options->macro_count + 1) * sizeof(spoopy_shader_macro_t)
+    );
 
     options->macros[options->macro_count].name = name;
     options->macros[options->macro_count].value = value;

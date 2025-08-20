@@ -1,4 +1,4 @@
-inc_dirs = include_directories(
+kore_inc_dirs = include_directories(
 	  '../include/kore2',
 	  '../../../include',
 	  '../kore/Sources',
@@ -9,7 +9,7 @@ inc_dirs = include_directories(
 	  '../kore/Backends/Graphics4/G4onG5/Sources'
 )
 
-c_args = [
+kore_c_args = [
 	  '-Wno-unused-variable',
 	  '-Wno-unused-function',
 	  '-Wno-unused-parameter',
@@ -53,7 +53,7 @@ c_args = [
 	  '-DNDEBUG',
 ]
 
-cpp_args = [
+kore_cpp_args = [
 	  '-Wno-unused-variable',
 	  '-Wno-unused-function',
 	  '-Wno-unused-parameter',
@@ -124,7 +124,7 @@ target_files = sources
 
 add_languages('objc', native: false)
 
-objc_args = [
+kore_objc_args = [
 	  '-fobjc-arc',
 ]
 
@@ -144,10 +144,10 @@ dependencies = [
 
 spoopy_renderer = library('spoopy_renderer',
 	  target_files,
-	  include_directories : inc_dirs,
-	  c_args : c_args,
-	  cpp_args : cpp_args,
-	  objc_args : [objc_args] + c_args,
+	  include_directories : kore_inc_dirs,
+	  c_args : kore_c_args,
+	  cpp_args : kore_cpp_args,
+	  objc_args : [kore_objc_args] + kore_c_args,
 	  dependencies : dependencies,
 	  install : false
 )

@@ -1,5 +1,4 @@
-#ifndef SPOOPY_LOG_H
-#define SPOOPY_LOG_H
+#pragma once
 
 #include <utils/spoopy_compat.h>
 
@@ -61,5 +60,3 @@ static inline void spoopy_log_internal(spoopyLogType type, const char* file, int
 #ifdef __cplusplus
 }
 #endif
-
-#endif // SPOOPY_LOG_H

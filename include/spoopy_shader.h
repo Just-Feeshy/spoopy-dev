@@ -1,13 +1,9 @@
-#ifndef SPOOPY_SPOOPY_SHADER_H
-#define SPOOPY_SPOOPY_SHADER_H
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#ifndef SPOOPY_NO_HEADER_SLANG
 #include <spoopy_slang.h>
-#endif // SPOOPY_NO_HEADER_SLANG
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,5 +65,3 @@ void spoopy_shader_cleanup(void);
 #ifdef __cplusplus
 }
 #endif // extern "C"
-
-#endif

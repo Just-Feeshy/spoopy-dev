@@ -1,5 +1,4 @@
-#ifndef SPOOPY_BACKEND_H
-#define SPOOPY_BACKEND_H
+#pragma once
 
 #include <spoopy_shader.h>
 
@@ -10,4 +9,3 @@ typedef struct spoopy_backend_funcs {
 extern spoopy_backend_funcs_t _backend_funcs;
 
 #undef SPOOPY_IMPL
-#endif

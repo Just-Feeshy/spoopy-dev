@@ -1,5 +1,4 @@
-#ifndef SPOOPY_MEMORY_H
-#define SPOOPY_MEMORY_H
+#pragma once
 
 #include <spoopy.h>
 
@@ -121,5 +120,3 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 #ifdef __cplusplus
 }
 #endif
-
-#endif // SPOOPY_MEMORY_H (end of file since there are a lot of macros)

@@ -1,5 +1,4 @@
-#ifndef SPOOPY_VIDEO_H
-#define SPOOPY_VIDEO_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,5 +18,3 @@ void spoopy_video_shutdown(void);
 #ifdef __cplusplus
 }
 #endif // extern "C"
-
-#endif

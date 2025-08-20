@@ -1,5 +1,4 @@
-#ifndef SPOOPY_API_H
-#define SPOOPY_API_H
+#pragma once
 
 // For more general API functions for the user to use.
 // Everything here is meant to be used by the developer
@@ -28,5 +27,3 @@ bool spoopy_api_shader_transpile(
 #ifdef __cplusplus
 }
 #endif // extern "C"
-
-#endif

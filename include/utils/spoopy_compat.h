@@ -1,5 +1,4 @@
-#ifndef SPOOPY_COMPAT_H
-#define SPOOPY_COMPAT_H
+#pragma once
 
 #include <math.h>
 #include <stdint.h>
@@ -184,5 +183,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-
-#endif // SPOOPY_COMPAT_H
