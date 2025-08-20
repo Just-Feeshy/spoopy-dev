@@ -7,10 +7,11 @@
 
 using namespace slang;
 
-static uint32_t available_targets = 0;
-
 // Those that know me personally, I REALLY don't like the C++ style of programming.
 extern "C" {
+
+uint32_t spoopy_slang_family = 0;
+const char* desired_slang_pf = NULL;
 
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_NONE == (int)SLANG_OPTIMIZATION_LEVEL_NONE, "");
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL_DEFAULT, "");
@@ -51,41 +52,16 @@ void spoopy_shader_cleanup() {
 }
 
 bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info) {
-    uint32_t family = 0;
-    const char* want_profile = NULL;
+    SPOOPY_LOG_INFO("Checking shader support - desired_slang_pf: %s, target: %d, family: %d",
+                    desired_slang_pf ? desired_slang_pf : "(null)", info->target, spoopy_slang_family);
 
-#if defined(KORE_METAL)
-    want_profile = "metallib_2_0";
-
-    family  |= (1 << SLANG_METAL_LIB)
-            |  (1 << SLANG_METAL_LIB_ASM);
-#elif defined(KORE_DIRECT3D11)
-    want_profile = "sm_4_0";
-
-    family  |= (1 << SLANG_DXBC)
-            |  (1 << SLANG_DXBC_ASM)
-            |  (1 << SLANG_DXIL)
-            |  (1 << SLANG_DXIL_ASM)
-            |  (1 << SLANG_HLSL);
-#elif defined(KORE_DIRECT3D12)
-    want_profile = "sm_4_0";
-
-    family  |= (1 << SLANG_DXIL)
-            |  (1 << SLANG_DXIL_ASM)
-            |  (1 << SLANG_HLSL);
-#elif defined(KORE_VULKAN)
-    want_profile = "spirv_1_0";
-
-    family  |= (1 << SLANG_SPIRV)
-            |  (1 << SLANG_SPIRV_ASM);
-#endif
-
-    if(!global_context.session->findProfile(want_profile) && transpile_opts) {
-        transpile_opts->profile = want_profile;
+    if(desired_slang_pf && transpile_opts) {
+        transpile_opts->profile = desired_slang_pf;
         transpile_opts->target = info->target;
+        SPOOPY_LOG_INFO("Set transpile profile to: %s", desired_slang_pf);
     }
 
-    return family & (1 << info->target);
+    return spoopy_slang_family & (1 << info->target);
 }
 
 bool spoopy_api_shader_transpile(
@@ -100,6 +76,7 @@ bool spoopy_api_shader_transpile(
     targetDesc.format = (SlangCompileTarget)transpile_opts->target;
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
     targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
+    SPOOPY_LOG_INFO("Looking for profile: %s, found: %p", transpile_opts->profile, targetDesc.profile);
 
     ISession* session;
     IModule* module = NULL;
@@ -110,6 +87,7 @@ bool spoopy_api_shader_transpile(
     IComponentType* components[2];
 
     if(!targetDesc.profile) {
+        SPOOPY_LOG_ERROR("Profile not found: %s", transpile_opts->profile);
         result = SLANG_E_NOT_FOUND;
         goto slang_fail;
     }
@@ -184,7 +162,7 @@ slang_fail:
             SPOOPY_LOG_ERROR("Cannot open shader file: %s", transpile_opts->filename);
             return false;
         default:
-            SPOOPY_LOG_ERROR("Unknown error occurred during shader transpilation.");
+            SPOOPY_LOG_ERROR("Unknown error occurred during shader transpilation. SlangResult: %d", result);
             return false;
     }
 }
