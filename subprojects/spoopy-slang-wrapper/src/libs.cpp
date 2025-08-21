@@ -11,7 +11,7 @@ using namespace slang;
 // Those that know me personally, I REALLY don't like the C++ style of programming.
 extern "C" {
 
-static const int slang_target_mapping[] = {
+static const int8_t slang_target_mapping[] = {
     SLANG_SPIRV,           // 0 -> SLANG_SPIRV
     SLANG_SPIRV_ASM,       // 1 -> SLANG_SPIRV_ASM
     SLANG_HLSL,            // 2 -> SLANG_HLSL
@@ -59,7 +59,6 @@ bool spoopy_global_context_init() {
 void spoopy_shader_cleanup() {
     if (global_context.session) {
         global_context.session->release();
-        global_context.session = NULL;
     }
 }
 

@@ -2,6 +2,8 @@
 
 #include "test_renderer.h"
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 int main(int argc, char** argv) {
     test_init();
 
@@ -31,16 +33,17 @@ int main(int argc, char** argv) {
 	const char* shader_frag = R"(
 		struct VertexOutput {
 			float4 position : SV_Position;
-			float4 color    : COLOR0;
+			float4 color : COLOR0;
 		};
 
+		[shader("fragment")]
 		float4 fragmentMain(VertexOutput input) : SV_Target {
 			return input.color;
 		}
 	)";
 
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
-	// spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
+	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
 
     return 0;
 }

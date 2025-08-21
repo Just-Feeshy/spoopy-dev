@@ -1,8 +1,13 @@
-#include "spoopy_kinc_shader.h"
-
+#include <spoopy_shader.h>
 #include <kinc/graphics5/shader.h>
 #include <utils/assert.h>
 #include <spoopy_log.h>
+
+struct spoopy_shader_object {
+	kinc_g5_shader_t core;
+};
+
+const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 
 void spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	assert(shader != NULL && info != NULL);
