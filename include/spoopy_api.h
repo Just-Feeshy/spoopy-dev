@@ -9,7 +9,6 @@
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
 #include <spoopy_video.h>
-#include <spoopy_app.h>
 
 #ifdef __cplusplus
 extern "C" {

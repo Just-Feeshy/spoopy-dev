@@ -34,8 +34,8 @@ SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
     SPOOPY_ATTR_ALIGN(2);
 
 static inline char* spoopy_heap_strdup(const char* str) {
-    size_t len = strlen(str) + 1;
-    return memcpy(spoopy_heap_alloc(len), str, len);
+    const size_t len = strlen(str) + 1;
+    return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
 SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
@@ -106,7 +106,7 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 // I did this because `__builtin_choose_expr` is not supported for non GNU compilers,
 // and I want to keep the code portable for everyone
 //
-// Your welcome LMAO
+// Your welcome
 
 #define SPOOPY_FLEX_ALLOC(_type, extra_size, alloc_type) ({\
     runtime_assert((enum spoopy_memory_type)alloc_type >= spoopy_heap \

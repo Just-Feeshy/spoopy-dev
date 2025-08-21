@@ -18,14 +18,14 @@ static void test_init(void) {
 
 static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_t stage) {
     spoopy_shader_source_t source = {
-        .context = src,
-        .context_size = strlen(src),
+        .content = src,
+        .content_size = strlen(src),
         .stage = stage,
-        .entry_point = "main",
+        .entry_point = (stage == SPOOPY_STAGE_VERTEX) ? "vertexMain" : "fragmentMain",
         .module_name = "shader",
         .lang = {
-            .target = SLANG_METAL_LIB,
-            .profile = "metallib_2_0"
+            .target = SLANG_METAL,
+            .profile = "metallib_2_3"
         }
     };
 
@@ -34,7 +34,22 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
     };
 
     if(!spoopy_api_shader_supported(&transpile_opts, &source.lang)) {
-        SPOOPY_LOG_ERROR("Shader target not supported: %d", source.lang.target);
+        switch(source.lang.target) {
+            case SLANG_METAL:
+                SPOOPY_LOG_ERROR("Metal shaders are not supported on this platform.");
+                break;
+            case SLANG_HLSL:
+            case SLANG_DXBC:
+            case SLANG_DXIL:
+                SPOOPY_LOG_ERROR("Direct3D shaders are not supported on this platform.");
+                break;
+            case SLANG_SPIRV:
+                SPOOPY_LOG_ERROR("Vulkan shaders are not supported on this platform.");
+                break;
+            default:
+                SPOOPY_LOG_ERROR("Shader target not supported: %d", source.lang.target);
+        }
+
         return NULL;
     }
 

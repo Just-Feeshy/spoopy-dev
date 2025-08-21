@@ -4,11 +4,23 @@
 #include <slang.h>
 #include <spoopy_log.h>
 #include <spoopy_shader.h>
+#include <memory/spoopy_memory.h>
 
 using namespace slang;
 
 // Those that know me personally, I REALLY don't like the C++ style of programming.
 extern "C" {
+
+static const int slang_target_mapping[] = {
+    SLANG_SPIRV,           // 0 -> SLANG_SPIRV
+    SLANG_SPIRV_ASM,       // 1 -> SLANG_SPIRV_ASM
+    SLANG_HLSL,            // 2 -> SLANG_HLSL
+    SLANG_DXBC,            // 3 -> SLANG_DXBC
+    SLANG_DXBC_ASM,        // 4 -> SLANG_DXBC_ASM
+    SLANG_DXIL,            // 5 -> SLANG_DXIL
+    SLANG_DXIL_ASM,        // 6 -> SLANG_DXIL_ASM
+    SLANG_METAL            // 7 -> SLANG_METAL
+};
 
 uint32_t spoopy_slang_family = 0;
 const char* desired_slang_pf = NULL;
@@ -73,10 +85,20 @@ bool spoopy_api_shader_transpile(
 
     SessionDesc sessionDesc = {};
     TargetDesc targetDesc = {};
-    targetDesc.format = (SlangCompileTarget)transpile_opts->target;
+    targetDesc.format = (SlangCompileTarget)slang_target_mapping[transpile_opts->target];
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
+
     targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
-    SPOOPY_LOG_INFO("Looking for profile: %s, found: %p", transpile_opts->profile, targetDesc.profile);
+
+	switch(slang_target_mapping[transpile_opts->target]) {
+		case SLANG_SPIRV:
+		case SLANG_SPIRV_ASM:
+			targetDesc.flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
+			break;
+		default:
+			targetDesc.flags = 0;
+			break;
+	}
 
     ISession* session;
     IModule* module = NULL;
@@ -86,12 +108,6 @@ bool spoopy_api_shader_transpile(
     IBlob* diagnostics_blob = NULL;
     IComponentType* components[2];
 
-    if(!targetDesc.profile) {
-        SPOOPY_LOG_ERROR("Profile not found: %s", transpile_opts->profile);
-        result = SLANG_E_NOT_FOUND;
-        goto slang_fail;
-    }
-
     sessionDesc.targets = &targetDesc;
     sessionDesc.targetCount = 1;
 
@@ -99,11 +115,12 @@ bool spoopy_api_shader_transpile(
     if(SLANG_FAILED(result)) {
         goto slang_fail;
     }
+
     if(!strcmp(transpile_opts->filename, "<embedded>")) {
         module = session->loadModuleFromSourceString(
             source->module_name ? source->module_name : "embedded_shader",
             NULL,
-            source->context,
+            source->content,
             NULL
         );
     }
@@ -122,7 +139,7 @@ bool spoopy_api_shader_transpile(
 
     components[0] = module;
     components[1] = entry_point;
-    session->createCompositeComponentType(
+    result = session->createCompositeComponentType(
         components, 2, &program
     );
 
@@ -131,29 +148,52 @@ bool spoopy_api_shader_transpile(
     );
 
     if(SLANG_SUCCEEDED(result) && codeBlob) {
-        target->context = (const char*)codeBlob->getBufferPointer();
-        target->context_size = codeBlob->getBufferSize();
-        target->stage = source->stage;
-        target->entry_point = source->entry_point;
-        target->module_name = source->module_name;
+        size_t size = codeBlob->getBufferSize();
+        char* buffer = (char*)spoopy_heap_alloc(size);
+
+        if(buffer) {
+            memcpy(buffer, codeBlob->getBufferPointer(), size);
+            target->content = buffer;
+            target->content_size = size;
+            target->stage = source->stage;
+            target->entry_point = source->entry_point;
+            target->module_name = source->module_name;
+            target->lang = source->lang;
+        } else {
+            result = SLANG_E_OUT_OF_MEMORY;
+        }
     }
 
     if(diagnostics_blob) {
         const char* diagnostics = (const char*)diagnostics_blob->getBufferPointer();
         if(*diagnostics) {
-            SPOOPY_LOG_ERROR("Shader transpilation failed: %s", diagnostics);
+			bool is_spirv = (slang_target_mapping[transpile_opts->target] == SLANG_SPIRV ||
+							slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM);
+            bool is_spirv_warning = (strstr(diagnostics, "spirv-opt") ||
+                                    strstr(diagnostics, "spirv-dis") ||
+                                    strstr(diagnostics, "slang-glslang"));
+
+            if(is_spirv && !is_spirv_warning) {
+                SPOOPY_LOG_ERROR("Shader transpilation failed: %s", diagnostics);
+            }
         }
 
         diagnostics_blob->release();
     }
 
-    program->release();
-    module->release();
-    session->release();
-
-    return true;
-
 slang_fail:
+    if(program) {
+        program->release();
+    }
+
+    if(module) {
+        module->release();
+    }
+
+    if(session) {
+        session->release();
+    }
+
     switch(result) {
         case SLANG_E_NOT_FOUND:
             SPOOPY_LOG_ERROR("Shader target not found: %s", transpile_opts->profile);
@@ -162,8 +202,7 @@ slang_fail:
             SPOOPY_LOG_ERROR("Cannot open shader file: %s", transpile_opts->filename);
             return false;
         default:
-            SPOOPY_LOG_ERROR("Unknown error occurred during shader transpilation. SlangResult: %d", result);
-            return false;
+            return true;
     }
 }
 

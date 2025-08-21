@@ -99,8 +99,8 @@ kore_cpp_args = [
 
 sources = [
 	  '../src/kore2/kore2.c',
+	  '../src/kore2/spoopy_kinc_shader.c',
 	  '../src/kore2/spoopy_video.c',
-	  '../src/kore2/metal/spoopy_kinc_shader.m',
 	  '../kore/Backends/Graphics4/G4onG5/Sources/kinc/backend/graphics4/g4ong5unit.c',
 	  '../kore/Backends/Graphics5/Metal/Sources/kinc/backend/graphics5/metalunit.m',
 	  '../kore/Backends/System/Apple/Sources/kinc/backend/appleunit.m',

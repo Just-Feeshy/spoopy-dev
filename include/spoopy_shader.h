@@ -48,8 +48,8 @@ typedef struct spoopy_transpile_options {
 } spoopy_transpile_options_t;
 
 typedef struct spoopy_shader_source {
-    const char* context;
-	size_t context_size;
+    const char* content;
+	size_t content_size;
     spoopy_shader_stage_t stage;
     spoopy_shader_lang_t lang;
     const char* entry_point;

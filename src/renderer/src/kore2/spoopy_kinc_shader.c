@@ -1,0 +1,21 @@
+#include "spoopy_kinc_shader.h"
+
+#include <kinc/graphics5/shader.h>
+#include <utils/assert.h>
+#include <spoopy_log.h>
+
+void spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+	assert(shader != NULL && info != NULL);
+
+	switch(info->stage) {
+		case SPOOPY_STAGE_VERTEX:
+			kinc_g5_shader_init(&shader->core, info->content, info->content_size, KINC_G5_SHADER_TYPE_VERTEX);
+			break;
+		case SPOOPY_STAGE_FRAGMENT:
+			kinc_g5_shader_init(&shader->core, info->content, info->content_size, KINC_G5_SHADER_TYPE_FRAGMENT);
+			break;
+		default:
+			SPOOPY_LOG_WARN("Must have a valid shader stage to initialize the shader object. Received: [SPOOPY_STAGE_INVALID]");
+			return;
+	}
+}
