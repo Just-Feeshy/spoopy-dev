@@ -18,12 +18,17 @@ endif
 
 foreach test : tests
     test_deps = spoopy_deps
+    test_inc = [test_inc, spoopy_includes]
+
+    if opt_kore.enabled()
+        test_inc += [kore_inc_dirs]
+    endif
 
     executable(test,
         '@0@.c'.format(test),
         dependencies: test_deps,
         link_with: [spoopy_core_lib, spoopy_renderer],
-        include_directories: [test_inc, spoopy_includes],
+        include_directories: test_inc,
         install: false,
     )
 endforeach

@@ -100,6 +100,7 @@ kore_cpp_args = [
 sources = [
 	  '../src/kore2/kore2.c',
 	  '../src/kore2/spoopy_kinc_shader.c',
+	  '../src/kore2/spoopy_kinc_pipeline.c',
 	  '../src/kore2/spoopy_video.c',
 	  '../kore/Backends/Graphics4/G4onG5/Sources/kinc/backend/graphics4/g4ong5unit.c',
 	  '../kore/Backends/Graphics5/Metal/Sources/kinc/backend/graphics5/metalunit.m',

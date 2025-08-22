@@ -25,7 +25,7 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
         .module_name = "shader",
         .lang = {
             .target = SLANG_METAL,
-            .profile = "metallib_2_3"
+            .profile = "metallib_2_3",
         }
     };
 

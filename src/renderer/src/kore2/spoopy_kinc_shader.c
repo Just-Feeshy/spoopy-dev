@@ -1,11 +1,8 @@
 #include <spoopy_shader.h>
-#include <kinc/graphics5/shader.h>
 #include <utils/assert.h>
 #include <spoopy_log.h>
 
-struct spoopy_shader_object {
-	kinc_g5_shader_t core;
-};
+#include "kore2.h"
 
 const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 
@@ -14,6 +11,7 @@ void spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_sourc
 
 	switch(info->stage) {
 		case SPOOPY_STAGE_VERTEX:
+			SPOOPY_LOG_WARN("Content: %.*s", (int)info->content_size, (const char*)info->content);
 			kinc_g5_shader_init(&shader->core, info->content, info->content_size, KINC_G5_SHADER_TYPE_VERTEX);
 			break;
 		case SPOOPY_STAGE_FRAGMENT:

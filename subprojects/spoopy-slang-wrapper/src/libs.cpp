@@ -6,6 +6,8 @@
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
 
+#include <vector>
+
 using namespace slang;
 
 // Those that know me personally, I REALLY don't like the C++ style of programming.
@@ -35,7 +37,7 @@ static_assert(SPOOPY_STAGE_VERTEX == (int)SLANG_STAGE_VERTEX, "");
 static_assert(SPOOPY_STAGE_FRAGMENT == (int)SLANG_STAGE_FRAGMENT, "");
 
 struct spoopy_context {
-    SlangSession* session;
+    Slang::ComPtr<SlangSession> session;
 };
 
 spoopy_context_t global_context = {0};
@@ -47,7 +49,7 @@ bool spoopy_global_context_init() {
     desc.minLanguageVersion = SLANG_LANGUAGE_VERSION_2025;
     desc.enableGLSL = false;
 
-    SlangResult result = createGlobalSession(&desc, &global_context.session);
+    SlangResult result = createGlobalSession(&desc, global_context.session.writeRef());
     if(SLANG_FAILED(result)) {
         SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
         return false;
@@ -57,9 +59,7 @@ bool spoopy_global_context_init() {
 }
 
 void spoopy_shader_cleanup() {
-    if (global_context.session) {
-        global_context.session->release();
-    }
+    global_context.session = nullptr;
 }
 
 bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info) {
@@ -86,31 +86,47 @@ bool spoopy_api_shader_transpile(
     TargetDesc targetDesc = {};
     targetDesc.format = (SlangCompileTarget)slang_target_mapping[transpile_opts->target];
     targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
-
     targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
 
 	switch(slang_target_mapping[transpile_opts->target]) {
 		case SLANG_SPIRV:
 		case SLANG_SPIRV_ASM:
-			targetDesc.flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
+			targetDesc.flags |= SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
 			break;
+        case SLANG_METAL:
+            break;
 		default:
 			targetDesc.flags = 0;
 			break;
 	}
 
-    ISession* session;
-    IModule* module = NULL;
-    IEntryPoint* entry_point = NULL;
-    IComponentType* program = NULL;
-    IBlob* codeBlob = NULL;
-    IBlob* diagnostics_blob = NULL;
-    IComponentType* components[2];
+    std::vector<slang::CompilerOptionEntry> compilerOptions;
+    compilerOptions.push_back({
+        slang::CompilerOptionName::NoMangle,
+        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
+    });
+    compilerOptions.push_back({
+        slang::CompilerOptionName::GenerateWholeProgram,
+        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
+    });
+
+    targetDesc.compilerOptionEntries = compilerOptions.data();
+    targetDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
+
+    Slang::ComPtr<ISession> session;
+    Slang::ComPtr<IModule> module;
+    Slang::ComPtr<IComponentType> program;
+    Slang::ComPtr<IComponentType> linkedProgram;
+    Slang::ComPtr<IBlob> codeBlob;
+    Slang::ComPtr<IBlob> diagnostics_blob;
 
     sessionDesc.targets = &targetDesc;
     sessionDesc.targetCount = 1;
 
-    result  = global_context.session->createSession(sessionDesc, &session);
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+    sessionDesc.allowGLSLSyntax = true;
+
+    result = global_context.session->createSession(sessionDesc, session.writeRef());
     if(SLANG_FAILED(result)) {
         goto slang_fail;
     }
@@ -123,35 +139,25 @@ bool spoopy_api_shader_transpile(
             NULL
         );
     }
-
     if(!module) {
         result = SLANG_E_CANNOT_OPEN;
-        session->release();
         goto slang_fail;
     }
 
-    result = module->findEntryPointByName(source->entry_point, &entry_point);
+    result = module->link(linkedProgram.writeRef(), diagnostics_blob.writeRef());
     if(SLANG_FAILED(result)) {
-        session->release();
         goto slang_fail;
     }
 
-    components[0] = module;
-    components[1] = entry_point;
-    result = session->createCompositeComponentType(
-        components, 2, &program
-    );
-
-    result = program->getEntryPointCode(
-        0, 0, &codeBlob, &diagnostics_blob
-    );
-
+    result = linkedProgram->getTargetCode(0, codeBlob.writeRef(), diagnostics_blob.writeRef());
     if(SLANG_SUCCEEDED(result) && codeBlob) {
         size_t size = codeBlob->getBufferSize();
-        char* buffer = (char*)spoopy_heap_alloc(size);
+        char* buffer = (char*)spoopy_heap_alloc(size + 1);
 
         if(buffer) {
             memcpy(buffer, codeBlob->getBufferPointer(), size);
+            buffer[size] = '\0';
+
             target->content = buffer;
             target->content_size = size;
             target->stage = source->stage;
@@ -166,33 +172,19 @@ bool spoopy_api_shader_transpile(
     if(diagnostics_blob) {
         const char* diagnostics = (const char*)diagnostics_blob->getBufferPointer();
         if(*diagnostics) {
-			bool is_spirv = (slang_target_mapping[transpile_opts->target] == SLANG_SPIRV ||
-							slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM);
+			bool is_spirv = (slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM ||
+                slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM);
             bool is_spirv_warning = (strstr(diagnostics, "spirv-opt") ||
-                                    strstr(diagnostics, "spirv-dis") ||
-                                    strstr(diagnostics, "slang-glslang"));
+                                     strstr(diagnostics, "spirv-dis") ||
+                                     strstr(diagnostics, "slang-glslang"));
 
             if(is_spirv && !is_spirv_warning) {
                 SPOOPY_LOG_ERROR("Shader transpilation failed: %s", diagnostics);
             }
         }
-
-        diagnostics_blob->release();
     }
 
 slang_fail:
-    if(program) {
-        program->release();
-    }
-
-    if(module) {
-        module->release();
-    }
-
-    if(session) {
-        session->release();
-    }
-
     switch(result) {
         case SLANG_E_NOT_FOUND:
             SPOOPY_LOG_ERROR("Shader target not found: %s", transpile_opts->profile);
