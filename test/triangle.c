@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj }, 1);
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
-		{ "position_0", 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
+		{ "position_1", 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 1, vertex_spec, 0);

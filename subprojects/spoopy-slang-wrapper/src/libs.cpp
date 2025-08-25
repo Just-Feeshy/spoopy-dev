@@ -94,6 +94,7 @@ bool spoopy_api_shader_transpile(
 			targetDesc.flags |= SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
 			break;
         case SLANG_METAL:
+			targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_NONE;
             break;
 		default:
 			targetDesc.flags = 0;

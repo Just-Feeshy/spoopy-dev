@@ -84,6 +84,8 @@ struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shad
     pipeline->core.vertexShader = &objs[0]->core;
     pipeline->core.fragmentShader = &objs[1]->core;
 
+	// printf("Content of vertex shader: %p\n", (void*)objs[0]->core.impl.mtlFunction);
+
     assert(num_structs < 16); // Maximum number of vertex structures is 16
     for(uint32_t i=0; i<num_structs; i++) {
 	    kinc_g5_vertex_structure_init(&pipeline->structures[i]);

@@ -11,7 +11,6 @@ void spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_sourc
 
 	switch(info->stage) {
 		case SPOOPY_STAGE_VERTEX:
-			SPOOPY_LOG_WARN("Content: %.*s", (int)info->content_size, (const char*)info->content);
 			kinc_g5_shader_init(&shader->core, info->content, info->content_size, KINC_G5_SHADER_TYPE_VERTEX);
 			break;
 		case SPOOPY_STAGE_FRAGMENT:
