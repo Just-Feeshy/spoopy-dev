@@ -99,7 +99,6 @@ kore_cpp_args = [
 
 sources = [
 	  '../src/kore2/kore2.c',
-	  '../src/kore2/spoopy_kinc_shader.c',
 	  '../src/kore2/spoopy_kinc_pipeline.c',
 	  '../src/kore2/spoopy_video.c',
 	  '../src/metal/spoopy_mtl_shader.m',

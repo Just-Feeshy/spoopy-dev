@@ -6,6 +6,7 @@
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
 
+// TODO (Framework) - Remove C++ STL dependency, and use `bx`
 #include <vector>
 
 using namespace slang;
@@ -110,6 +111,10 @@ bool spoopy_api_shader_transpile(
         slang::CompilerOptionName::GenerateWholeProgram,
         { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
     });
+    compilerOptions.push_back({
+        slang::CompilerOptionName::PreserveParameters,
+        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
+    });
 
     targetDesc.compilerOptionEntries = compilerOptions.data();
     targetDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
@@ -158,6 +163,8 @@ bool spoopy_api_shader_transpile(
         if(buffer) {
             memcpy(buffer, codeBlob->getBufferPointer(), size);
             buffer[size] = '\0';
+
+            SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
 
             target->content = buffer;
             target->content_size = size;

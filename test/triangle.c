@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
 		struct VertexInput
 		{
-			float3 position : POSITION;
+			float3 pos : POSITION;
 		};
 
 		struct VertexOutput
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 		VertexOutput vertexMain(VertexInput input)
 		{
 			VertexOutput output;
-			output.position = float4(input.position.x, input.position.y, input.position.z, 1.0);
+			output.position = float4(input.pos.x, input.pos.y, input.pos.z, 1.0);
 			output.color = float4(1.0, 0.0, 0.0, 1.0); // Red color
 			return output;
 		}
@@ -61,10 +61,10 @@ int main(int argc, char** argv) {
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj }, 1);
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
-		{ "position_1", 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
+		{ 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
 	};
 
-	spoopy_api_pipeline_compile(pipeline, 1, vertex_spec, 0);
+	spoopy_api_pipeline_compile(pipeline, vert_obj, 1, vertex_spec, 0);
 
 	// while(!spoopy_api_should_quit()) {
 		// kinc_g4_begin(0);

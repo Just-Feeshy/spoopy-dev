@@ -1,4 +1,4 @@
-[submodule "src/renderer/kore"]
-	path = src/renderer/kore
+[submodule "src/renderer/Kore"]
+	path = src/renderer/Kore
 	url = https://github.com/Kode/Kore.git
 	branch = v2

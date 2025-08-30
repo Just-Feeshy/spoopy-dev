@@ -8,11 +8,13 @@
         abort(); \
     }
 
+#ifndef assert
 #define assert(expr) \
     if (!(expr)) { \
         SPOOPY_LOG_ERROR("Assertion failed: %s, file %s, line %d", #expr, __FILE__, __LINE__); \
         abort(); \
     }
+#endif
 
 static inline void runtime_assert(bool expr, const char* message) {
     if(!expr) {

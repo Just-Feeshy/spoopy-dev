@@ -67,7 +67,7 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
 
 	SPOOPY_LOG_SUCCESS("Shader transpiled successfully: %s", source.entry_point);
 	spoopy_shader_object_t* shader = spoopy_heap_alloc(spoopy_shader_object_size);
-	spoopy_api_shader_init(shader, &new_src);
+	shader = spoopy_api_shader_init(shader, &new_src);
 
     SPOOPY_LOG_SUCCESS("Shader compiled and ready for use: %s", source.entry_point);
     return shader;

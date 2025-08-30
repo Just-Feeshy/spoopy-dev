@@ -84,9 +84,7 @@ struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shad
     pipeline->core.vertexShader = &objs[0]->core;
     pipeline->core.fragmentShader = &objs[1]->core;
 
-	// printf("Content of vertex shader: %p\n", (void*)objs[0]->core.impl.mtlFunction);
-
-    assert(num_structs < 16); // Maximum number of vertex structures is 16
+    assert(num_structs < 16);
     for(uint32_t i=0; i<num_structs; i++) {
 	    kinc_g5_vertex_structure_init(&pipeline->structures[i]);
         pipeline->core.inputLayout[i] = &pipeline->structures[i];
@@ -95,11 +93,13 @@ struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shad
     return pipeline;
 }
 
-void spoopy_kinc_pipeline_compile(struct spoopy_pipeline* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
+void spoopy_kinc_pipeline_compile(struct spoopy_pipeline* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
+	printf("%s\n", vertex_shader->attr_names[0]);
+
     for(uint32_t i=0; i<spec_count; i++) {
         kinc_g5_vertex_structure_add(
             &pipeline->structures[structure],
-            spec[i].name,
+			vertex_shader->attr_names[i],
 			vertex_format(spec[i].type, spec[i].conversion, spec[i].elements)
         );
     }

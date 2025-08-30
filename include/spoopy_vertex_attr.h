@@ -21,7 +21,6 @@ typedef enum spoopy_vertex_attr_type {
 } spoopy_vertex_attr_type_t;
 
 typedef struct spoopy_vertex_attr_spec {
-	const char* name;
 	uint8_t elements;
 	spoopy_vertex_attr_type_t type;
 	spoopy_vertex_attr_conv_t conversion;
