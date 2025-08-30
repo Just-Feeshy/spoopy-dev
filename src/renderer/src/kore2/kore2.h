@@ -14,6 +14,7 @@ struct spoopy_pipeline {
 
 struct spoopy_shader_object {
 	kinc_g5_shader_t core;
+	uint32_t attr_count;
 	const char* attr_names[];
 };
 

@@ -45,15 +45,17 @@ spoopy_shader_object_t* spoopy_mtl_shader_init(spoopy_shader_object_t* shader, s
 
 		spoopy_shader_object_t* new_shader;
 		if (info->stage == SPOOPY_STAGE_VERTEX) {
-			new_shader = SPOOPY_FLEX_ALLOC(spoopy_shader_object_t, sizeof(const char*) * function.vertexAttributes.count, spoopy_heap);
+			NSUInteger attr_count = function.vertexAttributes.count;
+			new_shader = SPOOPY_FLEX_ALLOC(spoopy_shader_object_t, sizeof(const char*) * attr_count, spoopy_heap);
+			new_shader->attr_count = (uint32_t)attr_count;
 
-			for (NSUInteger index = 0; index < function.vertexAttributes.count; index++) {
+			for (NSUInteger index = 0; index < attr_count; index++) {
 				MTLVertexAttribute *attr = function.vertexAttributes[index];
 				new_shader->attr_names[index] = spoopy_heap_strdup(attr.name.UTF8String);
 			}
 		} else {
-			// For fragment shaders, no attributes needed
 			new_shader = SPOOPY_FLEX_ALLOC(spoopy_shader_object_t, 0, spoopy_heap);
+			new_shader->attr_count = 0;
 		}
 
 		new_shader->core.impl.mtlFunction = (__bridge_retained void*)function;
