@@ -2,8 +2,12 @@
 
 #include <spoopy_api.h>
 
+static EventHandler* handler_ptr = NULL;
+
 static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
+
+	events_init(0, &handler_ptr);
 
 #ifndef __EMSCRIPTEN__
     spoopy_sdl_thread_init();
@@ -25,7 +29,6 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
         .module_name = "shader",
         .lang = {
             .target = SLANG_METAL,
-            .profile = "metallib_2_3",
         }
     };
 

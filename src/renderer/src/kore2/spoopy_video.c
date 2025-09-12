@@ -3,11 +3,25 @@
 #include <spoopy_shader.h>
 #include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
+#include <internal/spoopy_internal_window.h>
+
 #include <kinc/system.h>
+
+#ifdef __APPLE__
+#include <objc/objc.h>
+typedef struct objc_object NSWindow;
+NSWindow *kinc_get_mac_window_handle(int window_index);
+#endif
 
 #include "../../../spoopy_system_info.h"
 
-static bool video_initialized = false;
+bool video_initialized = false;
+
+static bool handle_kinc_window_close(void *data) {
+    (void)data;
+    spoopy_api_request_quit();
+    return false; // Prevent immediate window close, let spoopy handle it gracefully
+}
 
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
     if(SPOOPY_UNLIKELY(video_initialized)) {
@@ -15,8 +29,19 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
         return;
     }
 
+	spoopy_sdl_window_init();
     kinc_init(params->title, params->width, params->height, NULL, NULL);
+    kinc_window_set_close_callback(0, handle_kinc_window_close, NULL);
+
     assert(spoopy_global_context_init());
+
+#ifdef __APPLE__
+	spoopy_sdl_window_create(kinc_get_mac_window_handle(0));
+#endif
+
+	// Setup desired slang profile and family based on the current backend
+	spoopy_slang_family = 0;
+	desired_slang_pf = NULL;
 
 #if defined(KORE_METAL)
     desired_slang_pf = "metallib_2_3";

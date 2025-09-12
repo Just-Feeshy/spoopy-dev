@@ -23,8 +23,10 @@ spoopy_shader_object_t* spoopy_mtl_shader_init(spoopy_shader_object_t* shader, s
 
 		uint16_t major, minor;
 		if(!PARSE_METALLIB(info->lang.profile, major, minor)) {
-			SPOOPY_LOG_ERROR("Invalid Metal shader profile: %s", info->lang.profile);
-			return NULL;
+			SPOOPY_LOG_ERROR("Invalid Metal shader profile: %s", info->lang.profile ? info->lang.profile : "(null)");
+			SPOOPY_LOG_INFO("Using default Metal profile: metallib_3_0");
+			major = 3;
+			minor = 0;
 		}
 
 		NSError* error = nil;
@@ -58,7 +60,7 @@ spoopy_shader_object_t* spoopy_mtl_shader_init(spoopy_shader_object_t* shader, s
 			new_shader->attr_count = 0;
 		}
 
-		new_shader->core.impl.mtlFunction = (__bridge_retained void*)function;
+		new_shader->core.impl._shader.impl.mtlFunction = (__bridge_retained void*)function;
 		return new_shader;
 	}
 }

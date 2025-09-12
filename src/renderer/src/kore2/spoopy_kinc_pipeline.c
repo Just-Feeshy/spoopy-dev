@@ -80,14 +80,14 @@ static kinc_g4_vertex_data_t vertex_format(
 
 struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs) {
     struct spoopy_pipeline* pipeline = SPOOPY_FLEX_ALLOC(struct spoopy_pipeline, sizeof(kinc_g5_vertex_structure_t) * num_structs, spoopy_heap);
-    kinc_g5_pipeline_init(&pipeline->core);
-    pipeline->core.vertexShader = &objs[0]->core;
-    pipeline->core.fragmentShader = &objs[1]->core;
+    kinc_g4_pipeline_init(&pipeline->core);
+    pipeline->core.vertex_shader = &objs[0]->core;
+    pipeline->core.fragment_shader = &objs[1]->core;
 
     assert(num_structs < 16);
     for(uint32_t i=0; i<num_structs; i++) {
-	    kinc_g5_vertex_structure_init(&pipeline->structures[i]);
-        pipeline->core.inputLayout[i] = &pipeline->structures[i];
+	    kinc_g4_vertex_structure_init(&pipeline->structures[i]);
+        pipeline->core.input_layout[i] = &pipeline->structures[i];
     }
 
     return pipeline;
@@ -97,13 +97,13 @@ void spoopy_kinc_pipeline_compile(struct spoopy_pipeline* pipeline, spoopy_shade
 	printf("%s\n", vertex_shader->attr_names[0]);
 
     for(uint32_t i=0; i<spec_count; i++) {
-        kinc_g5_vertex_structure_add(
+        kinc_g4_vertex_structure_add(
             &pipeline->structures[structure],
 			vertex_shader->attr_names[i],
 			vertex_format(spec[i].type, spec[i].conversion, spec[i].elements)
         );
     }
 
-    pipeline->core.inputLayout[structure] = &pipeline->structures[structure];
-	kinc_g5_pipeline_compile(&pipeline->core);
+    pipeline->core.input_layout[structure] = &pipeline->structures[structure];
+	kinc_g4_pipeline_compile(&pipeline->core);
 }

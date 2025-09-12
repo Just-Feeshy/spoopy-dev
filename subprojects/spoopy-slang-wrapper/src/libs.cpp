@@ -172,6 +172,7 @@ bool spoopy_api_shader_transpile(
             target->entry_point = source->entry_point;
             target->module_name = source->module_name;
             target->lang = source->lang;
+            target->lang.profile = transpile_opts->profile;
         } else {
             result = SLANG_E_OUT_OF_MEMORY;
         }

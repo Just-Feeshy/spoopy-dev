@@ -3,8 +3,11 @@ spoopy_core_src += files(
     'spoopy_api.c',
     'spoopy_core_thread.c',
     'memory/spoopy_memory.c',
+    'utils/spoopy_misc_math.c',
     'sdl/spoopy_sdl_thread.c',
-    'sdl/spoopy_sdl_api.c'
+    'sdl/spoopy_sdl_api.c',
+    'sdl/spoopy_sdl_events.c',
+    'sdl/spoopy_sdl_window.c',
 )
 
 if host_machine.system() == 'emscripten'

@@ -1,5 +1,6 @@
 #include <spoopy_backend.h>
 #include <spoopy_pipeline.h>
+#include <spoopy_buffers.h>
 #include <spoopy_log.h>
 #include "kore2.h"
 
@@ -11,6 +12,8 @@ spoopy_shader_object_t* spoopy_mtl_shader_init(spoopy_shader_object_t* shader, s
 spoopy_shader_object_t* spoopy_kinc_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
 #endif
 
+spoopy_vertex_buffer_t* spoopy_kinc_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
+spoopy_index_buffer_t* spoopy_kinc_index_buffer_create(uint32_t count, void* data);
 spoopy_pipeline_t* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
 void spoopy_kinc_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
 
@@ -20,7 +23,7 @@ void spoopy_kinc_shader_destroy(spoopy_shader_object_t* shader) {
 		return;
 	}
 
-	kinc_g5_shader_destroy(&shader->core);
+	kinc_g4_shader_destroy(&shader->core);
 	for (uint32_t i = 0; i < shader->attr_count; i++) {
 		if (shader->attr_names[i] != NULL) {
 			spoopy_heap_free((void*)shader->attr_names[i]);
@@ -37,6 +40,9 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.shader_init = spoopy_kinc_shader_init,
 #endif
 
+	.vertex_buffer_create = spoopy_kinc_vertex_buffer_create,
+	.index_buffer_create = spoopy_kinc_index_buffer_create,
+	.shader_destroy = spoopy_kinc_shader_destroy,
 	.spoopy_pipeline_link = spoopy_kinc_pipeline_link,
 	.pipeline_compile = spoopy_kinc_pipeline_compile
 };

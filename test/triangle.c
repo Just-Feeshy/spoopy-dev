@@ -1,8 +1,4 @@
 #include <spoopy_api.h>
-#include <kinc/graphics4/pipeline.h>
-#include <kinc/graphics4/vertexbuffer.h>
-#include <kinc/graphics4/graphics.h>
-#include <kinc/graphics4/indexbuffer.h>
 
 #include "test_renderer.h"
 
@@ -53,9 +49,6 @@ int main(int argc, char** argv) {
 		}
 	)";
 
-	kinc_g4_vertex_buffer_t vertices;
-	kinc_g4_index_buffer_t indices;
-
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj }, 1);
@@ -65,8 +58,30 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, vert_obj, 1, vertex_spec, 0);
+	spoopy_api_shader_destroy(vert_obj);
+	spoopy_api_shader_destroy(frag_obj);
 
-	// while(!spoopy_api_should_quit()) {
+	float vertex_data[] = {
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		 0.0f,  1.0f, 0.0f
+	};
+	size_t vertex_data_size = sizeof(vertex_data);
+	spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, 3, vertex_data, 0, pipeline);
+
+	int index_data[] = { 0, 1, 2 };
+	spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(3, index_data);
+
+	int frame_count = 0;
+	while(!spoopy_api_should_quit()) {
+		events_poll(handler_ptr, 0);
+
+		// Add simple quit mechanism after 5 seconds for testing
+		// if(++frame_count > 300) {  // ~5 seconds at 60fps
+		// 	SPOOPY_LOG_INFO("Auto-quit after 5 seconds");
+		// 	spoopy_api_request_quit();
+		// }
+
 		// kinc_g4_begin(0);
 		// kinc_g4_clear(KINC_G4_CLEAR_COLOR, 0, 0.0f, 0);
 
@@ -77,7 +92,7 @@ int main(int argc, char** argv) {
 
 		// kinc_g4_end(0);
 		// kinc_g4_swap_buffers();
-	// }
+	}
 
     return 0;
 }
