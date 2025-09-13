@@ -76,12 +76,6 @@ int main(int argc, char** argv) {
 	while(!spoopy_api_should_quit()) {
 		events_poll(handler_ptr, 0);
 
-		// Add simple quit mechanism after 5 seconds for testing
-		// if(++frame_count > 300) {  // ~5 seconds at 60fps
-		// 	SPOOPY_LOG_INFO("Auto-quit after 5 seconds");
-		// 	spoopy_api_request_quit();
-		// }
-
 		// kinc_g4_begin(0);
 		// kinc_g4_clear(KINC_G4_CLEAR_COLOR, 0, 0.0f, 0);
 

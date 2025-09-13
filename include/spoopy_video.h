@@ -12,10 +12,8 @@ typedef struct spoopy_video_init_params {
     int height;
 } spoopy_video_init_params_t;
 
-void __video_internal_bind(void);
-void __video_internal_shutdown(void);
-
 void spoopy_video_init(const spoopy_video_init_params_t* params);
+void video_set_mode(uint32_t display, uint32_t width, uint32_t height, bool resizeable);
 void spoopy_video_shutdown(void);
 
 #ifdef __cplusplus

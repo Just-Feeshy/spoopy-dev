@@ -23,6 +23,28 @@ static bool handle_kinc_window_close(void *data) {
     return false; // Prevent immediate window close, let spoopy handle it gracefully
 }
 
+void video_set_mode(uint32_t display, uint32_t width, uint32_t height, bool resizeable) {
+    if(display >= kinc_count_displays()) {
+        SPOOPY_LOG_WARN("Invalid display index: %u", display);
+        display = 0;
+    }
+
+    if(!spoopy_init_main_window()) {
+#ifdef __APPLE__
+	    spoopy_sdl_window_create(kinc_get_mac_window_handle(display), width, height, resizeable);
+#endif
+
+        return;
+    }
+
+    bool display_changed = display != spoopy_sdl_current_display();
+
+    if(display_changed) {
+        spoopy_sdl_window_create(kinc_get_mac_window_handle(display), width, height, resizeable);
+        return;
+    }
+}
+
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
     if(SPOOPY_UNLIKELY(video_initialized)) {
         SPOOPY_LOG_WARN("Video subsystem already initialized.");
@@ -34,10 +56,9 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
     kinc_window_set_close_callback(0, handle_kinc_window_close, NULL);
 
     assert(spoopy_global_context_init());
+    spoopy_sdl_update_displays();
 
-#ifdef __APPLE__
-	spoopy_sdl_window_create(kinc_get_mac_window_handle(0));
-#endif
+	video_set_mode(0, params->width, params->height, true);
 
 	// Setup desired slang profile and family based on the current backend
 	spoopy_slang_family = 0;
