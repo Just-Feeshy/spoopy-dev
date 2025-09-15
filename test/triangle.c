@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 		size_t vertex_data_size = sizeof(vertex_data);
 		spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, 3, vertex_data, 0, pipeline);
 
-		int index_data[] = { 0, 1, 2 };
+		uint16_t index_data[] = { 0, 1, 2 };
 		spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(3, index_data);
 
 		mesh.vertex_buffer = vbuf;
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 		spoopy_api_begin_frame();
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
 		events_poll(handler_ptr, 0);
-		// spoopy_api_draw_mesh(&mesh, pipeline);
+		spoopy_api_draw_mesh(&mesh, pipeline);
 		spoopy_api_swap_buffers();
 	}
 

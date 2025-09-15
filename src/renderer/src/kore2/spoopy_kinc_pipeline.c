@@ -79,7 +79,7 @@ static kinc_g4_vertex_data_t vertex_format(
 }
 
 struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs) {
-    struct spoopy_pipeline* pipeline = SPOOPY_FLEX_ALLOC(struct spoopy_pipeline, sizeof(kinc_g5_vertex_structure_t) * num_structs, spoopy_heap);
+    struct spoopy_pipeline* pipeline = SPOOPY_FLEX_ALLOC(struct spoopy_pipeline, sizeof(kinc_g4_vertex_structure_t) * num_structs, spoopy_heap);
     kinc_g4_pipeline_init(&pipeline->core);
     pipeline->core.vertex_shader = &objs[0]->core;
     pipeline->core.fragment_shader = &objs[1]->core;
