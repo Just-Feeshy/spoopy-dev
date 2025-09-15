@@ -18,6 +18,22 @@ void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_obje
 	_backend_funcs.pipeline_compile(pipeline, vertex_shader, spec_count, spec, structure);
 }
 
+void spoopy_api_begin_frame(void) {
+	_backend_funcs.begin_frame();
+}
+
+void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
+	_backend_funcs.clear(flags, color_val, depth_val);
+}
+
+void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
+	_backend_funcs.draw_mesh(mesh, pipeline);
+}
+
+void spoopy_api_swap_buffers(void) {
+	_backend_funcs.swap_buffers();
+}
+
 
 // TODO (Optimize Memory) - Make a custom vertex buffer that is universal
 // and avoid the need for API wrapper requirement which allows us to privatize

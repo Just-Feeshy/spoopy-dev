@@ -11,8 +11,9 @@
 #include <spoopy_video.h>
 #include <spoopy_pipeline.h>
 #include <spoopy_vertex_attr.h>
-#include <spoopy_buffers.h>
 #include <spoopy_events.h>
+#include <spoopy_color.h>
+#include <spoopy_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +27,10 @@ SPOOPY_FUNC_CORE spoopy_index_buffer_t* spoopy_api_index_buffer_create(uint32_t 
 SPOOPY_FUNC_CORE void spoopy_api_shader_destroy(spoopy_shader_object_t* shader);
 SPOOPY_FUNC_CORE void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value);
 SPOOPY_FUNC_CORE bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info);
+SPOOPY_FUNC_CORE void spoopy_api_begin_frame(void);
+SPOOPY_FUNC_CORE void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val);
+SPOOPY_FUNC_CORE void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline);
+SPOOPY_FUNC_CORE void spoopy_api_swap_buffers(void);
 
 SPOOPY_FUNC_CORE bool spoopy_api_should_quit(void);
 SPOOPY_FUNC_CORE void spoopy_api_request_quit(void);

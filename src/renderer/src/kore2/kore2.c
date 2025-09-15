@@ -1,6 +1,6 @@
 #include <spoopy_backend.h>
 #include <spoopy_pipeline.h>
-#include <spoopy_buffers.h>
+#include <spoopy_types.h>
 #include <spoopy_log.h>
 #include "kore2.h"
 
@@ -33,6 +33,26 @@ void spoopy_kinc_shader_destroy(spoopy_shader_object_t* shader) {
 	spoopy_heap_free(shader);
 }
 
+void spoopy_kinc_begin_frame(void) {
+	kinc_g4_begin(0);
+}
+
+void spoopy_kinc_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
+	kinc_g4_clear(flags, color_val ? color_val->packed : 0, depth_val, 0);
+}
+
+void spoopy_kinc_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
+	kinc_g4_set_pipeline(&pipeline->core);
+	kinc_g4_set_vertex_buffer(&mesh->vertex_buffer->raw);
+	kinc_g4_set_index_buffer(&mesh->index_buffer->raw);
+	kinc_g4_draw_indexed_vertices();
+}
+
+void spoopy_kinc_swap_buffers(void) {
+	kinc_g4_end(0);
+	kinc_g4_swap_buffers();
+}
+
 spoopy_backend_funcs_t _backend_funcs = {
 #ifdef KORE_METAL
     .shader_init = spoopy_mtl_shader_init,
@@ -44,5 +64,9 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.index_buffer_create = spoopy_kinc_index_buffer_create,
 	.shader_destroy = spoopy_kinc_shader_destroy,
 	.spoopy_pipeline_link = spoopy_kinc_pipeline_link,
-	.pipeline_compile = spoopy_kinc_pipeline_compile
+	.pipeline_compile = spoopy_kinc_pipeline_compile,
+	.begin_frame = spoopy_kinc_begin_frame,
+	.clear = spoopy_kinc_clear,
+	.draw_mesh = spoopy_kinc_draw_mesh,
+	.swap_buffers = spoopy_kinc_swap_buffers
 };

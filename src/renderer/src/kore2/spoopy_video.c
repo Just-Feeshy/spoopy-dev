@@ -36,13 +36,6 @@ void video_set_mode(uint32_t display, uint32_t width, uint32_t height, bool resi
 
         return;
     }
-
-    bool display_changed = display != spoopy_sdl_current_display();
-
-    if(display_changed) {
-        spoopy_sdl_window_create(kinc_get_mac_window_handle(display), width, height, resizeable);
-        return;
-    }
 }
 
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
@@ -56,7 +49,6 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
     kinc_window_set_close_callback(0, handle_kinc_window_close, NULL);
 
     assert(spoopy_global_context_init());
-    spoopy_sdl_update_displays();
 
 	video_set_mode(0, params->width, params->height, true);
 

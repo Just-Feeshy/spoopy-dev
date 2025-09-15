@@ -5,8 +5,6 @@
 
 static struct {
     SDL_Window* window;
-	SDL_DisplayID* displays; // Works with all window ids since it's just an int
-	int display_count;
 } video;
 
 void spoopy_sdl_window_init(void) {
@@ -56,34 +54,6 @@ void spoopy_sdl_window_create(void* raw_handle, uint32_t width, uint32_t height,
 		SDL_ShowWindow(video.window);
 		SDL_RaiseWindow(video.window);
 	}
-}
-
-void spoopy_sdl_update_displays(void) {
-	SDL_free(video.displays);
-
-	int display_count = 0;
-	if(!(video.displays = SDL_GetDisplays(&display_count))) {
-		SPOOPY_LOG_ERROR("Failed to get display list: %s", SDL_GetError());
-		video.display_count = 0;
-	}
-}
-
-uint32_t spoopy_sdl_current_display(void) {
-	SDL_DisplayID display_id = SDL_GetDisplayForWindow(video.window);
-
-	if(!display_id) {
-		SPOOPY_LOG_ERROR("Failed to get current display ID: %s", SDL_GetError());
-		return 0;
-	}
-
-	for(int i=0; i<video.display_count; ++i) {
-		if(video.displays[i] == display_id) {
-			return i;
-		}
-	}
-
-	assert(false && "Current display not found in display list");
-	return 0;
 }
 
 bool spoopy_init_main_window(void) {

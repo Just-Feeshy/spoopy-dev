@@ -61,31 +61,35 @@ int main(int argc, char** argv) {
 	spoopy_api_shader_destroy(vert_obj);
 	spoopy_api_shader_destroy(frag_obj);
 
-	float vertex_data[] = {
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		 0.0f,  1.0f, 0.0f
+	spoopy_mesh_t mesh = {
+		.vertex_buffer = NULL,
+		.index_buffer = NULL,
+		.index_count = 3
 	};
-	size_t vertex_data_size = sizeof(vertex_data);
-	spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, 3, vertex_data, 0, pipeline);
 
-	int index_data[] = { 0, 1, 2 };
-	spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(3, index_data);
+	{
+		float vertex_data[] = {
+			-1.0f, -1.0f, 0.0f,
+			 1.0f, -1.0f, 0.0f,
+			 0.0f,  1.0f, 0.0f
+		};
+		size_t vertex_data_size = sizeof(vertex_data);
+		spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, 3, vertex_data, 0, pipeline);
+
+		int index_data[] = { 0, 1, 2 };
+		spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(3, index_data);
+
+		mesh.vertex_buffer = vbuf;
+		mesh.index_buffer = ibuf;
+	}
 
 	int frame_count = 0;
 	while(!spoopy_api_should_quit()) {
+		spoopy_api_begin_frame();
+		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
 		events_poll(handler_ptr, 0);
-
-		// kinc_g4_begin(0);
-		// kinc_g4_clear(KINC_G4_CLEAR_COLOR, 0, 0.0f, 0);
-
-		// kinc_g4_set_pipeline(&pipeline);
-		// kinc_g4_set_vertex_buffer(&vertices);
-		// kinc_g4_set_index_buffer(&indices);
-		// kinc_g4_draw_indexed_vertices();
-
-		// kinc_g4_end(0);
-		// kinc_g4_swap_buffers();
+		// spoopy_api_draw_mesh(&mesh, pipeline);
+		spoopy_api_swap_buffers();
 	}
 
     return 0;
