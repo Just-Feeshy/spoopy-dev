@@ -131,7 +131,6 @@ void events_poll(EventHandler* handlers, EventFlags flags) {
 		}
 
 		for(SDL_Event *e = events, *end = events + n_events; e < end; ++e) {
-			SPOOPY_LOG_INFO("Received SDL event: type=%d", e->type);
 			for(EventHandler *h = handlers; h->proc; ++h) {
 				if(events_invoke_handler(e, h)) {
 					SPOOPY_LOG_INFO("Event type=%d handled by handler", e->type);
