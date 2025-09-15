@@ -9,10 +9,9 @@
 
 #ifdef _WIN32
 
-#define SPOOPY_FUNC_CORE __declspec(dllexport)
 #define SPOOPY_FUNC_CORE __declspec(dllimport)
 
-#else
+#elif !defined(_MSC_VER)
 
 #define SPOOPY_FUNC_CORE __attribute__((visibility("default")))
 
@@ -20,8 +19,7 @@
 
 #endif // SPOOPY_FUNC_CORE (if not defined)
 
-
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
 
-#endif // SPOOPY_H
+#endif

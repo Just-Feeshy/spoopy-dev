@@ -1,22 +1,52 @@
-option('is_debug',
-    type: 'boolean',
-    value: false,
-    description: 'Enable debug mode for Spoopy'
-)
-
 option('deprecation_warnings',
     choices : ['default', 'error', 'no-error', 'ignore'],
     type : 'combo',
     description : 'Treatment of deprecation warnings'
 )
 
-option('tests',
+option('enable_tests',
     type: 'feature',
     description: 'Build various test programs'
 )
 
-option('sdl_threads_support',
+option('enable_kore',
+    type: 'feature',
+    value: 'enabled',
+    description: 'Enable Kore support for Spoopy'
+)
+
+option('have_sdl_thread_support',
     type: 'boolean',
     value: true,
     description: 'Use SDL threads for multi-threading'
+)
+
+option('triplet',
+    type: 'string',
+    value: '',
+    description : 'Rust target triplet (if needed)'
+)
+
+option('rustc-version',
+    type: 'string',
+    value: '',
+    description : 'Minimum Rust compiler version (if needed)'
+)
+
+option('slang_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang installation directory'
+)
+
+option('slang_include_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang include directory'
+)
+
+option('slang_lib_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang library directory'
 )

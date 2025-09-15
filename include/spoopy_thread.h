@@ -1,5 +1,4 @@
-#ifndef SPOOPY_THREAD_H
-#define SPOOPY_THREAD_H
+#pragma once
 
 #include <spoopy.h>
 
@@ -15,6 +14,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum spoopy_thread_role {
+    SPOOPY_THREAD_ROLE_RENDERER = 0,
+} spoopy_thread_role_t;
 
 typedef enum spoopy_thread_state {
     SPOOPY_THREAD_STATE_RUNNING,
@@ -73,6 +76,7 @@ typedef struct {
 } spoopy_thread_manager_t;
 
 extern spoopy_thread_manager_t threads;
+extern bool spoopy_threads_initialized;
 
 SPOOPY_FUNC_CORE void _spoopy_internal_thread_set(spoopy_global_thread_wrapper_t* global_thread);
 SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index);
@@ -116,15 +120,16 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index)
 #endif // _spoopy_thread
 
 
-#if SPOOPY_SUPPORT_SDL_THREADS
+// Maybe in the future, we can add more for kinc threads (most likely not)
+// this is more less here for developers to make their own thread design
+// if they want to use something else other than SDL threads, or have a different
+// artchitecture for threads using SDL_Thread.
 
 _spoopy_thread(sdl,
     SDL_Thread* thrd,
     SDL_AtomicInt ref_count;
     SDL_AtomicInt thread_state;
 )
-
-#endif // SPOOPY_SUPPORT_SDL_THREADS
 
 SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
     spoopy_core_thread_data_t* data,
@@ -135,19 +140,11 @@ SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
 
 SPOOPY_FUNC_CORE spoopy_thread_index_t spoopy_get_main_id(void);
 
+#undef _spoopy_thread
+
 #ifdef __cplusplus
 }
 #endif
 
-
-#undef _spoopy_thread
-
-#ifdef __SPOOPY_USE_CORE_THREAD_DESIGN
 #undef __SPOOPY_USE_CORE_THREAD_DESIGN
-#endif // __SPOOPY_USE_CORE_THREAD_DESIGN
-
-#ifdef SPOOPY_ALLOW_THREAD_DESIGN
 #undef SPOOPY_ALLOW_THREAD_DESIGN
-#endif // SPOOPY_ALLOW_THREAD_DESIGN
-
-#endif

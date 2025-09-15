@@ -1,6 +1,6 @@
-#ifndef SPOOPY_COMPAT_H
-#define SPOOPY_COMPAT_H
+#pragma once
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -12,6 +12,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+/* =============================================================================
+ * SDL & KORE COMPATIBILITY
+ * ============================================================================= */
+
+#define SDL_GPU_DISABLE
 
 
 /* =============================================================================
@@ -52,26 +59,30 @@ extern "C" {
  * FUNCTION ATTRIBUTES
  * ============================================================================= */
 
-#if SPOOPY_HAVE_ATTRIBUTES
-    #define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
-    #define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
-    #define SPOOPY_ATTR_PURE __attribute__((pure))
-    #define SPOOPY_ATTR_CONST __attribute__((const))
-    #define SPOOPY_ATTR_MALLOC __attribute__((malloc))
-    #define SPOOPY_ATTR_NORETURN __attribute__((noreturn))
-    #define SPOOPY_ATTR_UNUSED __attribute__((unused))
-    #define SPOOPY_ATTR_USED __attribute__((used))
-    #define SPOOPY_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#if SPOOPY_HAVE_ATTRI
+
+#define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
+#define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
+#define SPOOPY_ATTR_ALIGN(index) __attribute__ ((alloc_align(index)))
+#define SPOOPY_ATTR_PURE __attribute__((pure))
+#define SPOOPY_ATTR_CONST __attribute__((const))
+#define SPOOPY_ATTR_NORETURN __attribute__((noreturn))
+#define SPOOPY_ATTR_UNUSED __attribute__((unused))
+#define SPOOPY_ATTR_USED __attribute__((used))
+#define SPOOPY_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+
 #else
-    #define SPOOPY_ATTR(...)
-    #define SPOOPY_ATTR_SIZE(...)
-    #define SPOOPY_ATTR_PURE
-    #define SPOOPY_ATTR_CONST
-    #define SPOOPY_ATTR_MALLOC
-    #define SPOOPY_ATTR_NORETURN
-    #define SPOOPY_ATTR_UNUSED
-    #define SPOOPY_ATTR_USED
-    #define SPOOPY_ATTR_WARN_UNUSED_RESULT
+
+#define SPOOPY_ATTR(...)
+#define SPOOPY_ATTR_SIZE(...)
+#define SPOOPY_ATTR_ALIGN(index)
+#define SPOOPY_ATTR_PURE
+#define SPOOPY_ATTR_CONST
+#define SPOOPY_ATTR_NORETURN
+#define SPOOPY_ATTR_UNUSED
+#define SPOOPY_ATTR_USED
+#define SPOOPY_ATTR_WARN_UNUSED_RESULT
+
 #endif
 
 
@@ -172,5 +183,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-
-#endif // SPOOPY_COMPAT_H
