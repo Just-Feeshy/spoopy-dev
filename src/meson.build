@@ -158,7 +158,7 @@ spoopy_core_src = []
 
 subdir('renderer')
 subdir('core')
-subdir('visuals') # I prefer to keep this as the last subdir
+# subdir('visuals')
 
 configure_file(
     configuration: config,

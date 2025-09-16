@@ -32,3 +32,21 @@ option('rustc-version',
     value: '',
     description : 'Minimum Rust compiler version (if needed)'
 )
+
+option('slang_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang installation directory'
+)
+
+option('slang_include_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang include directory'
+)
+
+option('slang_lib_dir',
+    type: 'string',
+    value: '',
+    description: 'Slang library directory'
+)

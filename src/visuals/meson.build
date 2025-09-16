@@ -32,7 +32,7 @@ endif
 
 visuals_sources = files(
     'Cargo.toml',
-    'src/lib.rs',
+    'src/video.rs',
 )
 
 rust_artifacts = custom_target(

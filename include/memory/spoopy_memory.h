@@ -1,11 +1,15 @@
-#ifndef SPOOPY_MEMORY_H
-#define SPOOPY_MEMORY_H
+#pragma once
 
 #include <spoopy.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum spoopy_header {
+	SPOOPY_HEADER_FREE = 0,
+	SPOOPY_HEADER_TAKEN = 1,
+} spoopy_header_t;
 
 enum spoopy_memory_type {
     spoopy_heap,
@@ -29,9 +33,14 @@ SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
     SPOOPY_ATTR_SIZE(1);
     SPOOPY_ATTR_ALIGN(2);
 
+SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
+	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
+	SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
+	SPOOPY_ATTR_SIZE(2);
+
 static inline char* spoopy_heap_strdup(const char* str) {
-    size_t len = strlen(str) + 1;
-    return memcpy(spoopy_heap_alloc(len), str, len);
+    const size_t len = strlen(str) + 1;
+    return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
 SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
@@ -39,9 +48,10 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 
 // I don't like using too many macros, but this is a good way to handle platform-specific memory allocation, and pretty much everything else.
 
-// TODO: Have an allocator that uses `spoopy_memory_type` where it uses the first 3 bits
-// to store the value, giving it the ability to write smart allocators and deallocators
-// that can handle different types of memory allocation based on the type passed to it.
+// I want to have an allocator that uses `spoopy_memory_type` where it uses the first
+// 3 bits to store the value, giving it the ability to write smart allocators and
+// deallocators that can handle different types of memory allocation based on the
+// type passed to it.
 // Obviously, this allocator should be a struct with multiple callbacks for each type of memory allocation, thus if I ever want to use Zig to make proper custom allocators,
 // it will be easier to implement and create reusable code.
 // Also, it will be referred to as `spoopy_allocator_t` or something similar.
@@ -102,7 +112,7 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 // I did this because `__builtin_choose_expr` is not supported for non GNU compilers,
 // and I want to keep the code portable for everyone
 //
-// Your welcome LMAO
+// Your welcome
 
 #define SPOOPY_FLEX_ALLOC(_type, extra_size, alloc_type) ({\
     runtime_assert((enum spoopy_memory_type)alloc_type >= spoopy_heap \
@@ -116,5 +126,3 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 #ifdef __cplusplus
 }
 #endif
-
-#endif // SPOOPY_MEMORY_H (end of file since there are a lot of macros)

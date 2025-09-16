@@ -17,6 +17,3 @@ crate-type = ["cdylib", "staticlib"]
 [features]
 default = ["capi"]
 capi = []
-
-[dependencies]
-slang-rs = "0.21.0"

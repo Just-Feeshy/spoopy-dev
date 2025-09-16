@@ -1,9 +1,8 @@
 opt_kore = get_option('enable_kore')
-fs = import('fs')
-
 if opt_kore.enabled()
-    check_submodules_result = run_command(check_submodules_command, check: false)
+    config.set('SPOOPY_GPU_IMPL(x)', 'KORE_GPU_IMPL(x)')
 
+    check_submodules_result = run_command(check_submodules_command, check: false)
     if check_submodules_result.stdout() != ''
         error('Failed to check/initialize submodules')
     endif
@@ -45,15 +44,28 @@ if opt_kore.enabled()
         error('Unsupported system: ' + host_machine.system())
     endif
 
-    compile_kmake_result = run_command(
-        compile_kmake_command + ['-g ' + kore_g],
-    check: false)
+    output_meson_file = meson.current_source_dir() / 'output' / 'meson.build'
 
-    if compile_kmake_result.returncode() != 0
-        error('Failed to compile Kore makefiles. Error: ' + compile_kmake_result.stderr())
+    if not fs.exists(output_meson_file)
+        message('Generating Kore build files...')
+        compile_kmake_result = run_command(
+            compile_kmake_command + ['-g ' + kore_g],
+        check: false)
+
+        if compile_kmake_result.returncode() != 0
+            error('Failed to compile Kore makefiles. Error: ' + compile_kmake_result.stderr())
+        endif
+
+        if not fs.exists(output_meson_file)
+            error('kmake completed but did not generate output/meson.build')
+        endif
     else
-        subdir('output')
+        message('Using existing Kore build files')
     endif
+
+    spoopy_includes = [spoopy_includes, include_directories('include', 'include/kore2')]
+
+    subdir('output')
 
     summary({
         'Renderer': 'Kore',

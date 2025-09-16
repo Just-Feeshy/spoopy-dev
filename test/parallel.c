@@ -5,9 +5,7 @@
  * Honestly, it came up with sections I would't expect could break.
 */
 
-#include <spoopy.h>
-#include <memory/spoopy_memory.h>
-#include <spoopy_thread.h>
+#include <spoopy_api.h>
 
 #define REPETITIONS 10000
 #define THREAD_COUNT 16

@@ -1,13 +1,6 @@
-# Spoopy - A lightweight C game framework
-# Build system "inspired" by Taisei Project
-
-# Go check the project out (I'm a Touhou fan):
-# https://github.com/taisei-project/taisei
-
-
-project('spoopy', ['rust', 'c'],
+project('spoopy', ['c'],
     license: 'mit',
-     meson_version: '>=1.5.2',
+    meson_version: '>=1.5.2',
     version: run_command([
         'node', '-e', 'console.log(require("./package.json").version)'
     ], check: true).stdout().strip(),
@@ -18,11 +11,13 @@ project('spoopy', ['rust', 'c'],
     ], check: true).stdout().strip().split('\n')
 )
 
+fs = import('fs')
+
 cc = meson.get_compiler('c')
 config = configuration_data()
 
 if host_machine.system() == 'darwin'
-    add_project_arguments('-mmacosx-version-min=12.0', language: ['c', 'objc'])
+    add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
 endif
 
 spoopy_includes = include_directories('include', 'include')
@@ -33,6 +28,7 @@ deprecation_warnings = get_option('deprecation_warnings')
 spoopy_deps = []
 
 spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
@@ -84,6 +80,8 @@ source_root = meson.current_source_dir()    # e.g., "/home/user/spoopy"
 build_root = meson.project_build_root()     # e.g., "/home/user/spoopy/builddir"
 
 if build_machine.system() == 'windows'
+    add_languages('cpp')
+
     source_root = source_root.replace('\\', '/')  # C:\project → C:/project
     build_root = build_root.replace('\\', '/')    # C:\project\build → C:/project/build
 endif
