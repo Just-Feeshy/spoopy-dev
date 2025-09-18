@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 		{
 			VertexOutput output;
 			output.position = float4(input.pos.x, input.pos.y, input.pos.z, 1.0);
-			output.color = float4(1.0, 0.0, 0.0, 1.0); // Red color
+			output.color = float4(ceil(input.pos.x), 1.0 - ceil(input.pos.x), ceil(input.pos.y), 1.0);
 			return output;
 		}
 	)";
@@ -69,9 +69,9 @@ int main(int argc, char** argv) {
 
 	{
 		float vertex_data[] = {
-			-1.0f, -1.0f, 0.0f,
-			 1.0f, -1.0f, 0.0f,
-			 0.0f,  1.0f, 0.0f
+			-0.75f, -0.75f, 0.0f,
+			 0.75f, -0.75f, 0.0f,
+			 0.0f,  0.75f, 0.0f
 		};
 		size_t vertex_data_size = sizeof(vertex_data);
 		spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, 3, vertex_data, 0, pipeline);
