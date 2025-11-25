@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
+#include <limits.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +60,7 @@ extern "C" {
  * FUNCTION ATTRIBUTES
  * ============================================================================= */
 
-#if SPOOPY_HAVE_ATTRI
+#if SPOOPY_HAVE_ATTRIBUTES
 
 #define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
 #define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
@@ -84,6 +85,8 @@ extern "C" {
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT
 
 #endif
+
+#define SPOOPY_UNUSED(x) (void)(x)
 
 
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 11

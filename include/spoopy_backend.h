@@ -4,6 +4,7 @@
 #include <spoopy_pipeline.h>
 #include <spoopy_vertex_attr.h>
 #include <spoopy_color.h>
+#include <spoopy_image.h>
 #include <spoopy_types.h>
 
 typedef struct spoopy_backend_funcs {
@@ -17,6 +18,10 @@ typedef struct spoopy_backend_funcs {
 	void (*clear)(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val);
 	void (*draw_mesh)(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline);
 	void (*swap_buffers)(void);
+	size_t (*texture_size)(void);
+	void (*texture_create)(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
+	void (*texture_fill)(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
+	void (*texture_destroy)(spoopy_texture_t* tex);
 } spoopy_backend_funcs_t;
 
 extern spoopy_backend_funcs_t _backend_funcs;

@@ -83,7 +83,6 @@ int main(int argc, char** argv) {
 		mesh.index_buffer = ibuf;
 	}
 
-	int frame_count = 0;
 	while(!spoopy_api_should_quit()) {
 		spoopy_api_begin_frame();
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);

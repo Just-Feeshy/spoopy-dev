@@ -1,7 +1,6 @@
 #include <spoopy_pipeline.h>
 #include <memory/spoopy_memory.h>
 #include <spoopy_types.h>
-#include <string.h>
 
 #include "kore2.h"
 

@@ -4,7 +4,9 @@
 // Everything here is meant to be used by the developer
 
 #include <spoopy.h>
+#include <utils/spoopy_misc_math.h>
 #include <memory/spoopy_memory.h>
+#include <format/spoopy_fileformats.h>
 #include <spoopy_shader.h>
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
@@ -13,11 +15,18 @@
 #include <spoopy_vertex_attr.h>
 #include <spoopy_events.h>
 #include <spoopy_color.h>
+#include <spoopy_image_cruft.h>
+
 #include <spoopy_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * TODO (Framework): Have a kinc file reader wrapper for more flexible file reading
+ *  and abstraction for different platforms.
+ */
 
 SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
@@ -31,6 +40,13 @@ SPOOPY_FUNC_CORE void spoopy_api_begin_frame(void);
 SPOOPY_FUNC_CORE void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val);
 SPOOPY_FUNC_CORE void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline);
 SPOOPY_FUNC_CORE void spoopy_api_swap_buffers(void);
+SPOOPY_FUNC_CORE size_t spoopy_api_texture_size(void);
+SPOOPY_FUNC_CORE void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
+SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height);
+SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
+SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
+
+SPOOPY_FUNC_CORE bool spoopy_api_image_load_from_file(const char* path, spoopy_image_file_format_t file_format, spoopy_image_t* dst);
 
 SPOOPY_FUNC_CORE bool spoopy_api_should_quit(void);
 SPOOPY_FUNC_CORE void spoopy_api_request_quit(void);

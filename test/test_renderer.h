@@ -1,4 +1,8 @@
-#pragma once // For more modern C, use #pragma once instead of include guards
+#pragma once
+
+#include <SDL3/SDL_iostream.h>
+
+#include <spoopy_image.h>
 
 #include <spoopy_api.h>
 
@@ -7,6 +11,7 @@ static EventHandler* handler_ptr = NULL;
 static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
+    /* TODO (Framework): Rewrite the events header to begin with spoopy */
 	events_init(0, &handler_ptr);
 
 #ifndef __EMSCRIPTEN__
@@ -74,4 +79,53 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
 
     SPOOPY_LOG_SUCCESS("Shader compiled and ready for use: %s", source.entry_point);
     return shader;
+}
+
+SPOOPY_ATTR_UNUSED static spoopy_texture_t* test_renderer_load_texture(const char* path) {
+    SDL_IOStream* io = SDL_IOFromFile(path, "rb");
+
+    if(!io) {
+		SPOOPY_LOG_ERROR("Failed to open texture file: %s", path);
+		return NULL;
+    }
+
+    spoopy_image_t image = {0};
+
+    if(!spoopy_image_load_stream(io, SPOOPY_IMAGE_FILE_FORMAT_AUTO, &image)) {
+		SPOOPY_LOG_ERROR("Failed to load image from file: %s", path);
+		SDL_CloseIO(io);
+		return NULL;
+    }
+
+    SDL_CloseIO(io);
+
+    spoopy_texture_t* tex = spoopy_heap_alloc(spoopy_api_texture_size());
+    if(!tex) {
+		SPOOPY_LOG_ERROR("Failed to allocate texture object for %s", path);
+		spoopy_heap_free(image.pixels.raw_data);
+		return NULL;
+    }
+
+    const spoopy_texture_params_t params = {
+		.width = image.width,
+		.height = image.height,
+		.layers = 1,
+		.mipmaps = 1,
+		.format = image.format,
+		.texture_class = SPOOPY_TEXTURE_CLASS_2D,
+		.filter = {
+			.min = SPOOPY_TEXTURE_FILTER_LINEAR,
+			.mag = SPOOPY_TEXTURE_FILTER_LINEAR
+		},
+		.wrap = {
+			.u = SPOOPY_TEXTURE_WRAP_REPEAT,
+			.v = SPOOPY_TEXTURE_WRAP_REPEAT
+		}
+    };
+
+    spoopy_api_texture_create(tex, &params);
+    spoopy_api_texture_fill(tex, 0, 0, &image);
+    spoopy_heap_free(image.pixels.raw_data);
+
+    return tex;
 }

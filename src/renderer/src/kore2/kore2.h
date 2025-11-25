@@ -5,6 +5,9 @@
 #include <kinc/graphics4/indexbuffer.h>
 #include <kinc/graphics4/vertexstructure.h>
 #include <kinc/graphics4/shader.h>
+#include <kinc/graphics4/texture.h>
+#include <kinc/graphics5/sampler.h>
+#include <kinc/image.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,13 +24,19 @@ struct spoopy_shader_object {
 	const char* attr_names[];
 };
 
-// TODO (Optimize Memory) - This is a temporary struct until we have a proper
+// TODO (Optimize Memory) - This is a temporary struct until we have a proper one
 struct spoopy_vertex_buffer {
 	kinc_g4_vertex_buffer_t raw;
 };
 
 struct spoopy_index_buffer {
 	kinc_g4_index_buffer_t raw;
+};
+
+struct spoopy_texture {
+	kinc_g4_texture_t raw;
+	kinc_g5_sampler_t sampler;
+	bool sampler_initialized;
 };
 
 #ifdef __cplusplus
