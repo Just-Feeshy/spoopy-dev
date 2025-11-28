@@ -8,6 +8,9 @@
 
 // TODO (Framework) - Remove C++ STL dependency, and use `bx`
 #include <vector>
+#include <string>
+#include <unordered_set>
+#include <cctype>
 
 using namespace slang;
 
@@ -74,6 +77,51 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
     }
 
     return spoopy_slang_family & (1 << info->target);
+}
+
+static void collect_resource_names(const char* src, size_t len, std::unordered_set<std::string>& out) {
+    std::string text(src, len);
+    auto scan_keyword = [&](const char* keyword) {
+        const size_t key_len = strlen(keyword);
+        size_t pos = 0;
+        while ((pos = text.find(keyword, pos)) != std::string::npos) {
+            size_t p = pos + key_len;
+            while (p < text.size() && !isspace(static_cast<unsigned char>(text[p]))) {
+                ++p;
+            }
+            while (p < text.size() && isspace(static_cast<unsigned char>(text[p]))) {
+                ++p;
+            }
+            size_t name_start = p;
+            while (p < text.size() && (isalnum(static_cast<unsigned char>(text[p])) || text[p] == '_')) {
+                ++p;
+            }
+            if (p > name_start) {
+                out.emplace(text.substr(name_start, p - name_start));
+            }
+            pos = p;
+        }
+    };
+
+    scan_keyword("Texture");
+    scan_keyword("Sampler");
+}
+
+static void normalize_resource_names(const std::unordered_set<std::string>& names, std::string& text) {
+    auto replace_all = [&](const std::string& from, const std::string& to) {
+        size_t pos = 0;
+        while ((pos = text.find(from, pos)) != std::string::npos) {
+            text.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+    };
+
+    for (const auto& name : names) {
+        for (int i = 0; i < 4; ++i) {
+            std::string suffix = name + "_" + std::to_string(i);
+            replace_all(suffix, name);
+        }
+    }
 }
 
 bool spoopy_api_shader_transpile(
@@ -244,10 +292,26 @@ bool spoopy_api_shader_transpile(
         memcpy(buffer, codeBlob->getBufferPointer(), size);
         buffer[size] = '\0';
 
-        SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
+        std::string normalized(buffer, size);
+        if (mapped == SLANG_METAL) {
+            std::unordered_set<std::string> resource_names;
+            collect_resource_names(source->content, source->content_size, resource_names);
+            if (!resource_names.empty()) {
+                normalize_resource_names(resource_names, normalized);
+            }
+        }
 
-        target->content = buffer;
-        target->content_size = size;
+        SPOOPY_LOG_INFO("Content:\n%s\n", normalized.c_str());
+
+        spoopy_heap_free(buffer);
+        target->content_size = normalized.size();
+        target->content = (char*)spoopy_heap_alloc(target->content_size + 1);
+        if (target->content == NULL) {
+            SPOOPY_LOG_ERROR("Out of memory allocating normalized shader source.");
+            return false;
+        }
+        memcpy((char*)target->content, normalized.data(), target->content_size);
+        ((char*)target->content)[target->content_size] = '\0';
         target->stage = source->stage;
         target->entry_point = source->entry_point;
         target->module_name = source->module_name;

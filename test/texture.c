@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
 			float4 v_color : COLOR0;
 		};
 
-		Texture2D tex0 : register(t0);
-		SamplerState samp0 : register(s0);
+		Texture2D tex0;
+		SamplerState samp0;
 
 		[shader("fragment")]
 		float4 fragmentMain(VertexOutput input) : SV_Target {
