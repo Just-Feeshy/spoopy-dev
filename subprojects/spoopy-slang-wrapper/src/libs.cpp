@@ -6,7 +6,6 @@
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
 
-// TODO (Framework) - Remove C++ STL dependency, and use `bx`
 #include <cstdint>
 #include <cstring>
 
