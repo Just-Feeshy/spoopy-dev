@@ -29,6 +29,7 @@ extern "C" {
  */
 
 SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
+SPOOPY_FUNC_CORE uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
 SPOOPY_FUNC_CORE spoopy_shader_object_t* spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
 SPOOPY_FUNC_CORE spoopy_vertex_buffer_t* spoopy_api_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
@@ -44,6 +45,7 @@ SPOOPY_FUNC_CORE size_t spoopy_api_texture_size(void);
 SPOOPY_FUNC_CORE void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height);
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
+SPOOPY_FUNC_CORE void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
 
 SPOOPY_FUNC_CORE bool spoopy_api_image_load_from_file(const char* path, spoopy_image_file_format_t file_format, spoopy_image_t* dst);

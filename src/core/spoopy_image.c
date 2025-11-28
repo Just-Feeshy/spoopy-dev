@@ -9,10 +9,12 @@ static spoopy_fileformat_handler_t* fileformat_handlers[] = {
 };
 
 static spoopy_fileformat_handler_t* spoopy_image_probe_stream(SDL_IOStream* stream) {
-	for(size_t i=0; i<(sizeof(fileformat_handlers)/sizeof(fileformat_handlers[0])); ++i) {
-		spoopy_fileformat_handler_t* h = fileformat_handlers[i];
+	const size_t handler_count = sizeof(fileformat_handlers)
+		/ sizeof(fileformat_handlers[0]);
 
-		if(!h->probe(stream)) {
+	for(size_t i=0; i<handler_count; ++i) {
+		spoopy_fileformat_handler_t* h = fileformat_handlers[i];
+		if(!h->probe) {
 			continue;
 		}
 

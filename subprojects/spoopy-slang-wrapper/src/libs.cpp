@@ -81,129 +81,181 @@ bool spoopy_api_shader_transpile(
     spoopy_shader_source_t* target,
     spoopy_transpile_options_t* transpile_opts
 ) {
+    if(!source || !target || !transpile_opts) return false;
+
+    auto log_diags = [](const char* prefix, slang::IBlob* blob) {
+        if(!blob) return;
+        const char* s = (const char*)blob->getBufferPointer();
+        if(s && *s) {
+            SPOOPY_LOG_ERROR("%s%s", prefix, s);
+        }
+    };
+
     SlangResult result = SLANG_OK;
 
     SessionDesc sessionDesc = {};
     TargetDesc targetDesc = {};
-    targetDesc.format = (SlangCompileTarget)slang_target_mapping[transpile_opts->target];
-    targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
+
+    const int8_t mapped = slang_target_mapping[transpile_opts->target];
+    targetDesc.format = (SlangCompileTarget)mapped;
     targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
+    targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
 
-	switch(slang_target_mapping[transpile_opts->target]) {
-		case SLANG_SPIRV:
-		case SLANG_SPIRV_ASM:
-			targetDesc.flags |= SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
-			break;
-        case SLANG_METAL:
-			targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_NONE;
+    switch(mapped) {
+        case SLANG_SPIRV:
+        case SLANG_SPIRV_ASM:
+            targetDesc.flags |= SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
             break;
-		default:
-			targetDesc.flags = 0;
-			break;
-	}
+        case SLANG_METAL:
+            // Metal doesn't like whole-program hoisted resource params.
+            targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_NONE;
+            break;
+        default:
+            targetDesc.flags = 0;
+            break;
+    }
 
+    // Compiler options
+    // Keep NoMangle if you want stable names.
+    // IMPORTANT: For Metal, avoid whole-program & parameter-preserve options so Slang
+    // doesn't hoist entryPointParams_* to program scope.
     std::vector<slang::CompilerOptionEntry> compilerOptions;
     compilerOptions.push_back({
         slang::CompilerOptionName::NoMangle,
         { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
     });
-    compilerOptions.push_back({
-        slang::CompilerOptionName::GenerateWholeProgram,
-        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
-    });
-    compilerOptions.push_back({
-        slang::CompilerOptionName::PreserveParameters,
-        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
-    });
+
+    if(mapped != SLANG_METAL) {
+        compilerOptions.push_back({
+            slang::CompilerOptionName::GenerateWholeProgram,
+            { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
+        });
+        compilerOptions.push_back({
+            slang::CompilerOptionName::PreserveParameters,
+            { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
+        });
+    }
 
     targetDesc.compilerOptionEntries = compilerOptions.data();
-    targetDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
-
-    Slang::ComPtr<ISession> session;
-    Slang::ComPtr<IModule> module;
-    Slang::ComPtr<IComponentType> program;
-    Slang::ComPtr<IComponentType> linkedProgram;
-    Slang::ComPtr<IBlob> codeBlob;
-    Slang::ComPtr<IBlob> diagnostics_blob;
+    targetDesc.compilerOptionEntryCount = (uint32_t)compilerOptions.size();
 
     sessionDesc.targets = &targetDesc;
     sessionDesc.targetCount = 1;
-
     sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
     sessionDesc.allowGLSLSyntax = true;
 
+    Slang::ComPtr<ISession> session;
     result = global_context.session->createSession(sessionDesc, session.writeRef());
     if(SLANG_FAILED(result)) {
-        goto slang_fail;
+        SPOOPY_LOG_ERROR("Failed to create Slang session: %d", result);
+        return false;
     }
 
-    if(!strcmp(transpile_opts->filename, "<embedded>")) {
-        module = session->loadModuleFromSourceString(
-            source->module_name ? source->module_name : "embedded_shader",
-            NULL,
-            source->content,
-            NULL
-        );
-    }
+    // ---- Load embedded module from string ----
+    Slang::ComPtr<IModule> module;
+    Slang::ComPtr<IBlob> moduleDiags;
+
+    const char* moduleName = source->module_name ? source->module_name : "embedded_shader";
+    const char* pathForErrors = transpile_opts->filename ? transpile_opts->filename : "embedded.slang";
+
+    module = session->loadModuleFromSourceString(
+        moduleName,
+        pathForErrors,
+        source->content,
+        moduleDiags.writeRef()
+    );
+
+    log_diags("Slang module diagnostics:\n", moduleDiags.get());
     if(!module) {
-        result = SLANG_E_CANNOT_OPEN;
-        goto slang_fail;
+        SPOOPY_LOG_ERROR("Failed to load/compile embedded Slang module.");
+        return false;
     }
 
-    result = module->link(linkedProgram.writeRef(), diagnostics_blob.writeRef());
-    if(SLANG_FAILED(result)) {
-        goto slang_fail;
+    // ---- Find entry point ----
+    Slang::ComPtr<IEntryPoint> entryPoint;
+    {
+        Slang::ComPtr<IBlob> epDiags;
+        result = module->findEntryPointByName(source->entry_point, entryPoint.writeRef());
+        // findEntryPointByName doesn't always produce diags; keep simple.
+        (void)epDiags;
+    }
+    if(!entryPoint) {
+        SPOOPY_LOG_ERROR("Failed to find entry point: %s", source->entry_point);
+        return false;
     }
 
-    result = linkedProgram->getTargetCode(0, codeBlob.writeRef(), diagnostics_blob.writeRef());
-    if(SLANG_SUCCEEDED(result) && codeBlob) {
+    // ---- Compose (module + entry point) ----
+    Slang::ComPtr<IComponentType> composed;
+    {
+        slang::IComponentType* components[] = { module.get(), entryPoint.get() };
+        Slang::ComPtr<IBlob> compDiags;
+        result = session->createCompositeComponentType(
+            components,
+            2,
+            composed.writeRef(),
+            compDiags.writeRef()
+        );
+        log_diags("Slang composite diagnostics:\n", compDiags.get());
+        if(SLANG_FAILED(result) || !composed) {
+            SPOOPY_LOG_ERROR("Failed to create composite component type.");
+            return false;
+        }
+    }
+
+    // ---- Link ----
+    Slang::ComPtr<IComponentType> linked;
+    {
+        Slang::ComPtr<IBlob> linkDiags;
+        result = composed->link(linked.writeRef(), linkDiags.writeRef());
+        log_diags("Slang link diagnostics:\n", linkDiags.get());
+        if(SLANG_FAILED(result) || !linked) {
+            SPOOPY_LOG_ERROR("Failed to link Slang program.");
+            return false;
+        }
+    }
+
+    // ---- Get ONLY the entry point code (fixes entryPointParams_* globals on Metal) ----
+    Slang::ComPtr<IBlob> codeBlob;
+    {
+        Slang::ComPtr<IBlob> codeDiags;
+        const int entryPointIndex = 0; // we composed exactly one entry point
+        const int targetIndex = 0;     // we have exactly one target
+        result = linked->getEntryPointCode(
+            entryPointIndex,
+            targetIndex,
+            codeBlob.writeRef(),
+            codeDiags.writeRef()
+        );
+        log_diags("Slang codegen diagnostics:\n", codeDiags.get());
+        if(SLANG_FAILED(result) || !codeBlob) {
+            SPOOPY_LOG_ERROR("Failed to generate target code for entry point.");
+            return false;
+        }
+    }
+
+    // ---- Copy output into target ----
+    {
         size_t size = codeBlob->getBufferSize();
         char* buffer = (char*)spoopy_heap_alloc(size + 1);
-
-        if(buffer) {
-            memcpy(buffer, codeBlob->getBufferPointer(), size);
-            buffer[size] = '\0';
-
-            SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
-
-            target->content = buffer;
-            target->content_size = size;
-            target->stage = source->stage;
-            target->entry_point = source->entry_point;
-            target->module_name = source->module_name;
-            target->lang = source->lang;
-            target->lang.profile = transpile_opts->profile;
-        } else {
-            result = SLANG_E_OUT_OF_MEMORY;
-        }
-    }
-
-    if(diagnostics_blob) {
-        const char* diagnostics = (const char*)diagnostics_blob->getBufferPointer();
-        if(*diagnostics) {
-			bool is_spirv = (slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM ||
-                slang_target_mapping[transpile_opts->target] == SLANG_SPIRV_ASM);
-            bool is_spirv_warning = (strstr(diagnostics, "spirv-opt") ||
-                                     strstr(diagnostics, "spirv-dis") ||
-                                     strstr(diagnostics, "slang-glslang"));
-
-            if(is_spirv && !is_spirv_warning) {
-                SPOOPY_LOG_ERROR("Shader transpilation failed: %s", diagnostics);
-            }
-        }
-    }
-
-slang_fail:
-    switch(result) {
-        case SLANG_E_NOT_FOUND:
-            SPOOPY_LOG_ERROR("Shader target not found: %s", transpile_opts->profile);
+        if(!buffer) {
+            SPOOPY_LOG_ERROR("Out of memory allocating transpiled shader.");
             return false;
-        case SLANG_E_CANNOT_OPEN:
-            SPOOPY_LOG_ERROR("Cannot open shader file: %s", transpile_opts->filename);
-            return false;
-        default:
-            return true;
+        }
+        memcpy(buffer, codeBlob->getBufferPointer(), size);
+        buffer[size] = '\0';
+
+        SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
+
+        target->content = buffer;
+        target->content_size = size;
+        target->stage = source->stage;
+        target->entry_point = source->entry_point;
+        target->module_name = source->module_name;
+        target->lang = source->lang;
+        target->lang.profile = transpile_opts->profile;
     }
+
+    return true;
 }
 
 void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value) {

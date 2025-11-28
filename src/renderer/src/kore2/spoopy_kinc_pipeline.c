@@ -93,6 +93,14 @@ struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shad
     return pipeline;
 }
 
+uint32_t spoopy_kinc_pipeline_get_texture_unit(struct spoopy_pipeline* pipeline, const char* name) {
+	kinc_g4_texture_unit_t native_tex_unit = kinc_g4_pipeline_get_texture_unit(&pipeline->core, name);
+
+	uint32_t unit = 0;
+	memcpy(&unit, native_tex_unit.stages, sizeof(unit));
+	return unit;
+}
+
 void spoopy_kinc_pipeline_compile(struct spoopy_pipeline* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
 	printf("%s\n", vertex_shader->attr_names[0]);
 

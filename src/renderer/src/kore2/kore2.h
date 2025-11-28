@@ -7,7 +7,9 @@
 #include <kinc/graphics4/shader.h>
 #include <kinc/graphics4/texture.h>
 #include <kinc/graphics5/sampler.h>
+#include <kinc/graphics4/graphics.h>
 #include <kinc/image.h>
+#include <spoopy_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +39,8 @@ struct spoopy_texture {
 	kinc_g4_texture_t raw;
 	kinc_g5_sampler_t sampler;
 	bool sampler_initialized;
+	spoopy_texture_params_t params;
+	bool has_params;
 };
 
 #ifdef __cplusplus

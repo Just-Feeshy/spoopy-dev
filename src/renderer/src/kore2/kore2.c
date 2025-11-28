@@ -17,9 +17,11 @@ spoopy_shader_object_t* spoopy_kinc_shader_init(spoopy_shader_object_t* shader, 
 spoopy_vertex_buffer_t* spoopy_kinc_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
 spoopy_index_buffer_t* spoopy_kinc_index_buffer_create(uint32_t count, void* data);
 spoopy_pipeline_t* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
+uint32_t spoopy_kinc_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name);
 void spoopy_kinc_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
 void spoopy_kinc_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 void spoopy_kinc_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
+void spoopy_kinc_texture_set(uint32_t unit, spoopy_texture_t* tex);
 void spoopy_kinc_texture_destroy(spoopy_texture_t* tex);
 
 static void spoopy_kinc_shader_destroy(spoopy_shader_object_t* shader) {
@@ -74,6 +76,7 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.index_buffer_create = spoopy_kinc_index_buffer_create,
 	.shader_destroy = spoopy_kinc_shader_destroy,
 	.spoopy_pipeline_link = spoopy_kinc_pipeline_link,
+	.pipeline_get_texture_unit = spoopy_kinc_pipeline_get_texture_unit,
 	.pipeline_compile = spoopy_kinc_pipeline_compile,
 	.begin_frame = spoopy_kinc_begin_frame,
 	.clear = spoopy_kinc_clear,
@@ -82,5 +85,6 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.texture_size = spoopy_kinc_texture_size,
 	.texture_create = spoopy_kinc_texture_create,
 	.texture_fill = spoopy_kinc_texture_fill,
+	.texture_set = spoopy_kinc_texture_set,
 	.texture_destroy = spoopy_kinc_texture_destroy,
 };

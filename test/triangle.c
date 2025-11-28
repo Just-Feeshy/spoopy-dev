@@ -7,7 +7,7 @@
 int main(int argc, char** argv) {
     test_init();
 
-	const char *shader_vert = R"(
+	const char* shader_vert = R"(
 		#ifndef ShaderTypes_h
 		#define ShaderTypes_h
 		#endif
