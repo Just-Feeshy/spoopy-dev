@@ -7,10 +7,12 @@
 #include <memory/spoopy_memory.h>
 
 // TODO (Framework) - Remove C++ STL dependency, and use `bx`
-#include <vector>
-#include <string>
-#include <unordered_set>
-#include <cctype>
+#include <cstdint>
+#include <cstring>
+
+#include <bx/string.h>
+#include <tinystl/string.h>
+#include <tinystl/vector.h>
 
 using namespace slang;
 
@@ -79,27 +81,96 @@ bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, con
     return spoopy_slang_family & (1 << info->target);
 }
 
-static void collect_resource_names(const char* src, size_t len, std::unordered_set<std::string>& out) {
-    std::string text(src, len);
+typedef tinystl::basic_string<tinystl::allocator> tiny_string;
+typedef tinystl::vector<tiny_string> tiny_string_list;
+typedef tinystl::vector<slang::CompilerOptionEntry> compiler_option_list;
+
+static const char* find_substring(const char* start, const char* end, const char* keyword, size_t len) {
+    const char* cursor = start;
+    while (cursor + len <= end) {
+        if (0 == memcmp(cursor, keyword, len)) {
+            return cursor;
+        }
+        ++cursor;
+    }
+    return end;
+}
+
+static inline bool char_is_space(char ch) {
+    switch (ch) {
+        case ' ':  case '\t':
+        case '\n': case '\r':
+        case '\v': case '\f':
+            return true;
+        default:
+            return false;
+    }
+}
+
+static inline bool char_is_digit(char ch) {
+    return ch >= '0' && ch <= '9';
+}
+
+static inline bool char_is_alpha(char ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+static inline bool char_is_alphanum(char ch) {
+    return char_is_alpha(ch) || char_is_digit(ch);
+}
+
+static bool name_exists(const tiny_string_list& list, const char* data, size_t len) {
+    for (size_t i = 0; i < list.size(); ++i) {
+        const tiny_string& existing = list[i];
+        if (existing.size() == len && 0 == memcmp(existing.c_str(), data, len)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void collect_resource_names(const char* src, size_t len, tiny_string_list& out) {
+    if (src == NULL || len == 0) {
+        out.clear();
+        return;
+    }
+
+    out.clear();
+
+    const int32_t clamped_len = (len > (size_t)INT32_MAX) ? INT32_MAX : (int32_t)len;
+    bx::StringView haystack(src, clamped_len);
+    const char* hay_start = haystack.getPtr();
+    const char* hay_end = haystack.getTerm();
+
     auto scan_keyword = [&](const char* keyword) {
         const size_t key_len = strlen(keyword);
-        size_t pos = 0;
-        while ((pos = text.find(keyword, pos)) != std::string::npos) {
-            size_t p = pos + key_len;
-            while (p < text.size() && !isspace(static_cast<unsigned char>(text[p]))) {
-                ++p;
+        const char* cursor = hay_start;
+
+        while (cursor < hay_end) {
+            const char* found = find_substring(cursor, hay_end, keyword, key_len);
+            if (found == hay_end) {
+                break;
             }
-            while (p < text.size() && isspace(static_cast<unsigned char>(text[p]))) {
-                ++p;
+
+            const char* ptr = found + key_len;
+
+            while (ptr < hay_end && !char_is_space(*ptr)) {
+                ++ptr;
             }
-            size_t name_start = p;
-            while (p < text.size() && (isalnum(static_cast<unsigned char>(text[p])) || text[p] == '_')) {
-                ++p;
+            while (ptr < hay_end && char_is_space(*ptr)) {
+                ++ptr;
             }
-            if (p > name_start) {
-                out.emplace(text.substr(name_start, p - name_start));
+
+            const char* name_start = ptr;
+            while (ptr < hay_end && (char_is_alphanum(*ptr) || *ptr == '_')) {
+                ++ptr;
             }
-            pos = p;
+
+            if (ptr > name_start && !name_exists(out, name_start, (size_t)(ptr - name_start))) {
+                out.push_back(tiny_string(name_start, (size_t)(ptr - name_start)));
+            }
+
+            cursor = ptr;
         }
     };
 
@@ -107,21 +178,50 @@ static void collect_resource_names(const char* src, size_t len, std::unordered_s
     scan_keyword("Sampler");
 }
 
-static void normalize_resource_names(const std::unordered_set<std::string>& names, std::string& text) {
-    auto replace_all = [&](const std::string& from, const std::string& to) {
-        size_t pos = 0;
-        while ((pos = text.find(from, pos)) != std::string::npos) {
-            text.replace(pos, from.size(), to);
-            pos += to.size();
-        }
-    };
-
-    for (const auto& name : names) {
-        for (int i = 0; i < 4; ++i) {
-            std::string suffix = name + "_" + std::to_string(i);
-            replace_all(suffix, name);
-        }
+static size_t strip_suffixes(const tiny_string& name, char* text, size_t length) {
+    if (name.size() == 0 || text == NULL) {
+        return length;
     }
+
+    const size_t name_len = name.size();
+    char* cursor = text;
+    char* end = text + length;
+
+    while (cursor + name_len < end) {
+        if (0 == memcmp(cursor, name.c_str(), name_len) && cursor[name_len] == '_') {
+            char* digits = cursor + name_len + 1;
+            bool has_digits = false;
+            while (digits < end && char_is_digit(*digits)) {
+                has_digits = true;
+                ++digits;
+            }
+
+            if (has_digits) {
+                const size_t remove_len = (size_t)(digits - (cursor + name_len));
+                memmove(cursor + name_len, digits, (size_t)(end - digits));
+                end -= remove_len;
+                length -= remove_len;
+                *end = '\0';
+                continue;
+            }
+        }
+
+        ++cursor;
+    }
+
+    return length;
+}
+
+static size_t normalize_resource_names(const tiny_string_list& list, char* text, size_t length) {
+    if (text == NULL) {
+        return length;
+    }
+
+    for (size_t i = 0; i < list.size(); ++i) {
+        length = strip_suffixes(list[i], text, length);
+    }
+
+    return length;
 }
 
 bool spoopy_api_shader_transpile(
@@ -167,7 +267,7 @@ bool spoopy_api_shader_transpile(
     // Keep NoMangle if you want stable names.
     // IMPORTANT: For Metal, avoid whole-program & parameter-preserve options so Slang
     // doesn't hoist entryPointParams_* to program scope.
-    std::vector<slang::CompilerOptionEntry> compilerOptions;
+    compiler_option_list compilerOptions;
     compilerOptions.push_back({
         slang::CompilerOptionName::NoMangle,
         { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
@@ -292,26 +392,25 @@ bool spoopy_api_shader_transpile(
         memcpy(buffer, codeBlob->getBufferPointer(), size);
         buffer[size] = '\0';
 
-        std::string normalized(buffer, size);
+        size_t normalized_size = size;
         if (mapped == SLANG_METAL) {
-            std::unordered_set<std::string> resource_names;
-            collect_resource_names(source->content, source->content_size, resource_names);
-            if (!resource_names.empty()) {
-                normalize_resource_names(resource_names, normalized);
-            }
+            tiny_string_list resources;
+            collect_resource_names(source->content, source->content_size, resources);
+            normalized_size = normalize_resource_names(resources, buffer, size);
         }
 
-        SPOOPY_LOG_INFO("Content:\n%s\n", normalized.c_str());
+        SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
 
-        spoopy_heap_free(buffer);
-        target->content_size = normalized.size();
+        target->content_size = normalized_size;
         target->content = (char*)spoopy_heap_alloc(target->content_size + 1);
         if (target->content == NULL) {
             SPOOPY_LOG_ERROR("Out of memory allocating normalized shader source.");
+            spoopy_heap_free(buffer);
             return false;
         }
-        memcpy((char*)target->content, normalized.data(), target->content_size);
+        memcpy((char*)target->content, buffer, target->content_size);
         ((char*)target->content)[target->content_size] = '\0';
+        spoopy_heap_free(buffer);
         target->stage = source->stage;
         target->entry_point = source->entry_point;
         target->module_name = source->module_name;
