@@ -18,7 +18,9 @@ spoopy_vertex_buffer_t* spoopy_kinc_vertex_buffer_create(uint32_t capacity, uint
 spoopy_index_buffer_t* spoopy_kinc_index_buffer_create(uint32_t count, void* data);
 spoopy_pipeline_t* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
 uint32_t spoopy_kinc_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name);
+void spoopy_kinc_pipeline_bind(spoopy_pipeline_t* pipeline);
 void spoopy_kinc_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
+void spoopy_kinc_pipeline_bind(spoopy_pipeline_t* pipeline);
 void spoopy_kinc_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 void spoopy_kinc_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
 void spoopy_kinc_texture_set(uint32_t unit, spoopy_texture_t* tex);
@@ -49,7 +51,10 @@ static void spoopy_kinc_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* 
 }
 
 static void spoopy_kinc_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
-	kinc_g4_set_pipeline(&pipeline->core);
+	if (pipeline == NULL) {
+		SPOOPY_LOG_ERROR("Cannot draw mesh with NULL pipeline");
+		return;
+	}
 	kinc_g4_set_vertex_buffer(&mesh->vertex_buffer->raw);
 	kinc_g4_set_index_buffer(&mesh->index_buffer->raw);
 
@@ -78,6 +83,7 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.spoopy_pipeline_link = spoopy_kinc_pipeline_link,
 	.pipeline_get_texture_unit = spoopy_kinc_pipeline_get_texture_unit,
 	.pipeline_compile = spoopy_kinc_pipeline_compile,
+	.pipeline_bind = spoopy_kinc_pipeline_bind,
 	.begin_frame = spoopy_kinc_begin_frame,
 	.clear = spoopy_kinc_clear,
 	.draw_mesh = spoopy_kinc_draw_mesh,

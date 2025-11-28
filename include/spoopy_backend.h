@@ -13,6 +13,7 @@ typedef struct spoopy_backend_funcs {
 	spoopy_pipeline_t* (*spoopy_pipeline_link)(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
 	uint32_t (*pipeline_get_texture_unit)(spoopy_pipeline_t* pipeline, const char* name);
 	void (*pipeline_compile)(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
+	void (*pipeline_bind)(spoopy_pipeline_t* pipeline);
 	spoopy_vertex_buffer_t* (*vertex_buffer_create)(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
 	spoopy_index_buffer_t* (*index_buffer_create)(uint32_t count, void* data);
 	void (*begin_frame)(void);

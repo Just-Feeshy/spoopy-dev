@@ -23,6 +23,10 @@ void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_obje
 	_backend_funcs.pipeline_compile(pipeline, vertex_shader, spec_count, spec, structure);
 }
 
+void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline) {
+	_backend_funcs.pipeline_bind(pipeline);
+}
+
 void spoopy_api_begin_frame(void) {
 	_backend_funcs.begin_frame();
 }

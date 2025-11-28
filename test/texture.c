@@ -86,10 +86,10 @@ int main(int argc, char** argv) {
 
 	{
 		struct vertex2d vertices[] = {
-			{ {  1, -1, }, { 1, 0 }, { 1, 0, 0, 1 }, },
-			{ {  1,  1, }, { 1, 1 }, { 0, 1, 0, 1 }, },
-			{ { -1, -1, }, { 0, 0 }, { 0, 0, 1, 1 }, },
-			{ { -1,  1, }, { 0, 1 }, { 1, 1, 0, 1 }, },
+			{ {  1, -1, }, { 1, 0 }, { 1, 1, 1, 1 }, },
+			{ {  1,  1, }, { 1, 1 }, { 1, 1, 1, 1 }, },
+			{ { -1, -1, }, { 0, 0 }, { 1, 1, 1, 1 }, },
+			{ { -1,  1, }, { 0, 1 }, { 1, 1, 1, 1 }, },
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
@@ -113,8 +113,9 @@ int main(int argc, char** argv) {
 		spoopy_api_begin_frame();
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
 		events_poll(handler_ptr, 0);
-		spoopy_api_draw_mesh(&mesh, pipeline);
+		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_texture_set(u_tex, tex);
+		spoopy_api_draw_mesh(&mesh, pipeline);
 		spoopy_api_swap_buffers();
 	}
 

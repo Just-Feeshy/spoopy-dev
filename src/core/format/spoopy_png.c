@@ -137,9 +137,14 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 	/* Read any color_type into a canonical format. */
 	png_set_expand(png);
 
-	bool keep_gray = (color_type == PNG_COLOR_TYPE_GRAY);
+	bool keep_gray = (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA);
 	if(!keep_gray) {
 		png_set_gray_to_rgb(png);
+	}
+
+	bool needs_alpha = (color_type == PNG_COLOR_TYPE_RGB) || (color_type == PNG_COLOR_TYPE_PALETTE) || (color_type == PNG_COLOR_TYPE_GRAY);
+	if (needs_alpha) {
+		png_set_add_alpha(png, 0xFF, PNG_FILLER_AFTER);
 	}
 
 	if(bit_depth == 16) {
