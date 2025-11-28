@@ -7,7 +7,7 @@
 int main(int argc, char** argv) {
     test_init();
 
-	const char *shader_vert = R"(
+	const char* shader_vert = R"(
 		#ifndef ShaderTypes_h
 		#define ShaderTypes_h
 		#endif
@@ -83,11 +83,11 @@ int main(int argc, char** argv) {
 		mesh.index_buffer = ibuf;
 	}
 
-	int frame_count = 0;
 	while(!spoopy_api_should_quit()) {
 		spoopy_api_begin_frame();
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
 		events_poll(handler_ptr, 0);
+		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_draw_mesh(&mesh, pipeline);
 		spoopy_api_swap_buffers();
 	}

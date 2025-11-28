@@ -9,15 +9,19 @@ test_inc = include_directories('.')
 test_links = []
 
 tests = [
-    'triangle'
+    'triangle',
+	'texture',
 ]
 
 if host_machine.system() != 'emscripten'
     tests += ['parallel']
 endif
 
+
+# Only testing gets access to SDL
+
 foreach test : tests
-    test_deps = spoopy_deps
+    test_deps = [spoopy_deps] + [spoopy_sdl_deps]
     test_inc = [test_inc, spoopy_includes]
 
     if opt_kore.enabled()

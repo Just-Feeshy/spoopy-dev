@@ -5,6 +5,13 @@
 
 #include "kore2.h"
 
+#include <stdint.h>
+#include <stdio.h>
+
+static bool unit_has_stage(const kinc_g4_texture_unit_t* unit, kinc_g4_shader_type_t stage) {
+	return unit->stages[stage] >= 0;
+}
+
 static kinc_g4_vertex_data_t vertex_format(
 	spoopy_vertex_attr_type_t type,
 	spoopy_vertex_attr_conv_t conv,
@@ -91,6 +98,41 @@ struct spoopy_pipeline* spoopy_kinc_pipeline_link(uint32_t num_objs, spoopy_shad
     }
 
     return pipeline;
+}
+
+uint32_t spoopy_kinc_pipeline_get_texture_unit(struct spoopy_pipeline* pipeline, const char* name) {
+	kinc_g4_texture_unit_t native_tex_unit = kinc_g4_pipeline_get_texture_unit(&pipeline->core, name);
+
+	if (!unit_has_stage(&native_tex_unit, KINC_G4_SHADER_TYPE_FRAGMENT)) {
+		char alt_name[64];
+		for (int i = 0; i < 8; ++i) {
+			int written = snprintf(alt_name, sizeof alt_name, "%s_%d", name, i);
+			if (written <= 0 || written >= (int)sizeof alt_name) {
+				continue;
+			}
+
+			native_tex_unit = kinc_g4_pipeline_get_texture_unit(&pipeline->core, alt_name);
+			if (unit_has_stage(&native_tex_unit, KINC_G4_SHADER_TYPE_FRAGMENT)) {
+				SPOOPY_LOG_WARN(
+					"Texture unit '%s' not found; falling back to '%s' (slot %d)",
+					name,
+					alt_name,
+					native_tex_unit.stages[KINC_G4_SHADER_TYPE_FRAGMENT]);
+				break;
+			}
+		}
+	}
+
+	if (!unit_has_stage(&native_tex_unit, KINC_G4_SHADER_TYPE_FRAGMENT)) {
+		SPOOPY_LOG_ERROR("Texture unit '%s' not found in pipeline", name);
+		return UINT32_MAX;
+	}
+
+	return (uint32_t)native_tex_unit.stages[KINC_G4_SHADER_TYPE_FRAGMENT];
+}
+
+void spoopy_kinc_pipeline_bind(spoopy_pipeline_t* pipeline) {
+	kinc_g4_set_pipeline(&pipeline->core);
 }
 
 void spoopy_kinc_pipeline_compile(struct spoopy_pipeline* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {

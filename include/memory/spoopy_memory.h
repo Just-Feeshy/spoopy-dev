@@ -30,7 +30,7 @@ SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
-    SPOOPY_ATTR_SIZE(1);
+    SPOOPY_ATTR_SIZE(1)
     SPOOPY_ATTR_ALIGN(2);
 
 SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
