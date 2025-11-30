@@ -25,6 +25,20 @@ void spoopy_kinc_texture_create(spoopy_texture_t* tex, const spoopy_texture_para
 void spoopy_kinc_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
 void spoopy_kinc_texture_set(uint32_t unit, spoopy_texture_t* tex);
 void spoopy_kinc_texture_destroy(spoopy_texture_t* tex);
+spoopy_uniform_t spoopy_kinc_shader_uniform(spoopy_pipeline_t* pipeline, const char* name);
+void spoopy_kinc_uniform_set_int(spoopy_uniform_t uniform, int value);
+void spoopy_kinc_uniform_set_int2(spoopy_uniform_t uniform, int v0, int v1);
+void spoopy_kinc_uniform_set_int3(spoopy_uniform_t uniform, int v0, int v1, int v2);
+void spoopy_kinc_uniform_set_int4(spoopy_uniform_t uniform, int v0, int v1, int v2, int v3);
+void spoopy_kinc_uniform_set_ints(spoopy_uniform_t uniform, const int* values, int count);
+void spoopy_kinc_uniform_set_float(spoopy_uniform_t uniform, float value);
+void spoopy_kinc_uniform_set_float2(spoopy_uniform_t uniform, float v0, float v1);
+void spoopy_kinc_uniform_set_float3(spoopy_uniform_t uniform, float v0, float v1, float v2);
+void spoopy_kinc_uniform_set_float4(spoopy_uniform_t uniform, float v0, float v1, float v2, float v3);
+void spoopy_kinc_uniform_set_floats(spoopy_uniform_t uniform, const float* values, int count);
+void spoopy_kinc_uniform_set_bool(spoopy_uniform_t uniform, bool value);
+void spoopy_kinc_uniform_set_matrix3(spoopy_uniform_t uniform, const float* values);
+void spoopy_kinc_uniform_set_matrix4(spoopy_uniform_t uniform, const float* values);
 
 static void spoopy_kinc_shader_destroy(spoopy_shader_object_t* shader) {
 	if (shader == NULL) {
@@ -93,4 +107,18 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.texture_fill = spoopy_kinc_texture_fill,
 	.texture_set = spoopy_kinc_texture_set,
 	.texture_destroy = spoopy_kinc_texture_destroy,
+	.shader_uniform = spoopy_kinc_shader_uniform,
+	.uniform_set_int = spoopy_kinc_uniform_set_int,
+	.uniform_set_int2 = spoopy_kinc_uniform_set_int2,
+	.uniform_set_int3 = spoopy_kinc_uniform_set_int3,
+	.uniform_set_int4 = spoopy_kinc_uniform_set_int4,
+	.uniform_set_ints = spoopy_kinc_uniform_set_ints,
+	.uniform_set_float = spoopy_kinc_uniform_set_float,
+	.uniform_set_float2 = spoopy_kinc_uniform_set_float2,
+	.uniform_set_float3 = spoopy_kinc_uniform_set_float3,
+	.uniform_set_float4 = spoopy_kinc_uniform_set_float4,
+	.uniform_set_floats = spoopy_kinc_uniform_set_floats,
+	.uniform_set_bool = spoopy_kinc_uniform_set_bool,
+	.uniform_set_matrix3 = spoopy_kinc_uniform_set_matrix3,
+	.uniform_set_matrix4 = spoopy_kinc_uniform_set_matrix4,
 };

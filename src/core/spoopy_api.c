@@ -1,6 +1,15 @@
 #include <spoopy_api.h>
 #include <spoopy_backend.h>
 
+#define SPOOPY_CALL_UNIFORM_FN(fn, ...) \
+	do { \
+		if(_backend_funcs.fn == NULL) { \
+			SPOOPY_LOG_ERROR("Uniform function '%s' not available on this backend.", #fn); \
+			return; \
+		} \
+		_backend_funcs.fn(__VA_ARGS__); \
+	} while(0)
+
 #define MAX_MIP_LEVELS 32
 
 spoopy_shader_object_t* spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
@@ -77,6 +86,67 @@ void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex) {
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
 	_backend_funcs.texture_destroy(tex);
+}
+
+spoopy_uniform_t spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name) {
+	if(_backend_funcs.shader_uniform == NULL) {
+		SPOOPY_LOG_ERROR("Uniform lookup is not available on this backend.");
+		return (spoopy_uniform_t){0};
+	}
+
+	return _backend_funcs.shader_uniform(pipeline, name);
+}
+
+void spoopy_api_uniform_set_int(spoopy_uniform_t uniform, int value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int, uniform, value);
+}
+
+void spoopy_api_uniform_set_int2(spoopy_uniform_t uniform, int value0, int value1) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int2, uniform, value0, value1);
+}
+
+void spoopy_api_uniform_set_int3(spoopy_uniform_t uniform, int value0, int value1, int value2) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int3, uniform, value0, value1, value2);
+}
+
+void spoopy_api_uniform_set_int4(spoopy_uniform_t uniform, int value0, int value1, int value2, int value3) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int4, uniform, value0, value1, value2, value3);
+}
+
+void spoopy_api_uniform_set_ints(spoopy_uniform_t uniform, const int* values, int count) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_ints, uniform, values, count);
+}
+
+void spoopy_api_uniform_set_float(spoopy_uniform_t uniform, float value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float, uniform, value);
+}
+
+void spoopy_api_uniform_set_float2(spoopy_uniform_t uniform, float value0, float value1) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float2, uniform, value0, value1);
+}
+
+void spoopy_api_uniform_set_float3(spoopy_uniform_t uniform, float value0, float value1, float value2) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float3, uniform, value0, value1, value2);
+}
+
+void spoopy_api_uniform_set_float4(spoopy_uniform_t uniform, float value0, float value1, float value2, float value3) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float4, uniform, value0, value1, value2, value3);
+}
+
+void spoopy_api_uniform_set_floats(spoopy_uniform_t uniform, const float* values, int count) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_floats, uniform, values, count);
+}
+
+void spoopy_api_uniform_set_bool(spoopy_uniform_t uniform, bool value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_bool, uniform, value);
+}
+
+void spoopy_api_uniform_set_matrix3(spoopy_uniform_t uniform, const float* values) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix3, uniform, values);
+}
+
+void spoopy_api_uniform_set_matrix4(spoopy_uniform_t uniform, const float* values) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix4, uniform, values);
 }
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kinc/graphics4/pipeline.h>
+#include <kinc/backend/graphics4/pipeline.h>
 #include <kinc/graphics4/vertexbuffer.h>
 #include <kinc/graphics4/indexbuffer.h>
 #include <kinc/graphics4/vertexstructure.h>
@@ -41,6 +42,12 @@ struct spoopy_texture {
 	bool sampler_initialized;
 	spoopy_texture_params_t params;
 	bool has_params;
+};
+
+struct spoopy_uniform {
+	spoopy_pipeline_t* pipeline;
+	kinc_g4_constant_location_t location;
+	spoopy_uniform_type_t type;
 };
 
 #ifdef __cplusplus

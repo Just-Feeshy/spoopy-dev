@@ -33,6 +33,6 @@ typedef struct EventHandler {
 	int32_t event_type; // SDL_EventType or any other type identifier
 } EventHandler;
 
-SPOOPY_FUNC_CORE EventHandler* events_register_handlers(EventHandler* handler_ptr, uint32_t capacity, EventHandler handlers[capacity]);
-SPOOPY_FUNC_CORE void events_init(int32_t NUM_USER_EVENTS, EventHandler** handler_ptr);
-SPOOPY_FUNC_CORE void events_poll(EventHandler* handlers, EventFlags flags);
+SPOOPY_FUNC_CORE EventHandler* spoopy_events_register_handlers(EventHandler* handler_ptr, uint32_t capacity, EventHandler handlers[capacity]);
+SPOOPY_FUNC_CORE void spoopy_events_init(int32_t NUM_USER_EVENTS, EventHandler** handler_ptr);
+SPOOPY_FUNC_CORE void spoopy_events_poll(EventHandler* handlers, EventFlags flags);

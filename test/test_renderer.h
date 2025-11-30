@@ -12,7 +12,7 @@ static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
     /* TODO (Framework): Rewrite the events header to begin with spoopy */
-	events_init(0, &handler_ptr);
+	spoopy_events_init(0, &handler_ptr);
 
 #ifndef __EMSCRIPTEN__
     spoopy_sdl_thread_init();

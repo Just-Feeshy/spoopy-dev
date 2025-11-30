@@ -1,7 +1,5 @@
 #include <spoopy_api.h>
 
-#include <SDL3/SDL_iostream.h>
-
 #include "test_renderer.h"
 
 typedef struct vertex2d {
@@ -14,7 +12,7 @@ int main(int argc, char** argv) {
 	test_init();
 
 	const char* shader_vert = R"(
-		#ifdef ShaderTypes_h
+		#ifndef ShaderTypes_h
 		#define ShaderTypes_h
 		#endif
 
@@ -45,7 +43,7 @@ int main(int argc, char** argv) {
 	)";
 
 	const char* shader_frag = R"(
-		#ifdef ShaderTypes_h
+		#ifndef ShaderTypes_h
 		#define ShaderTypes_h
 		#endif
 
@@ -104,6 +102,7 @@ int main(int argc, char** argv) {
 
 		mesh.vertex_buffer = vbuf;
 		mesh.index_buffer = ibuf;
+		mesh.index_count = 6;
 	}
 
 	spoopy_texture_t* tex = test_renderer_load_texture("test/tung.png");
@@ -112,7 +111,7 @@ int main(int argc, char** argv) {
 	while(!spoopy_api_should_quit()) {
 		spoopy_api_begin_frame();
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
-		events_poll(handler_ptr, 0);
+		spoopy_events_poll(handler_ptr, 0);
 		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_texture_set(u_tex, tex);
 		spoopy_api_draw_mesh(&mesh, pipeline);

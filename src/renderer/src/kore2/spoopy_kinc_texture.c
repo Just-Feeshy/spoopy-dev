@@ -3,9 +3,7 @@
 #include <spoopy_types.h>
 #include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
-
-#include <stddef.h>
-#include <string.h>
+#include <spoopy.h>
 
 static kinc_g4_texture_addressing_t to_kinc_g4_address(spoopy_texture_wrap_mode_t wrap)
   {
@@ -311,6 +309,8 @@ void spoopy_kinc_texture_set(uint32_t unit, spoopy_texture_t* tex) {
 
 	kinc_g4_texture_unit_t tex_unit;
 	memset(&tex_unit, 0xFF, sizeof(tex_unit.stages));
+
+	// TODO (Framework): Support other shader stages
 	tex_unit.stages[KINC_G4_SHADER_TYPE_FRAGMENT] = (int)unit;
 
 	kinc_g4_set_texture(tex_unit, &tex->raw);

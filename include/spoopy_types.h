@@ -13,7 +13,9 @@ typedef struct spoopy_vertex_buffer spoopy_vertex_buffer_t;
 typedef struct spoopy_vertex_array spoopy_vertex_array_t;
 typedef struct spoopy_index_buffer spoopy_index_buffer_t;
 typedef struct spoopy_mesh spoopy_mesh_t;
+typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
+typedef struct spoopy_uniform spoopy_uniform_t;
 
 
 /** Defined Structures **/
@@ -29,6 +31,29 @@ struct spoopy_mesh {
 	spoopy_vertex_buffer_t* vertex_buffer;
 	spoopy_index_buffer_t* index_buffer;
 	uint32_t index_count;
+};
+
+struct spoopy_preset_vertex_model {
+	union vec3d {
+		struct {
+			float x, y, z;
+		};
+		float data[3];
+	} position, normal;
+
+	union vec2d {
+		struct {
+			float u, v;
+		};
+		float data[2];
+	} uv;
+
+	union vec4d {
+		struct {
+			float x, y, z, w;
+		};
+		float data[4];
+	} tangent;
 };
 
 typedef enum spoopy_buffer_kind {
