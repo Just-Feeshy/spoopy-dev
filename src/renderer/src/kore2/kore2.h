@@ -47,7 +47,6 @@ struct spoopy_texture {
 struct spoopy_uniform {
 	spoopy_pipeline_t* pipeline;
 	kinc_g4_constant_location_t location;
-	spoopy_uniform_type_t type;
 };
 
 #ifdef __cplusplus
