@@ -45,7 +45,7 @@ struct spoopy_texture {
 };
 
 struct spoopy_uniform {
-	spoopy_pipeline_t* pipeline;
+	struct spoopy_pipeline* pipeline;
 	kinc_g4_constant_location_t location;
 };
 

@@ -53,20 +53,20 @@ SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
 // I have no plans to cache them at the moment, or if at all, so be aware of this
 // However, it would be genuinely better to have you, the developer, cache them yourself
 // if you plan to use them multiple times
-SPOOPY_FUNC_CORE spoopy_uniform_t spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int(spoopy_uniform_t uniform, int value);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int2(spoopy_uniform_t uniform, int value0, int value1);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int3(spoopy_uniform_t uniform, int value0, int value1, int value2);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int4(spoopy_uniform_t uniform, int value0, int value1, int value2, int value3);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_ints(spoopy_uniform_t uniform, const int* values, int count);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float(spoopy_uniform_t uniform, float value);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float2(spoopy_uniform_t uniform, float value0, float value1);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float3(spoopy_uniform_t uniform, float value0, float value1, float value2);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float4(spoopy_uniform_t uniform, float value0, float value1, float value2, float value3);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_floats(spoopy_uniform_t uniform, const float* values, int count);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_bool(spoopy_uniform_t uniform, bool value);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_matrix3(spoopy_uniform_t uniform, const float* values);
-SPOOPY_FUNC_CORE void spoopy_api_uniform_set_matrix4(spoopy_uniform_t uniform, const float* values);
+SPOOPY_FUNC_CORE spoopy_uniform_t* spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int(spoopy_uniform_t* uniform, int value);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int2(spoopy_uniform_t* uniform, int value0, int value1);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int3(spoopy_uniform_t* uniform, int value0, int value1, int value2);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_int4(spoopy_uniform_t* uniform, int value0, int value1, int value2, int value3);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_ints(spoopy_uniform_t* uniform, const int* values, int count);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float(spoopy_uniform_t* uniform, float value);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float2(spoopy_uniform_t* uniform, float value0, float value1);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float3(spoopy_uniform_t* uniform, float value0, float value1, float value2);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_float4(spoopy_uniform_t* uniform, float value0, float value1, float value2, float value3);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_floats(spoopy_uniform_t* uniform, const float* values, int count);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_bool(spoopy_uniform_t* uniform, bool value);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_matrix3(spoopy_uniform_t* uniform, const float* values);
+SPOOPY_FUNC_CORE void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* values);
 
 SPOOPY_FUNC_CORE bool spoopy_api_image_load_from_file(const char* path, spoopy_image_file_format_t file_format, spoopy_image_t* dst);
 

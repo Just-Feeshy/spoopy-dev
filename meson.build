@@ -30,6 +30,7 @@ spoopy_sdl_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake
 spoopy_deps = []
 spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
 spoopy_deps += dependency('libpng', required: true)
+spoopy_deps += dependency('cglm', required: true)
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 

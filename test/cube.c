@@ -159,8 +159,12 @@ int main(int argc, char** argv) {
 	}
 
 	uint32_t u_tex = spoopy_api_pipeline_get_texture_unit(pipeline, "tex0");
-	spoopy_uniform_t u_lightPos = spoopy_api_shader_uniform(pipeline, "u_lightPos");
-	spoopy_uniform_t u_viewPos = spoopy_api_shader_uniform(pipeline, "u_viewPos");
+	spoopy_uniform_t* u_lightPos = spoopy_api_shader_uniform(pipeline, "u_lightPos");
+	spoopy_uniform_t* u_viewPos = spoopy_api_shader_uniform(pipeline, "u_viewPos");
+
+	spoopy_api_uniform_set_float4(u_lightPos, 5.0f, 4.0f, 3.0f, 1.0f);
+	spoopy_api_uniform_set_float4(u_viewPos, 0.0f, 0.0f, 5.0f, 1.0f);
+
 
 	return 0;
 }
