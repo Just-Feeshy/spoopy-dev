@@ -1,4 +1,4 @@
-#include <spoopy_pipeline.h>
+#include <spoopy_types.h>
 #include <spoopy_shader.h>
 #include <spoopy_vertex_attr.h>
 #include <memory/spoopy_memory.h>

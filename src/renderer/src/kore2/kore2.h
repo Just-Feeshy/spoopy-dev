@@ -9,6 +9,8 @@
 #include <kinc/graphics4/texture.h>
 #include <kinc/graphics5/sampler.h>
 #include <kinc/graphics4/graphics.h>
+#include <kinc/graphics5/constantlocation.h>
+#include <kinc/math/matrix.h>
 #include <kinc/image.h>
 #include <spoopy_types.h>
 

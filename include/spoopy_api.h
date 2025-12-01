@@ -11,7 +11,6 @@
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
 #include <spoopy_video.h>
-#include <spoopy_pipeline.h>
 #include <spoopy_vertex_attr.h>
 #include <spoopy_events.h>
 #include <spoopy_color.h>

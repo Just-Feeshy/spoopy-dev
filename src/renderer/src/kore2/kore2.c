@@ -1,5 +1,4 @@
 #include <spoopy_backend.h>
-#include <spoopy_pipeline.h>
 #include <spoopy_types.h>
 #include <spoopy_log.h>
 #include <spoopy_image.h>

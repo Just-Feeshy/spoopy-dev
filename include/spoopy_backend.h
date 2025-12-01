@@ -1,7 +1,6 @@
 #pragma once
 
 #include <spoopy_shader.h>
-#include <spoopy_pipeline.h>
 #include <spoopy_vertex_attr.h>
 #include <spoopy_color.h>
 #include <spoopy_image.h>

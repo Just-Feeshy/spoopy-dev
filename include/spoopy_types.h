@@ -16,6 +16,7 @@ typedef struct spoopy_mesh spoopy_mesh_t;
 typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
+typedef struct spoopy_pipeline spoopy_pipeline_t;
 
 
 /** Defined Structures **/

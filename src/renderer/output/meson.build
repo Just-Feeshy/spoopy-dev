@@ -102,6 +102,7 @@ kore_cpp_args = [
 	  '../src/kore2/spoopy_kinc_pipeline.c',
 	  '../src/kore2/spoopy_kinc_buffers.c',
 	  '../src/kore2/spoopy_kinc_texture.c',
+	  '../src/kore2/spoopy_kinc_uniform.c',
 	  '../src/kore2/spoopy_video.c',
 	  '../src/metal/spoopy_mtl_shader.m',
 	  '../kore/Backends/Graphics4/G4onG5/Sources/kinc/backend/graphics4/g4ong5unit.c',
