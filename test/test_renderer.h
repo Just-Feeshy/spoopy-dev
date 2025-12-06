@@ -21,7 +21,8 @@ static void test_init(void) {
     spoopy_video_init(&(spoopy_video_init_params_t) {
         .title = "Test Renderer",
         .width = 800,
-        .height = 600
+        .height = 600,
+		.aspect_axis = SPOOPY_ASPECT_AXIS_HEIGHT
     });
 }
 

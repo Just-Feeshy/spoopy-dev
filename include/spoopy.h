@@ -1,6 +1,10 @@
 #ifndef SPOOPY_H
 #define SPOOPY_H
 
+#ifndef SPOOPY_EPSILON
+#define SPOOPY_EPSILON 0.00001f
+#endif
+
 #ifndef SPOOPY_SUPPORT_SDL_THREADS
 #define SPOOPY_SUPPORT_SDL_THREADS 1
 #endif

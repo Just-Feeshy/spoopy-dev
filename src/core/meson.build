@@ -8,7 +8,7 @@ spoopy_core_src += files(
     'sdl/spoopy_sdl_thread.c',
     'sdl/spoopy_sdl_api.c',
     'sdl/spoopy_sdl_events.c',
-    'sdl/spoopy_sdl_window.c',
+    'sdl/spoopy_sdl_video.c',
 	'format/spoopy_png.c',
 )
 

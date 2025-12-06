@@ -2,6 +2,10 @@
 
 #include <spoopy.h>
 
+#define SPOOPY_PI_F 3.14159265358979323846f
+#define SPOOPY_DEG2RAD_F (SPOOPY_PI_F / 180.0f)
+#define SPOOPY_RAD2DEG_F (180.0f / SPOOPY_PI_F)
+
 #define spoopy_min(a, b) ({ \
 	typeof((a)+(b)) _temp_a = (a); \
 	typeof((a)+(b)) _temp_b = (b); \
@@ -14,4 +18,5 @@
 	_temp_a > _temp_b ? _temp_a : _temp_b; \
 })
 
-SPOOPY_FUNC_CORE uint32_t spoopy_ceil_pow2_u32(uint32_t v);
+SPOOPY_FUNC_CORE uint32_t spoopy_ceil_pow2_u32(uint32_t v) SPOOPY_ATTR_CONST;
+SPOOPY_FUNC_CORE float spoopy_lerp_f32(float a, float b, float t) SPOOPY_ATTR_CONST;

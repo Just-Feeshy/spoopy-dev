@@ -13,3 +13,7 @@ uint32_t spoopy_ceil_pow2_u32(uint32_t v) {
 
 	return v;
 }
+
+float spoopy_lerp_f32(float a, float b, float t) {
+	return a + t * (b - a);
+}

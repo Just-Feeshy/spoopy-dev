@@ -16,10 +16,11 @@ extern "C" {
 
 
 /* =============================================================================
- * SDL & KORE COMPATIBILITY
+ * SDL & CGLM COMPATIBILITY
  * ============================================================================= */
 
 #define SDL_GPU_DISABLE
+#define CGLM_CONFIG_CLIP_CONTROL CGLM_CLIP_CONTROL_RH_ZO
 
 
 /* =============================================================================
@@ -87,6 +88,37 @@ extern "C" {
 #endif
 
 #define SPOOPY_UNUSED(x) (void)(x)
+
+
+/* =============================================================================
+ * COMPILER DIAGNOSTIC HELPERS
+ * ============================================================================= */
+
+#if defined(_MSC_VER)
+
+#define SPOOPY_DIAGNOSTIC_PUSH __pragma(warning(push))
+#define SPOOPY_DIAGNOSTIC_POP  __pragma(warning(pop))
+#define SPOOPY_DIAGNOSTIC_IGNORE(option) __pragma(warning(disable : option))
+
+#elif defined(__clang__)
+
+#define SPOOPY_DIAGNOSTIC_PUSH _Pragma("clang diagnostic push")
+#define SPOOPY_DIAGNOSTIC_POP  _Pragma("clang diagnostic pop")
+#define SPOOPY_DIAGNOSTIC_IGNORE(option) _Pragma("clang diagnostic ignored \"" option "\"")
+
+#elif defined(__GNUC__)
+
+#define SPOOPY_DIAGNOSTIC_PUSH _Pragma("GCC diagnostic push")
+#define SPOOPY_DIAGNOSTIC_POP  _Pragma("GCC diagnostic pop")
+#define SPOOPY_DIAGNOSTIC_IGNORE(option) _Pragma("GCC diagnostic ignored \"" option "\"")
+
+#else
+
+#define SPOOPY_DIAGNOSTIC_PUSH
+#define SPOOPY_DIAGNOSTIC_POP
+#define SPOOPY_DIAGNOSTIC_IGNORE(option)
+
+#endif
 
 
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 11

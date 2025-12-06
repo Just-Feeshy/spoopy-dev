@@ -4,8 +4,6 @@
 #include <spoopy_types.h>
 #include <memory/spoopy_memory.h>
 
-#include <string.h>
-
 static bool kinc_constant_location_valid(kinc_g4_constant_location_t location) {
     const ConstantLocation5Impl* impl = &location.impl._location.impl;
     return impl->vertexOffset >= 0 || impl->fragmentOffset >= 0 || impl->computeOffset >= 0;

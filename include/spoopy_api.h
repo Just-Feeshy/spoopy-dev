@@ -47,6 +47,15 @@ SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t 
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
 SPOOPY_FUNC_CORE void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
+SPOOPY_FUNC_CORE spoopy_window_t spoopy_api_window_create(void* raw_handle, const char* title, int x, int y, int width, int height, spoopy_window_flags_t flags);
+SPOOPY_FUNC_CORE void spoopy_api_window_show(spoopy_window_t window);
+SPOOPY_FUNC_CORE void spoopy_api_window_raise(spoopy_window_t window);
+SPOOPY_FUNC_CORE spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(spoopy_window_t window);
+SPOOPY_FUNC_CORE bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window);
+SPOOPY_FUNC_CORE void spoopy_api_window_set_fullscreen(spoopy_window_t window, bool fullscreen);
+SPOOPY_FUNC_CORE void spoopy_api_window_set_resizeable(spoopy_window_t window, bool resizeable);
+SPOOPY_FUNC_CORE void spoopy_api_window_destroy(spoopy_window_t window);
+
 
 // NOTE: No uniforms are being cached currently, so repeated lookups will be slower
 // I have no plans to cache them at the moment, or if at all, so be aware of this

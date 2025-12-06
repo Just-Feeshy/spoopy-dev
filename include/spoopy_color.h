@@ -9,6 +9,12 @@ extern "C" {
 /* TODO (Old System Support) - Test if this works correctly on big-endian systems */
 
 
+// The reason why I'm not using spoopy_vec types here is to avoid
+// any potential padding/alignment issues that may arise from using structs
+// with multiple members. Using arrays ensures a consistent memory layout, since we have
+// a `packed` member for each color type as well, which is important for interoperability
+// and I'm worried it might screw things up on some platforms
+
 typedef union spoopy_color1 {
 	float value[1];
 	struct { float r; };

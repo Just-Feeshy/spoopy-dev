@@ -57,6 +57,14 @@ static inline void spoopy_log_internal(spoopyLogType type, const char* file, int
 #define SPOOPY_LOG_ERROR(...)   spoopy_log_internal(LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 #define SPOOPY_LOG_SUCCESS(...) spoopy_log_internal(LOG_SUCCESS, __FILE__, __LINE__, __VA_ARGS__)
 
+#define SPOOPY_LOG_ERR_COND(cond) \
+	do { \
+		if (SPOOPY_UNLIKELY(cond)) { \
+			SPOOPY_LOG_ERROR("%s:%d - Condition '%s' failed.", __FILE__, __LINE__, #cond); \
+			abort(); \
+		} \
+	} while(0)
+
 #ifdef __cplusplus
 }
 #endif

@@ -12,6 +12,8 @@
 #include <kinc/graphics5/constantlocation.h>
 #include <kinc/math/matrix.h>
 #include <kinc/image.h>
+#include <kinc/system.h>
+#include <kinc/window.h>
 #include <spoopy_types.h>
 
 #ifdef __cplusplus

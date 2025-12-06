@@ -2,9 +2,54 @@
 
 #include <spoopy_image.h>
 
+
+/** Macro Definitions **/
+
+#define SPOOPY_VEC_TYPES(type) \
+	typedef union spoopy_vec2_##type { \
+		struct { \
+			type x, y; \
+		}; \
+		struct { \
+			type w, h; \
+		}; \
+		struct { \
+			type r, g; \
+		}; \
+		type data[2]; \
+	} spoopy_vec2_##type##_t; \
+	typedef union spoopy_vec3_##type { \
+		struct { \
+			type x, y, z; \
+		}; \
+		type data[3]; \
+	} spoopy_vec3_##type##_t; \
+	typedef union spoopy_vec4_##type { \
+		struct { \
+			type x, y, z, w; \
+		}; \
+		type data[4]; \
+	} spoopy_vec4_##type##_t; \
+	typedef struct spoopy_rec_##type { \
+		spoopy_vec2_##type##_t point; \
+		spoopy_vec2_##type##_t size; \
+	} spoopy_rec_##type##_t;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* ============================= Spoopy Core Types =============================
+ * All core types used by the Spoopy Environment and Renderer API are
+ * defined in this header, it's more or less a nice one stop shop for
+ * all the basic structures and types used throughout the literal entire
+ * codebase
+ * =============================================================================
+ */
+
+SPOOPY_VEC_AND_REC_TYPES(float)
+SPOOPY_VEC_AND_REC_TYPES(int)
 
 
 /** Forward Declarations of Core Components **/
@@ -17,6 +62,7 @@ typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
+typedef struct spoopy_window spoopy_window_t;
 
 
 /** Defined Structures **/
@@ -35,26 +81,9 @@ struct spoopy_mesh {
 };
 
 struct spoopy_preset_vertex_model {
-	union vec3d {
-		struct {
-			float x, y, z;
-		};
-		float data[3];
-	} position, normal;
-
-	union vec2d {
-		struct {
-			float u, v;
-		};
-		float data[2];
-	} uv;
-
-	union vec4d {
-		struct {
-			float x, y, z, w;
-		};
-		float data[4];
-	} tangent;
+	spoopy_vec3_float_t position, normal;
+	spoopy_vec2_float_t uv;
+	spoopy_vec4_float_t tangent;
 };
 
 typedef enum spoopy_buffer_kind {
@@ -102,6 +131,20 @@ typedef struct spoopy_texture_params {
 		spoopy_texture_wrap_mode_t v;
 	} wrap;
 } spoopy_texture_params_t;
+
+typedef enum spoopy_aspect_axis {
+	SPOOPY_ASPECT_AXIS_WIDTH,
+	SPOOPY_ASPECT_AXIS_HEIGHT,
+	SPOOPY_ASPECT_AXIS_NONE,
+} spoopy_aspect_axis_t;
+
+typedef enum spoopy_window_flags {
+	SPOOPY_WINDOW_FLAG_RESIZABLE = (1 << 0),
+	SPOOPY_WINDOW_FLAG_FULLSCREEN = (1 << 1),
+	SPOOPY_WINDOW_FLAG_BORDERLESS = (1 << 2),
+	SPOOPY_WINDOW_FLAG_HIDDEN = (1 << 3),
+	SPOOPY_WINDOW_FLAG_VSYNC = (1 << 4),
+} spoopy_window_flags_t;
 
 #ifdef __cplusplus
 }
