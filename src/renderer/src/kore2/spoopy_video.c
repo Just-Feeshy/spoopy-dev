@@ -59,12 +59,11 @@ static spoopy_vec2_float_t video_get_viewport_size(spoopy_vec2_int_t framebuffer
 	return vp_size;
 }
 
-static void video_set_viewport(uint32_t display, spoopy_aspect_axis_t aspect_axis) {
-	if(video.main_window == NULL) {
-		return;
-	}
+void spoopy_video_set_viewport(uint32_t display, spoopy_aspect_axis_t aspect_axis) {
+	spoopy_vec2_int_t fb;
+	fb.x = kinc_window_width((int)display);
+	fb.y = kinc_window_height((int)display);
 
-	spoopy_vec2_int_t fb = spoopy_api_window_get_framebuffer_size(video.main_window);
 	spoopy_vec2_float_t vp = video_get_viewport_size(fb, aspect_axis);
 	int32_t target_w = (int32_t)vp.w;
 	int32_t target_h = (int32_t)vp.h;
@@ -86,9 +85,9 @@ static int video_flags_to_kinc_features(spoopy_window_flags_t flags) {
 	return features;
 }
 
-static void video_update_mode(uint32_t display, uint32_t width, uint32_t height, spoopy_aspect_axis_t aspect_axis, spoopy_window_flags_t flags) {
+void video_update_mode(uint32_t display, uint32_t width, uint32_t height, spoopy_aspect_axis_t aspect_axis, spoopy_window_flags_t flags) {
 	kinc_window_resize((int)display, (int)width, (int)height);
-	video_set_viewport(display, aspect_axis);
+	spoopy_video_set_viewport(display, aspect_axis);
 	kinc_window_change_features((int)display, video_flags_to_kinc_features(flags));
 	kinc_window_mode_t mode = (flags & SPOOPY_WINDOW_FLAG_FULLSCREEN) != 0 ? KINC_WINDOW_MODE_FULLSCREEN : KINC_WINDOW_MODE_WINDOW;
 	kinc_window_change_mode((int)display, mode);
@@ -142,7 +141,7 @@ static void video_new_window(uint32_t display, uint32_t width, uint32_t height, 
 	}
 }
 
-void video_set_mode(uint32_t display, uint32_t width, uint32_t height) {
+void spoopy_video_set_mode(uint32_t display, uint32_t width, uint32_t height) {
     if(display >= kinc_count_displays()) {
         SPOOPY_LOG_WARN("Invalid display index: %u", display);
         display = 0;
@@ -180,7 +179,7 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
 
     assert(spoopy_global_context_init());
 
-	video_set_mode(0, params->width, params->height);
+	spoopy_video_set_mode(0, params->width, params->height);
 
 	// Setup desired slang profile and family based on the current backend
 	spoopy_slang_family = 0;
