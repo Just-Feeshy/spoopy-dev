@@ -22,6 +22,7 @@ static void test_init(void) {
         .title = "Test Renderer",
         .width = 800,
         .height = 600,
+		.flags = SPOOPY_WINDOW_FLAG_FULLSCREEN,
     });
 }
 

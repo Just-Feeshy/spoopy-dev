@@ -14,6 +14,7 @@
 #include <kinc/image.h>
 #include <kinc/system.h>
 #include <kinc/window.h>
+#include <kinc/display.h>
 #include <spoopy_types.h>
 
 #ifdef __cplusplus
