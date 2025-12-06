@@ -79,8 +79,18 @@ static void spoopy_kinc_swap_buffers(void) {
 	kinc_g4_swap_buffers();
 }
 
+
 const size_t spoopy_kinc_texture_size(void) {
 	return sizeof(spoopy_texture_t);
+}
+
+void* spoopy_kinc_window_create_pointer(uint32_t display) {
+#ifdef __APPLE__
+	return kinc_get_mac_window_handle((int)display);
+#else
+	SPOOPY_LOG_ERROR("Window pointer creation not implemented for this platform.");
+	return NULL;
+#endif
 }
 
 spoopy_backend_funcs_t _backend_funcs = {
@@ -120,4 +130,5 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.uniform_set_bool = spoopy_kinc_uniform_set_bool,
 	.uniform_set_matrix3 = spoopy_kinc_uniform_set_matrix3,
 	.uniform_set_matrix4 = spoopy_kinc_uniform_set_matrix4,
+	.window_create_pointer = spoopy_kinc_window_create_pointer,
 };

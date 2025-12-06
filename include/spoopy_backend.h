@@ -38,6 +38,7 @@ typedef struct spoopy_backend_funcs {
 	void (*uniform_set_bool)(spoopy_uniform_t* uniform, bool value);
 	void (*uniform_set_matrix3)(spoopy_uniform_t* uniform, const float* values);
 	void (*uniform_set_matrix4)(spoopy_uniform_t* uniform, const float* values);
+	void* (*window_create_pointer)(uint32_t display);
 } spoopy_backend_funcs_t;
 
 extern spoopy_backend_funcs_t _backend_funcs;

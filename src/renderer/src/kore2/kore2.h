@@ -17,6 +17,12 @@
 #include <kinc/display.h>
 #include <spoopy_types.h>
 
+#ifdef __APPLE__
+#include <objc/objc.h>
+typedef struct objc_object NSWindow;
+NSWindow *kinc_get_mac_window_handle(int window_index);
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +59,8 @@ struct spoopy_uniform {
 	struct spoopy_pipeline* pipeline;
 	kinc_g4_constant_location_t location;
 };
+
+void* spoopy_kinc_window_create_pointer(uint32_t display);
 
 #ifdef __cplusplus
 }

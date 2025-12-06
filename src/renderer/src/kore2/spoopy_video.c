@@ -1,12 +1,6 @@
 #include <spoopy_api.h>
 #include <spoopy_video.h>
 
-#ifdef __APPLE__
-#include <objc/objc.h>
-typedef struct objc_object NSWindow;
-NSWindow *kinc_get_mac_window_handle(int window_index);
-#endif
-
 #include "../../../spoopy_system_info.h"
 #include "kore2.h"
 
@@ -97,21 +91,28 @@ static int video_flags_to_kinc_features(spoopy_window_flags_t flags) {
 	return features;
 }
 
+#ifndef __APPLE__
+
 void spoopy_video_update_mode(uint32_t display, uint32_t width, uint32_t height) {
-	kinc_window_resize((int)display, (int)width, (int)height);
-	spoopy_video_set_viewport(display, video.aspect_axis);
-	kinc_window_change_features((int)display, video_flags_to_kinc_features(video.window_flags));
-	kinc_window_mode_t mode = (video.window_flags & SPOOPY_WINDOW_FLAG_FULLSCREEN) != 0 ? KINC_WINDOW_MODE_FULLSCREEN : KINC_WINDOW_MODE_WINDOW;
-	kinc_window_change_mode((int)display, mode);
+	// kinc_window_resize((int)display, (int)width, (int)height);
+	// spoopy_video_set_viewport(display, video.aspect_axis);
+	// kinc_window_change_features((int)display, video_flags_to_kinc_features(video.window_flags));
+	// kinc_window_mode_t mode = (video.window_flags & SPOOPY_WINDOW_FLAG_FULLSCREEN) != 0 ? KINC_WINDOW_MODE_FULLSCREEN : KINC_WINDOW_MODE_WINDOW;
+	// kinc_window_change_mode((int)display, mode);
 }
+
+#else
+
+void spoopy_video_update_mode(uint32_t display, uint32_t width, uint32_t height) {
+	// macOS backend does not support dynamic window mode changes yet
+}
+
+#endif
 
 static void video_new_window_internal(uint32_t display, uint32_t width, uint32_t height, spoopy_window_flags_t flags, bool fallback) {
 	video_destroy_main_window();
 
-	void* raw_handle = NULL;
-#ifdef __APPLE__
-	raw_handle = kinc_get_mac_window_handle((int)display);
-#endif
+	void* raw_handle = spoopy_api_window_create_pointer(display);
 	if(raw_handle == NULL) {
 		SPOOPY_LOG_ERROR("Failed to acquire native window handle for display %u", display);
 		return;

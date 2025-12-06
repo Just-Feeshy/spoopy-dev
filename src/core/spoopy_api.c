@@ -153,6 +153,10 @@ void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* valu
 	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix4, uniform, values);
 }
 
+void* spoopy_api_window_create_pointer(uint32_t display) {
+	return _backend_funcs.window_create_pointer(display);
+}
+
 
 // TODO (Optimize Memory) - Make a custom vertex buffer that is universal
 // and avoid the need for API wrapper requirement which allows us to privatize
