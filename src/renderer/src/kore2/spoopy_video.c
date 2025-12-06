@@ -10,6 +10,16 @@ NSWindow *kinc_get_mac_window_handle(int window_index);
 #include "../../../spoopy_system_info.h"
 #include "kore2.h"
 
+typedef struct spoopy_video_mode {
+	uint32_t display;
+	uint32_t window_w;
+	uint32_t window_h;
+	uint32_t pixel_w;
+	uint32_t pixel_h;
+	float dpi_scale;
+	spoopy_window_flags_t flags;
+} spoopy_video_mode_t;
+
 // TODO (Samples): Implement multiple display support as well as multi-window support
 // Might require heavy changes to the windowing system though, and also must have a sample// showing it off
 
@@ -19,6 +29,8 @@ static struct {
 	spoopy_aspect_axis_t aspect_axis;
 	spoopy_window_flags_t window_flags;
 	const char* title;
+	spoopy_video_mode_t current;
+	spoopy_vec2_float_t viewport;
 } video;
 
 bool video_initialized = false;
@@ -32,6 +44,10 @@ static bool handle_kinc_window_close(void *data) {
     spoopy_api_request_quit();
     return false; // Prevent immediate window close, let spoopy handle it gracefully
 }
+
+static void spoopy_video_update_scaling_factor(void);
+static void spoopy_video_update_vsync(void);
+static void spoopy_video_apply_mode(const spoopy_video_mode_t* mode);
 
 static spoopy_vec2_float_t video_get_viewport_size(spoopy_vec2_int_t framebuffer_size, spoopy_aspect_axis_t aspect_axis) {
 	spoopy_vec2_float_t vp_size = {
@@ -59,12 +75,14 @@ static spoopy_vec2_float_t video_get_viewport_size(spoopy_vec2_int_t framebuffer
 	return vp_size;
 }
 
-void spoopy_video_set_viewport(uint32_t display, spoopy_aspect_axis_t aspect_axis) {
-	spoopy_vec2_int_t fb;
-	fb.x = kinc_window_width((int)display);
-	fb.y = kinc_window_height((int)display);
+static void spoopy_video_set_viewport(uint32_t display, spoopy_aspect_axis_t aspect_axis) {
+	spoopy_vec2_int_t fb = {
+		.w = (int32_t)(video.current.pixel_w ? video.current.pixel_w : (uint32_t)kinc_window_width((int)display)),
+		.h = (int32_t)(video.current.pixel_h ? video.current.pixel_h : (uint32_t)kinc_window_height((int)display)),
+	};
 
 	spoopy_vec2_float_t vp = video_get_viewport_size(fb, aspect_axis);
+	video.viewport = vp;
 	int32_t target_w = (int32_t)vp.w;
 	int32_t target_h = (int32_t)vp.h;
 	int32_t pos_x = (int32_t)((fb.w - target_w) * 0.5f);
@@ -85,12 +103,18 @@ static int video_flags_to_kinc_features(spoopy_window_flags_t flags) {
 	return features;
 }
 
-void video_update_mode(uint32_t display, uint32_t width, uint32_t height, spoopy_aspect_axis_t aspect_axis, spoopy_window_flags_t flags) {
-	kinc_window_resize((int)display, (int)width, (int)height);
-	spoopy_video_set_viewport(display, aspect_axis);
-	kinc_window_change_features((int)display, video_flags_to_kinc_features(flags));
-	kinc_window_mode_t mode = (flags & SPOOPY_WINDOW_FLAG_FULLSCREEN) != 0 ? KINC_WINDOW_MODE_FULLSCREEN : KINC_WINDOW_MODE_WINDOW;
-	kinc_window_change_mode((int)display, mode);
+static void spoopy_video_update_scaling_factor(void) {
+	if(video.current.window_w == 0 || video.current.pixel_w == 0) {
+		video.current.dpi_scale = 1.0f;
+		return;
+	}
+
+	video.current.dpi_scale = (float)video.current.pixel_w / (float)video.current.window_w;
+}
+
+static void spoopy_video_update_vsync(void) {
+	video.current.flags = (video.current.flags & ~SPOOPY_WINDOW_FLAG_VSYNC) |
+		(video.window_flags & SPOOPY_WINDOW_FLAG_VSYNC);
 }
 
 static void video_new_window_internal(uint32_t display, uint32_t width, uint32_t height, spoopy_window_flags_t flags, bool fallback) {
@@ -119,9 +143,11 @@ static void video_new_window_internal(uint32_t display, uint32_t width, uint32_t
 	);
 
 	if(video.main_window != NULL) {
+		video.window_flags = flags;
+
 		spoopy_api_window_show(video.main_window);
 		spoopy_api_window_raise(video.main_window);
-		video_update_mode(display, width, height, video.aspect_axis, flags);
+		spoopy_video_update_mode(display, width, height);
 		return;
 	}
 
@@ -139,6 +165,41 @@ static void video_new_window(uint32_t display, uint32_t width, uint32_t height, 
 	if(video.main_window != NULL) {
 		SPOOPY_LOG_INFO("Created new window on display %u with size %ux%u", display, width, height);
 	}
+}
+
+static void spoopy_video_apply_mode(const spoopy_video_mode_t* mode) {
+	if(mode->pixel_w == 0 || mode->pixel_h == 0) {
+		return;
+	}
+
+	video.current = *mode;
+	kinc_window_change_features((int)mode->display, video_flags_to_kinc_features(mode->flags));
+	kinc_window_mode_t kinc_mode = (mode->flags & SPOOPY_WINDOW_FLAG_FULLSCREEN) != 0
+		? KINC_WINDOW_MODE_FULLSCREEN
+		: KINC_WINDOW_MODE_WINDOW;
+	kinc_window_change_mode((int)mode->display, kinc_mode);
+	kinc_window_resize((int)mode->display, (int)mode->pixel_w, (int)mode->pixel_h);
+
+	spoopy_video_update_scaling_factor();
+	spoopy_video_update_vsync();
+	spoopy_video_set_viewport(mode->display, video.aspect_axis);
+}
+
+void spoopy_video_update_mode(uint32_t display, uint32_t width, uint32_t height) {
+	if(video.main_window == NULL) {
+		return;
+	}
+
+	spoopy_vec2_int_t logical_size = spoopy_api_window_get_framebuffer_size(video.main_window);
+	spoopy_video_mode_t mode = video.current;
+	mode.display = display;
+	mode.window_w = (uint32_t)((logical_size.w > 0) ? logical_size.w : width);
+	mode.window_h = (uint32_t)((logical_size.h > 0) ? logical_size.h : height);
+	mode.pixel_w = width != 0 ? width : (uint32_t)kinc_window_width((int)display);
+	mode.pixel_h = height != 0 ? height : (uint32_t)kinc_window_height((int)display);
+	mode.flags = video.window_flags;
+
+	spoopy_video_apply_mode(&mode);
 }
 
 void spoopy_video_set_mode(uint32_t display, uint32_t width, uint32_t height) {
@@ -160,8 +221,7 @@ void spoopy_video_set_mode(uint32_t display, uint32_t width, uint32_t height) {
 
 	bool want_resizeable = (video.window_flags & SPOOPY_WINDOW_FLAG_RESIZABLE) != 0;
 	spoopy_api_window_set_resizeable(video.main_window, want_resizeable);
-
-	video_update_mode(display, width, height, video.aspect_axis, video.window_flags);
+	spoopy_video_update_mode(display, width, height);
 }
 
 void spoopy_video_init(const spoopy_video_init_params_t* params) {
@@ -216,11 +276,22 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
     video_initialized = true;
 }
 
+void spoopy_video_get_viewport_size(float* width, float* height) {
+	if(width != NULL) {
+		*width = video.viewport.w;
+	}
+	if(height != NULL) {
+		*height = video.viewport.h;
+	}
+}
+
 void spoopy_video_shutdown(void) {
 	if(video.main_window != NULL) {
 		spoopy_api_window_destroy(video.main_window);
 		video.main_window = NULL;
 	}
 	spoopy_shader_cleanup();
+	video.current = (spoopy_video_mode_t){0};
+	video.viewport = (spoopy_vec2_float_t){0};
     video_initialized = false;
 }

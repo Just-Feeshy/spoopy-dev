@@ -107,6 +107,12 @@ static bool spoopy_events_handler_quit(SDL_Event *event, void *arg) {
 static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 	(void)arg;
 
+	switch(event->type) {
+		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			spoopy_video_update_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
+			break;
+	}
+
 	return false;
 }
 
