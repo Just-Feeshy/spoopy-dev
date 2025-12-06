@@ -63,6 +63,7 @@ typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
 typedef struct spoopy_window* spoopy_window_t;
+typedef struct spoopy_window spoopy_window_ref_t;
 
 
 /** Defined Structures **/
