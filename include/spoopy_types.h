@@ -5,7 +5,7 @@
 
 /** Macro Definitions **/
 
-#define SPOOPY_VEC_TYPES(type) \
+#define SPOOPY_VEC_AND_REC_TYPES(type) \
 	typedef union spoopy_vec2_##type { \
 		struct { \
 			type x, y; \
@@ -62,7 +62,7 @@ typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
-typedef struct spoopy_window spoopy_window_t;
+typedef struct spoopy_window* spoopy_window_t;
 
 
 /** Defined Structures **/
