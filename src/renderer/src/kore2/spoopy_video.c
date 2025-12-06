@@ -23,6 +23,15 @@ static struct {
 
 bool video_initialized = false;
 
+static void video_destroy_main_window(void) {
+	if(video.main_window == NULL) {
+		return;
+	}
+
+	spoopy_api_window_destroy(video.main_window);
+	video.main_window = NULL;
+}
+
 static inline int spoopy_windowpos_centered_display(uint32_t display) {
 	return (int)(0x2FFF0000u | display);
 }
@@ -97,10 +106,7 @@ void spoopy_video_update_mode(uint32_t display, uint32_t width, uint32_t height)
 }
 
 static void video_new_window_internal(uint32_t display, uint32_t width, uint32_t height, spoopy_window_flags_t flags, bool fallback) {
-	if(video.main_window != NULL) {
-		spoopy_api_window_destroy(video.main_window);
-		video.main_window = NULL;
-	}
+	video_destroy_main_window();
 
 	void* raw_handle = NULL;
 #ifdef __APPLE__
@@ -220,10 +226,7 @@ void spoopy_video_init(const spoopy_video_init_params_t* params) {
 }
 
 void spoopy_video_shutdown(void) {
-	if(video.main_window != NULL) {
-		spoopy_api_window_destroy(video.main_window);
-		video.main_window = NULL;
-	}
+	video_destroy_main_window();
 	spoopy_shader_cleanup();
     video_initialized = false;
 }

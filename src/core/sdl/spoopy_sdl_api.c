@@ -4,10 +4,6 @@
 
 static SDL_AtomicInt should_quit;
 
-struct spoopy_window {
-	SDL_Window* sdl_window;
-};
-
 bool spoopy_api_should_quit(void) {
 	return SDL_GetAtomicInt(&should_quit);
 }
@@ -53,23 +49,25 @@ spoopy_window_t spoopy_api_window_create(void* raw_handle, const char* title, in
 		return NULL;
 	}
 
-	spoopy_window_t window = (spoopy_window_t)spoopy_heap_alloc(sizeof(*window));
-	if(window == NULL) {
-		SPOOPY_LOG_ERROR("Failed to allocate spoopy_window wrapper.");
-		SDL_DestroyWindow(sdl_window);
-		return NULL;
-	}
-
-	window->sdl_window = sdl_window;
-	return window;
+	return sdl_window;
 }
 
 void spoopy_api_window_show(spoopy_window_t window) {
-	SDL_ShowWindow(window->sdl_window);
+	if(window == NULL) {
+		SPOOPY_LOG_WARN("No window to show.");
+		return;
+	}
+
+	SDL_ShowWindow(window);
 }
 
 void spoopy_api_window_raise(spoopy_window_t window) {
-	SDL_RaiseWindow(window->sdl_window);
+	if(window == NULL) {
+		SPOOPY_LOG_WARN("No window to raise.");
+		return;
+	}
+
+	SDL_RaiseWindow(window);
 }
 
 spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(spoopy_window_t window) {
@@ -77,25 +75,39 @@ spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(spoopy_window_t window)
 	if(window == NULL) {
 		return size;
 	}
-	SDL_GetWindowSize(window->sdl_window, &size.w, &size.h);
+	SDL_GetWindowSize(window, &size.w, &size.h);
 	return size;
 }
 
 bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window) {
-	return (SDL_GetWindowFlags(window->sdl_window) & SDL_WINDOW_FULLSCREEN) != 0;
+	if(window == NULL) {
+		return false;
+	}
+
+	return (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) != 0;
 }
 
 void spoopy_api_window_set_fullscreen(spoopy_window_t window, bool fullscreen) {
+	if(window == NULL) {
+		SPOOPY_LOG_WARN("No window available to toggle fullscreen mode.");
+		return;
+	}
+
 	uint32_t mode = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-	if(!SDL_SetWindowFullscreen(window->sdl_window, mode)) {
+	if(!SDL_SetWindowFullscreen(window, mode)) {
 		SPOOPY_LOG_ERROR("Failed to toggle fullscreen mode: %s", SDL_GetError());
 	}
 
-	SDL_RaiseWindow(window->sdl_window);
+	SDL_RaiseWindow(window);
 }
 
 void spoopy_api_window_set_resizeable(spoopy_window_t window, bool resizeable) {
-	SDL_SetWindowResizable(window->sdl_window, resizeable);
+	if(window == NULL) {
+		SPOOPY_LOG_WARN("No window available to toggle resizable state.");
+		return;
+	}
+
+	SDL_SetWindowResizable(window, resizeable);
 }
 
 void spoopy_api_window_destroy(spoopy_window_t window) {
@@ -104,8 +116,7 @@ void spoopy_api_window_destroy(spoopy_window_t window) {
 		return;
 	}
 
-	SDL_DestroyWindow(window->sdl_window);
-	spoopy_heap_free(window);
+	SDL_DestroyWindow(window);
 }
 
 // Yea.. I know.. it's not exactly in any way part of the renderer API, but
