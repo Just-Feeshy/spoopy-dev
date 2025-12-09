@@ -9,14 +9,15 @@
 #define spoopy_min(a, b) ({ \
 	typeof((a)+(b)) _temp_a = (a); \
 	typeof((a)+(b)) _temp_b = (b); \
-	_temp_a > _temp_b ? _temp_b : _temp_a; \
+	(_temp_a > _temp_b) ? _temp_b : _temp_a; \
 })
 
 #define spoopy_max(a, b) ({ \
 	typeof((a)+(b)) _temp_a = (a); \
 	typeof((a)+(b)) _temp_b = (b); \
-	_temp_a > _temp_b ? _temp_a : _temp_b; \
+	(_temp_a > _temp_b) ? _temp_a : _temp_b; \
 })
 
+SPOOPY_FUNC_CORE size_t spoopy_ceil_pow2_size(size_t v) SPOOPY_ATTR_CONST;
 SPOOPY_FUNC_CORE uint32_t spoopy_ceil_pow2_u32(uint32_t v) SPOOPY_ATTR_CONST;
 SPOOPY_FUNC_CORE float spoopy_lerp_f32(float a, float b, float t) SPOOPY_ATTR_CONST;

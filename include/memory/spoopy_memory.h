@@ -1,20 +1,29 @@
 #pragma once
 
 #include <spoopy.h>
+#include <utils/assert.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum spoopy_header {
-	SPOOPY_HEADER_FREE = 0,
-	SPOOPY_HEADER_TAKEN = 1,
+#if defined(__MINGW32__) && !defined(__MINGW64__)
+#define SPOOPY_MAX_ALIGN 16
+static_assert(SPOOPY_MAX_ALIGN % __alignof(max_align_t) == 0, "");
+#else
+#define SPOOPY_MAX_ALIGN __alignof(max_align_t)
+#endif
+
+typedef struct spoopy_header {
+	uint16_t is_unique : 1;
+	uint16_t unsigned_size : 15;
 } spoopy_header_t;
 
 enum spoopy_memory_type {
     spoopy_heap,
     spoopy_stack,
     spoopy_aligned,
+	spoopy_span,
 };
 
 SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
@@ -23,27 +32,63 @@ SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
 SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
-    SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
     SPOOPY_ATTR_SIZE(1);
 
 SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
-    SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
     SPOOPY_ATTR_SIZE(1)
     SPOOPY_ATTR_ALIGN(2);
 
 SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
-	SPOOPY_ATTR_DEALLOC(SPOOPY_CORE_HEAP_FREE, 1)
 	SPOOPY_ATTR_SIZE(2);
+
+
+// (CAUTION): spoopy_span_alloc must be freed with spoopy_span_free, not spoopy_heap_free
+// If you free a span with spoopy_heap_free, it will cause memory corruption
+
+SPOOPY_FUNC_CORE void* spoopy_span_alloc(size_t size)
+	SPOOPY_ATTR(malloc)
+	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
+	SPOOPY_ATTR_SIZE(1);
+
+SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
+SPOOPY_FUNC_CORE void spoopy_span_free(void* ptr);
 
 static inline char* spoopy_heap_strdup(const char* str) {
     const size_t len = strlen(str) + 1;
     return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
-SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
+static inline size_t spoopy_align_manually(size_t size, size_t alignment) {
+	return (size + alignment - 1) & ~(alignment - 1);
+}
+
+// Slow, but portable
+static inline bool mul_overflow_size_t(size_t a, size_t b, size_t* out) {
+	if (a == 0 || b == 0) {
+		*out = 0;
+		return false;
+	}
+	if (a > SIZE_MAX / b) {
+		return true;
+	}
+
+	*out = a * b;
+	return false;
+}
+
+static inline size_t spoopy_calc_array_size(size_t nmemb, size_t size) {
+	size_t array_size;
+
+	if(mul_overflow_size_t(bmemb, size, &array_size)) {
+		assert(false && "Array size overflow in spoopy_calc_array_size");
+		abort();
+	}
+
+	return array_size;
+}
 
 
 // I don't like using too many macros, but this is a good way to handle platform-specific memory allocation, and pretty much everything else.
@@ -99,12 +144,6 @@ SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 
 #endif
 
-
-#ifdef _WIN32
-#define SPOOPY_CORE_HEAP_FREE(ptr) _aligned_free(ptr)
-#else
-#define SPOOPY_CORE_HEAP_FREE(ptr) free(ptr)
-#endif
 
 #ifndef SPOOPY_FLEX_ALLOC
 
