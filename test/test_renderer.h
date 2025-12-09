@@ -11,7 +11,6 @@ static EventHandler* handler_ptr = NULL;
 static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
-    /* TODO (Framework): Rewrite the events header to begin with spoopy */
 	spoopy_events_init(0, &handler_ptr);
 
 #ifndef __EMSCRIPTEN__
