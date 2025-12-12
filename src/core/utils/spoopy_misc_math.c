@@ -1,7 +1,7 @@
 #include <utils/spoopy_misc_math.h>
 #include <spoopy_log.h>
 
-size_t size_t spoopy_ceil_pow2_size(size_t v) {
+size_t spoopy_ceil_pow2_size(size_t v) {
 	if (v <= 1) return 1;
 
 	const size_t bits = sizeof(size_t) * 8;

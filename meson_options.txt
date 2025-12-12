@@ -50,3 +50,16 @@ option('slang_lib_dir',
     value: '',
     description: 'Slang library directory'
 )
+
+option('allocator',
+	type: 'combo',
+	choices: ['custom', 'default'],
+	value: 'default',
+	description: 'Choose whether to use the default memory allocator or manually manage memory allocation'
+)
+
+option('need_mimalloc',
+	type: 'boolean',
+	value: true,
+	description: 'Whether mimalloc is a required allocator'
+)

@@ -23,8 +23,10 @@ enum spoopy_memory_type {
     spoopy_heap,
     spoopy_stack,
     spoopy_aligned,
-	spoopy_span,
+	spoopy_static,
 };
+
+SPOOPY_FUNC_CORE void spoopy_memory_init_hooks(void);
 
 SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
     SPOOPY_ATTR_SIZE(1);
@@ -45,16 +47,20 @@ SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
 	SPOOPY_ATTR_SIZE(2);
 
 
-// (CAUTION): spoopy_span_alloc must be freed with spoopy_span_free, not spoopy_heap_free
-// If you free a span with spoopy_heap_free, it will cause memory corruption
+// (CAUTION): spoopy_static_alloc must be freed with spoopy_static_free, not spoopy_heap_free
+// If you free a static allocation with spoopy_heap_free, it will cause memory corruption
 
-SPOOPY_FUNC_CORE void* spoopy_span_alloc(size_t size)
+SPOOPY_FUNC_CORE void* spoopy_static_alloc(size_t size)
 	SPOOPY_ATTR(malloc)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
 	SPOOPY_ATTR_SIZE(1);
 
+SPOOPY_FUNC_CORE void* spoopy_static_realloc(void* ptr, size_t size)
+	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
+	SPOOPY_ATTR_SIZE(2);
+
 SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
-SPOOPY_FUNC_CORE void spoopy_span_free(void* ptr);
+SPOOPY_FUNC_CORE void spoopy_static_free(void* ptr);
 
 static inline char* spoopy_heap_strdup(const char* str) {
     const size_t len = strlen(str) + 1;
@@ -82,7 +88,7 @@ static inline bool mul_overflow_size_t(size_t a, size_t b, size_t* out) {
 static inline size_t spoopy_calc_array_size(size_t nmemb, size_t size) {
 	size_t array_size;
 
-	if(mul_overflow_size_t(bmemb, size, &array_size)) {
+	if(mul_overflow_size_t(nmemb, size, &array_size)) {
 		assert(false && "Array size overflow in spoopy_calc_array_size");
 		abort();
 	}

@@ -77,20 +77,6 @@ void spoopy_video_set_viewport(uint32_t display, spoopy_aspect_axis_t aspect_axi
 	kinc_window_resize((int)display, target_w, target_h);
 }
 
-static int video_flags_to_kinc_features(spoopy_window_flags_t flags) {
-	int features = 0;
-
-	if((flags & SPOOPY_WINDOW_FLAG_RESIZABLE) != 0) {
-		features |= KINC_WINDOW_FEATURE_RESIZEABLE;
-	}
-
-	if((flags & SPOOPY_WINDOW_FLAG_BORDERLESS) != 0) {
-		features |= KINC_WINDOW_FEATURE_BORDERLESS;
-	}
-
-	return features;
-}
-
 #ifndef __APPLE__
 
 void spoopy_video_update_mode(uint32_t display, uint32_t width, uint32_t height) {
