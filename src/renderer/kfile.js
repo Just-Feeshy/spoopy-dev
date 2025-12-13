@@ -15,7 +15,12 @@ if (target_platform === Platform.OSX) {
     target_platform = 'macos';
 
     project.addFile('src/metal/**');
-    project.addFile('src/kore2/macos/**');
+    project.addFile('src/kore2/apple/**');
+	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/macosunit.m');
+	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/appleunit.m');
+	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/iosunit.m');
+	project.addDefine('SPOOPY_PLATFORM_MACOS');
+	project.addDefine('SPOOPY_DEVICE_MACOS');
 }
 
 project.addIncludeDir('include/kore2');
