@@ -38,6 +38,9 @@ void spoopy_static_free(void* ptr) {
 }
 
 void* spoopy_static_realloc(void* ptr, size_t size) {
+	const size_t max_size = spoopy_static_max_payload();
+	assert(size <= max_size);
+
 	if (!ptr) {
 		return spoopy_static_alloc(size);
 	}
@@ -51,7 +54,7 @@ void* spoopy_static_realloc(void* ptr, size_t size) {
 	}
 
 	spoopy_header_t* header = (spoopy_header_t*)ptr - 1;
-	if((uint16_t)size <= header->unsigned_size) {
+	if(size <= header->unsigned_size) {
 		return ptr;
 	}
 
