@@ -1,6 +1,7 @@
 #pragma once
 
 #include <spoopy.h>
+#include <utils/spoopy_misc_math.h>
 #include <utils/assert.h>
 
 #ifdef __cplusplus
@@ -36,7 +37,7 @@ SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1);
 
-SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t size, size_t alignment)
+SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t alignment, size_t size)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1)
@@ -67,8 +68,14 @@ static inline char* spoopy_heap_strdup(const char* str) {
     return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
-static inline size_t spoopy_align_manually(size_t size, size_t alignment) {
-	return (size + alignment - 1) & ~(alignment - 1);
+static inline size_t spoopy_align_manually(size_t size, size_t min_alignment) {
+	assert(min_alignment != 0);
+
+	const size_t clamped = spoopy_max(min_alignment, SPOOPY_MAX_ALIGN);
+	const size_t aligned_size = (size + clamped - 1) & ~(clamped - 1);
+	const size_t alignment = spoopy_ceil_pow2_size(spoopy_max(aligned_size, clamped));
+
+	return alignment;
 }
 
 // Slow, but portable

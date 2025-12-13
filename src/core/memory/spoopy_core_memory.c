@@ -1,7 +1,6 @@
 #include <spoopy.h>
 #include <limits.h>
 #include <memory/spoopy_memory.h>
-#include <utils/spoopy_misc_math.h>
 #include <utils/assert.h>
 
 static size_t spoopy_static_max_payload(void) {
@@ -21,10 +20,10 @@ void* spoopy_static_alloc(size_t size) {
 		SPOOPY_MAX_ALIGN
 	);
 
-	spoopy_header_t* s = spoopy_aligned_alloc(allocation, alignment);
+	spoopy_header_t* s = spoopy_aligned_alloc(alignment, allocation);
 	assert(s != NULL);
 
-	s->is_unique = 0;
+	s->is_unique = false;
 	s->unsigned_size = (uint16_t)size;
 	return s + 1;
 }
