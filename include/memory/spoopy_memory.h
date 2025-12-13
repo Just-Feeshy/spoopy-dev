@@ -68,7 +68,7 @@ static inline char* spoopy_heap_strdup(const char* str) {
     return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
-static inline const size_t spoopy_align_manually(size_t size, size_t min_alignment) {
+static inline size_t spoopy_align_manually(size_t size, size_t min_alignment) {
 	assert(min_alignment != 0);
 
 	const size_t clamped = spoopy_max(min_alignment, SPOOPY_MAX_ALIGN);
