@@ -16,7 +16,7 @@ void* spoopy_static_alloc(size_t size) {
 
 	const size_t allocation = size + sizeof(spoopy_header_t);
 	const size_t alignment = spoopy_align_manually(
-		size + sizeof(spoopy_header_t) + sizeof(void*),
+		size + sizeof(spoopy_header_t) /*+ sizeof(void*)*/,
 		SPOOPY_MAX_ALIGN
 	);
 
