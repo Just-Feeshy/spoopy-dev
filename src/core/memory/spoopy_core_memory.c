@@ -50,6 +50,11 @@ void* spoopy_static_realloc(void* ptr, size_t size) {
 		return NULL;
 	}
 
+	spoopy_header_t* header = (spoopy_header_t*)ptr - 1;
+	if((uint16_t)size <= header->unsigned_size) {
+		return ptr;
+	}
+
 	void* new_ptr = spoopy_static_alloc(size);
 	memcpy(new_ptr, ptr, size);
 	spoopy_heap_free(s8);
