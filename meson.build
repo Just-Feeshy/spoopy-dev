@@ -17,6 +17,7 @@ cc = meson.get_compiler('c')
 config = configuration_data()
 
 if host_machine.system() == 'darwin'
+    add_languages('objc')
     add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
 endif
 
@@ -28,6 +29,9 @@ deprecation_warnings = get_option('deprecation_warnings')
 spoopy_sdl_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
 
 spoopy_deps = []
+if host_machine.system() == 'darwin'
+    spoopy_deps += dependency('appleframeworks', modules: ['AppKit', 'Cocoa', 'Foundation'])
+endif
 spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
 spoopy_deps += dependency('libpng', required: true)
 spoopy_deps += dependency('cglm', required: true)

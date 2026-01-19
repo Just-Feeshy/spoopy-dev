@@ -1,0 +1,235 @@
+#include <memory/spoopy_mem_container.h>
+#include <memory/spoopy_memory.h>
+#include <utils/assert.h>
+
+#define SPOOPY_MEM_CONTAINER_FOOTER sizeof(spoopy_header_t)
+
+static inline size_t rec_bytes_u16(uint16_t payload_sz) {
+    return sizeof(spoopy_header_t) + (size_t)payload_sz + SPOOPY_MEM_CONTAINER_FOOTER;
+}
+
+static bool mem_container_offset_of_index(const spoopy_mem_container_t* v, size_t index, size_t* out_off, size_t* out_bytes) {
+    if(!v || !v->buffer) return false;
+    if(index >= (size_t)v->length) return false;
+
+    const uint8_t* base = (const uint8_t*)v->buffer;
+
+    size_t off = 0;
+    for(size_t i = 0; i < index; i++) {
+        if(off + sizeof(spoopy_header_t) > v->filled_size) return false;
+
+        spoopy_header_t h;
+        memcpy(&h, base + off, sizeof(h));
+
+        const size_t bytes = rec_bytes_u16((uint16_t)h.unsigned_size);
+        if(off + bytes > v->filled_size) return false;
+        off += bytes;
+    }
+
+    if(off + sizeof(spoopy_header_t) > v->filled_size) return false;
+    spoopy_header_t h;
+    memcpy(&h, base + off, sizeof(h));
+
+    const size_t bytes = rec_bytes_u16((uint16_t)h.unsigned_size);
+    if(off + bytes > v->filled_size) return false;
+
+    *out_off   = off;
+    *out_bytes = bytes;
+    return true;
+}
+
+spoopy_mem_container_t spoopy_mem_container_create(size_t initial_capacity) {
+spoopy_mem_container_t c;
+    c.length = 0;
+    c.filled_size = 0;
+    c.capacity = 0;
+    c.buffer = NULL;
+    c.available = NULL;
+
+    if (initial_capacity > 0) {
+        size_t cap = next_pow2_size(initial_capacity);
+        c.buffer = (spoopy_static_block_t*)spoopy_heap_malloc(cap);
+        assert(c.buffer);
+        c.capacity = cap;
+    }
+
+    c.available = (int8_t*)spoopy_heap_malloc(1);
+    assert(c.available);
+    c.available[0] = 0;
+
+    return c;
+}
+
+void spoopy_mem_container_push_back(spoopy_mem_container_t* container, const spoopy_static_block_t* element) {
+	assert(container && element && container->length != UINT16_MAX);
+
+	spoopy_header_t head = element->header;
+	head.is_unique = true;
+
+	const size_t payload_sz = (size_t)e->header.unsigned_size;
+	const size_t rec = offsetof(spoopy_static_block_t, payload) + payload_sz;
+	const size_t bytes = rec + SPOOPY_MEM_CONTAINER_FOOTER;
+
+    size_t need;
+	if(mul_overflow_size_t(container->filled_size, bytes, &need)) {
+		SPOOPY_LOG_ERROR("Container size overflow in `spoopy_mem_container_push_back`");
+		abort();
+	}
+
+	const size_t cap = !container->buffer
+		? element->header.unsigned_size + sizeof(spoopy_header_t)
+		: container->filled_size + spoopy_ceil_pow2_size(container->length + 1) * (element->header.unsigned_size + sizeof(spoopy_header_t));
+
+	if(cap > need) {
+		goto mem_set;
+	}
+
+	while(cap < need) {
+		size_t doubled = cap << 1;
+		if(doubled <= cap) {
+			cap = need;
+			break;
+		}
+
+		cap = doubled;
+	}
+
+	container->buffer = spoopy_heap_realloc(container->buffer, cap);
+	assert(container->buffer);
+
+ mem_set:
+	uint8_t* dst = (uint8_t*)v->buffer + v->filled_size;
+	memcpy(dst, &head, sizeof(head));
+
+	spoopy_header_t foot = element->header;
+	memcpy(dst + rec, &foot, sizeof(foot));
+
+	container->filled_size = need;
+	container->length++;
+}
+
+void* spoopy_mem_container_get_at(const spoopy_mem_container_t* container, size_t index) {
+	if(!vector || !vector->buffer) return NULL;
+    if(index >= (size_t)vector->length) return NULL;
+
+    size_t off = 0, bytes = 0;
+    if(!mem_vector_offset_of_index(vector, index, &off, &bytes)) return NULL;
+
+    const uint8_t* base = (const uint8_t*)vector->buffer;
+    if(bytes < sizeof(spoopy_header_t) + SPOOPY_MEM_VECTOR_FOOTER) return NULL;
+
+    spoopy_header_t head, foot;
+    memcpy(&head, base + off, sizeof(head));
+    memcpy(&foot, base + off + bytes - SPOOPY_MEM_VECTOR_FOOTER, sizeof(foot));
+    if(memcmp(&head, &foot, sizeof(head)) != 0) return NULL;
+
+	return (void*)(base + off + offsetof(spoopy_static_block_t, payload));
+}
+
+bool spoopy_mem_container_overwrite_at(spoopy_mem_container_t* container, size_t index, const spoopy_static_block_t* element) {
+	if(!container || !container->buffer || !element) return false;
+	if(index >= (size_t)container->length) return false;
+
+	size_t off = 0, old_bytes = 0;
+	if(!mem_container_offset_of_index(container, index, &off, &old_bytes)) return false;
+
+	const size_t payload_sz = (size_t)element->header.unsigned_size;
+	const size_t new_rec    = offsetof(spoopy_static_block_t, payload) + payload_sz;
+	const size_t new_bytes  = new_rec + SPOOPY_MEM_CONTAINER_FOOTER;
+
+	if(new_bytes < sizeof(spoopy_header_t) + SPOOPY_MEM_CONTAINER_FOOTER) return false;
+	const size_t old_filled = container->filled_size;
+
+	size_t new_filled;
+	if(new_bytes >= old_bytes) {
+		const size_t inc = new_bytes - old_bytes;
+		if(old_filled + inc < old_filled) return false;
+		new_filled = old_filled + inc;
+	} else {
+		const size_t dec = old_bytes - new_bytes;
+		if(old_filled < dec) return false;
+		new_filled = old_filled - dec;
+	}
+
+	if(new_filled != old_filled) {
+		void* new_buf = spoopy_heap_realloc(container->buffer, new_filled);
+		assert(new_buf);
+
+		container->buffer = new_buf;
+	}
+
+	uint8_t* base = (uint8_t*)container->buffer;
+	if(new_bytes != old_bytes) {
+		const size_t tail_src = off + old_bytes;
+        const size_t tail_dst = off + new_bytes;
+
+		if(tail_src > old_filled) return false;
+		const size_t tail_len = old_filled - tail_src;
+
+		if(tail_len > 0) {
+			memmove(base + tail_dst, base + tail_src, tail_len);
+		}
+	}
+
+	memcpy(base + off, element, new_rec);
+	spoopy_header_t foot = element->header;
+	memcpy(base + off + new_rec, &foot, sizeof(foot));
+
+	if(new_filled < old_filled) {
+		memset(base + new_filled, 0, old_filled - new_filled);
+	}
+
+	container->filled_size = new_filled;
+	return true;
+}
+
+bool spoopy_mem_container_remove_at(spoopy_mem_container_t* container, size_t index, bool shrink) {
+	if(!container || !container->buffer) return false;
+    if(container->length == 0) return false;
+    if(index >= (size_t)container->length) return false;
+
+	size_t off = 0, bytes = 0;
+    if(!mem_container_offset_of_index(container, index, &off, &bytes)) return false;
+
+	uint8_t* base = (uint8_t*)container->buffer;
+
+	const size_t tail_src = off + bytes;
+    const size_t tail_len = container->filled_size - tail_src;
+
+	if(tail_len > 0) {
+        memmove(base + off, base + tail_src, tail_len);
+    }
+
+	container->filled_size -= bytes;
+	container->length -= 1;
+	memset(base + container->filled_size, 0, bytes);
+
+	return true;
+}
+
+bool spoopy_mem_container_pop_back(spoopy_mem_container_t* container) {
+	if (!v || v->length == 0 || !v->buffer) return false;
+    if (v->filled_size < SPOOPY_MEM_CONTAINER_FOOTER) return false;
+
+    spoopy_header_t foot;
+    memcpy(&foot,
+	   (uint8_t*)v->buffer + (v->filled_size - SPOOPY_MEM_CONTAINER_FOOTER),
+	   sizeof(foot)
+	);
+
+    const size_t bytes = rec_bytes_u16((uint16_t)foot.unsigned_size);
+    if (bytes > v->filled_size) return false;
+
+    const size_t old = v->filled_size;
+    v->filled_size -= bytes;
+    v->length -= 1;
+
+    memset((uint8_t*)v->buffer + v->filled_size, 0, old - v->filled_size);
+    return true;
+}
+
+bool spoopy_mem_container_add_available(spoopy_mem_container_t* container, const spoopy_static_block_t* element) {
+}
+
+void spoopy_mem_container_destroy(spoopy_mem_container_t* container) {
+}

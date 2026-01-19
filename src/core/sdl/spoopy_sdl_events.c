@@ -20,7 +20,7 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg);
 static const EventHandler default_handlers[] = {
 	{ .proc = spoopy_events_handler_quit, .priority = EPRIO_SYSTEM, .event_type = SDL_EVENT_QUIT, .arg = NULL },
 	{ .proc = spoopy_events_handle_video, .priority = EPRIO_SYSTEM },
-	{.proc = NULL, .priority = 0, .event_type = 0, .arg = NULL}
+	{ .proc = NULL, .priority = 0, .event_type = 0, .arg = NULL}
 };
 
 static EventHandler* spoopy_events_register_default_handlers(EventHandler* h);
@@ -109,8 +109,16 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 
 	switch(event->type) {
 		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-			spoopy_video_update_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
+			SPOOPY_LOG_INFO("Window pixel size changed: %ux%u", event->window.data1, event->window.data2);
+			// TODO (All Tests): spoopy_video_update_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
+			spoopy_api_update_video_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
+
 			break;
+		case SDL_EVENT_DISPLAY_ADDED:
+		case SDL_EVENT_DISPLAY_REMOVED:
+			spoopy_api_refresh_displays();
+			break;
+		default:
 	}
 
 	return false;

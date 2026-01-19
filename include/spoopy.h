@@ -1,5 +1,4 @@
-#ifndef SPOOPY_H
-#define SPOOPY_H
+#pragma once
 
 #ifndef SPOOPY_EPSILON
 #define SPOOPY_EPSILON 0.00001f
@@ -7,6 +6,10 @@
 
 #ifndef SPOOPY_SUPPORT_SDL_THREADS
 #define SPOOPY_SUPPORT_SDL_THREADS 1
+#endif
+
+#ifndef SPOOPY_PRIMARY_SCREEN_INDEX
+#define SPOOPY_PRIMARY_SCREEN_INDEX 0u
 #endif
 
 #ifndef SPOOPY_FUNC_CORE
@@ -25,5 +28,3 @@
 
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
-
-#endif

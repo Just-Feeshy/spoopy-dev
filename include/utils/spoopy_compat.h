@@ -1,6 +1,5 @@
 #pragma once
 
-#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -62,11 +61,26 @@ extern "C" {
  * FUNCTION ATTRIBUTES
  * ============================================================================= */
 
+#if !defined(SPOOPY_ALIGN_AS)
+
+#if SPOOPY_HAVE_ATTRIBUTES
+  #define SPOOPY_ALIGN_AS(align) __attribute__((aligned(align)))
+#elif defined(_MSC_VER)
+  #define SPOOPY_ALIGN_AS(align) __declspec(align(align))
+#elif __STDC_VERSION__ >= 201112L
+  #define SPOOPY_ALIGN_AS(align) _Alignas(align)
+#else
+  #define SPOOPY_ALIGN_AS(align)
+#endif
+
+#endif // If SPOOPY_ALIGN_AS is not defined already
+
+
 #if SPOOPY_HAVE_ATTRIBUTES
 
 #define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
 #define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
-#define SPOOPY_ATTR_ALIGN(index) __attribute__ ((alloc_align(index)))
+#define SPOOPY_ATTR_ALLOC_ALIGN(arg_index) __attribute__((alloc_align(arg_index)))
 #define SPOOPY_ATTR_PURE __attribute__((pure))
 #define SPOOPY_ATTR_CONST __attribute__((const))
 #define SPOOPY_ATTR_NORETURN __attribute__((noreturn))
@@ -78,7 +92,6 @@ extern "C" {
 
 #define SPOOPY_ATTR(...)
 #define SPOOPY_ATTR_SIZE(...)
-#define SPOOPY_ATTR_ALIGN(index)
 #define SPOOPY_ATTR_PURE
 #define SPOOPY_ATTR_CONST
 #define SPOOPY_ATTR_NORETURN
@@ -103,21 +116,27 @@ extern "C" {
 
 #elif defined(__clang__)
 
-#define SPOOPY_DIAGNOSTIC_PUSH _Pragma("clang diagnostic push")
-#define SPOOPY_DIAGNOSTIC_POP  _Pragma("clang diagnostic pop")
-#define SPOOPY_DIAGNOSTIC_IGNORE(option) _Pragma("clang diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_PUSH() _Pragma("clang diagnostic push")
+#define SPOOPY_DIAG_POP()  _Pragma("clang diagnostic pop")
+#define SPOOPY_DIAG_IGNORE(option) _Pragma("clang diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN() _Pragma("clang diagnostic ignored \"-Wcast-align\"")
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()  _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
 
 #elif defined(__GNUC__)
 
-#define SPOOPY_DIAGNOSTIC_PUSH _Pragma("GCC diagnostic push")
-#define SPOOPY_DIAGNOSTIC_POP  _Pragma("GCC diagnostic pop")
-#define SPOOPY_DIAGNOSTIC_IGNORE(option) _Pragma("GCC diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_PUSH() _Pragma("GCC diagnostic push")
+#define SPOOPY_DIAG_POP()  _Pragma("GCC diagnostic pop")
+#define SPOOPY_DIAG_IGNORE(option) _Pragma("GCC diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN() _Pragma("GCC diagnostic ignored \"-Wcast-align\"")
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()  _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
 
 #else
 
-#define SPOOPY_DIAGNOSTIC_PUSH
-#define SPOOPY_DIAGNOSTIC_POP
-#define SPOOPY_DIAGNOSTIC_IGNORE(option)
+#define SPOOPY_DIAG_PUSH()
+#define SPOOPY_DIAG_POP()
+#define SPOOPY_DIAG_IGNORE(option)
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN()
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()
 
 #endif
 

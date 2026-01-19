@@ -47,15 +47,21 @@ SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t 
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
 SPOOPY_FUNC_CORE void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
-SPOOPY_FUNC_CORE spoopy_window_t spoopy_api_window_create(void* raw_handle, const char* title, int x, int y, int width, int height, spoopy_window_flags_t flags);
-SPOOPY_FUNC_CORE void* spoopy_api_window_create_pointer(uint32_t display);
-SPOOPY_FUNC_CORE void spoopy_api_window_show(spoopy_window_t window);
-SPOOPY_FUNC_CORE void spoopy_api_window_raise(spoopy_window_t window);
-SPOOPY_FUNC_CORE spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(spoopy_window_t window);
-SPOOPY_FUNC_CORE bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window);
-SPOOPY_FUNC_CORE void spoopy_api_window_set_fullscreen(spoopy_window_t window, bool fullscreen);
-SPOOPY_FUNC_CORE void spoopy_api_window_set_resizeable(spoopy_window_t window, bool resizeable);
-SPOOPY_FUNC_CORE void spoopy_api_window_destroy(spoopy_window_t window);
+SPOOPY_FUNC_CORE void spoopy_api_video_init(const spoopy_video_init_params_t* params);
+SPOOPY_FUNC_CORE void spoopy_api_video_shutdown(void);
+
+SPOOPY_FUNC_CORE int32_t spoopy_api_get_screen_count(void);
+SPOOPY_FUNC_CORE int32_t spoopy_api_get_screen_from_rect(const spoopy_rec_int_t* rect);
+SPOOPY_FUNC_CORE const char* spoopy_api_get_screen_name(uint32_t screen_index);
+SPOOPY_FUNC_CORE float spoopy_api_get_screen_max_scale(void);
+SPOOPY_FUNC_CORE spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t screen_index);
+SPOOPY_FUNC_CORE void spoopy_api_refresh_screens(void);
+
+// SPOOPY_FUNC_CORE spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(uint32_t screen_index);
+// SPOOPY_FUNC_CORE bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window);
+// SPOOPY_FUNC_CORE void spoopy_api_window_set_fullscreen(spoopy_window_t window, bool fullscreen);
+// SPOOPY_FUNC_CORE void spoopy_api_window_set_resizeable(spoopy_window_t window, bool resizeable);
+// SPOOPY_FUNC_CORE void spoopy_api_window_destroy(spoopy_window_t window);
 
 
 // NOTE: No uniforms are being cached currently, so repeated lookups will be slower

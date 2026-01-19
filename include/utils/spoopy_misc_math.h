@@ -18,6 +18,9 @@
 	(_temp_a > _temp_b) ? _temp_a : _temp_b; \
 })
 
+#define spoopy_clamp(x, a, b) spoopy_min(spoopy_max(x, a), b)
+
+
 SPOOPY_FUNC_CORE size_t spoopy_ceil_pow2_size(size_t v) SPOOPY_ATTR_CONST;
 SPOOPY_FUNC_CORE uint32_t spoopy_ceil_pow2_u32(uint32_t v) SPOOPY_ATTR_CONST;
 SPOOPY_FUNC_CORE float spoopy_lerp_f32(float a, float b, float t) SPOOPY_ATTR_CONST;

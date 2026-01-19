@@ -1,56 +1,15 @@
 #pragma once
 
 #include <utils/spoopy_compat.h>
+#include <utils/spoopy_geometry.h>
 #include <spoopy_image.h>
 
 
 /** Macro Definitions **/
 
-#define SPOOPY_VEC_AND_REC_TYPES(type) \
-	typedef union spoopy_vec2_##type { \
-		struct { \
-			type x, y; \
-		}; \
-		struct { \
-			type w, h; \
-		}; \
-		struct { \
-			type r, g; \
-		}; \
-		type data[2]; \
-	} spoopy_vec2_##type##_t; \
-	typedef union spoopy_vec3_##type { \
-		struct { \
-			type x, y, z; \
-		}; \
-		type data[3]; \
-	} spoopy_vec3_##type##_t; \
-	typedef union spoopy_vec4_##type { \
-		struct { \
-			type x, y, z, w; \
-		}; \
-		type data[4]; \
-	} spoopy_vec4_##type##_t; \
-	typedef struct spoopy_rec_##type { \
-		spoopy_vec2_##type##_t point; \
-		spoopy_vec2_##type##_t size; \
-	} spoopy_rec_##type##_t;
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* ============================= Spoopy Core Types =============================
- * All core types used by the Spoopy Environment and Renderer API are
- * defined in this header, it's more or less a nice one stop shop for
- * all the basic structures and types used throughout the literal entire
- * codebase
- * =============================================================================
- */
-
-SPOOPY_VEC_AND_REC_TYPES(float)
-SPOOPY_VEC_AND_REC_TYPES(int)
 
 
 /** Forward Declarations of Core Components **/
@@ -63,12 +22,6 @@ typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
-
-#ifdef SPOOPY_HAS_SDL_WINDOW_SUPPORT
-typedef struct SDL_Window* spoopy_window_t;
-#else
-#error "No proper windowing defined for spoopy_window_t!"
-#endif
 
 
 /** Defined Structures **/
@@ -148,9 +101,28 @@ typedef enum spoopy_window_flags {
 	SPOOPY_WINDOW_FLAG_RESIZABLE = (1 << 0),
 	SPOOPY_WINDOW_FLAG_FULLSCREEN = (1 << 1),
 	SPOOPY_WINDOW_FLAG_BORDERLESS = (1 << 2),
-	SPOOPY_WINDOW_FLAG_VSYNC = (1 << 3),
-	SPOOPY_WINDOW_FLAG_HIGHDPI = (1 << 4),
+	SPOOPY_WINDOW_FLAG_HIGHDPI = (1 << 3),
 } spoopy_window_flags_t;
+
+typedef struct spoopy_video_init_params {
+    const char* title;
+    int width;
+    int height;
+	spoopy_window_flags_t flags;
+	spoopy_aspect_axis_t aspect_axis;
+} spoopy_video_init_params_t;
+
+typedef enum spoopy_vsync_mode {
+	SPOOPY_VSYNC_MODE_OFF,
+	SPOOPY_VSYNC_MODE_ON,
+	SPOOPY_VSYNC_MODE_ADAPTIVE,
+	SPOOPY_VSYNC_MODE_MAILBOX
+} spoopy_vsync_mode_t;
+
+typedef enum spoopy_window_id_state {
+	SPOOPY_WINDOW_ID_STATE_INVALID = -1,
+	SPOOPY_WINDOW_ID_STATE_MAIN = 0
+} spoopy_window_id_state_t;
 
 #ifdef __cplusplus
 }

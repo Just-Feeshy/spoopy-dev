@@ -2,21 +2,20 @@
 #include <memory/spoopy_memory.h>
 #include <SDL3/SDL.h>
 
-
 static void SDLCALL sdlcall_free(void* ptr) {
 	spoopy_static_free(ptr);
 }
 
 static void* SDLCALL sdlcall_malloc(size_t size) {
-	return spoopy_static_alloc(size);
+	return spoopy_static_alloc(size)->payload;
 }
 
 static void* SDLCALL sdlcall_calloc(size_t nmemb, size_t size) {
-	return spoopy_static_alloc(spoopy_calc_array_size(nmemb, size));
+	return spoopy_static_alloc(spoopy_calc_array_size(nmemb, size))->payload;
 }
 
 static void* SDLCALL sdlcall_realloc(void* ptr, size_t size) {
-	return spoopy_static_realloc(ptr, size);
+	return spoopy_static_realloc(ptr, size)->payload;
 }
 
 void spoopy_memory_init_hooks(void) {

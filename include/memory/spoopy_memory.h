@@ -4,9 +4,16 @@
 #include <utils/spoopy_misc_math.h>
 #include <utils/assert.h>
 
+#define SPOOPY_CONTAINER_OF(ptr, type, member) \
+    ((type*)((uint8_t*)(ptr) - offsetof(type, member)))
+
 #ifdef __cplusplus
+#	define SPOOPY_FLEX_ARR 1
 extern "C" {
+#else
+#	define SPOOPY_FLEX_ARR
 #endif
+
 
 #if defined(__MINGW32__) && !defined(__MINGW64__)
 #define SPOOPY_MAX_ALIGN 16
@@ -19,6 +26,11 @@ typedef struct spoopy_header {
 	uint16_t is_unique : 1;
 	uint16_t unsigned_size : 15;
 } spoopy_header_t;
+
+typedef struct spoopy_static_block {
+	spoopy_header_t header;
+	SPOOPY_ALIGN_AS(SPOOPY_MAX_ALIGN) uint8_t payload[SPOOPY_FLEX_ARR];
+} spoopy_static_block_t;
 
 enum spoopy_memory_type {
     spoopy_heap,
@@ -40,8 +52,7 @@ SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
 SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t alignment, size_t size)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
-    SPOOPY_ATTR_SIZE(1)
-    SPOOPY_ATTR_ALIGN(2);
+    SPOOPY_ATTR_SIZE(1);
 
 SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
@@ -51,34 +62,53 @@ SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
 // (CAUTION): spoopy_static_alloc must be freed with spoopy_static_free, not spoopy_heap_free
 // If you free a static allocation with spoopy_heap_free, it will cause memory corruption
 
-SPOOPY_FUNC_CORE void* spoopy_static_alloc(size_t size)
+SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_alloc(size_t size)
 	SPOOPY_ATTR(malloc)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
 	SPOOPY_ATTR_SIZE(1);
 
-SPOOPY_FUNC_CORE void* spoopy_static_realloc(void* ptr, size_t size)
+SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_realloc(void* ptr, size_t size)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
 	SPOOPY_ATTR_SIZE(2);
 
-SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
-SPOOPY_FUNC_CORE void spoopy_static_free(void* ptr);
+SPOOPY_FUNC_CORE void spoopy_heap_free(spoopy_static_block_t* ptr);
+SPOOPY_FUNC_CORE void spoopy_static_free(spoopy_static_block_t* ptr);
+
+
+SPOOPY_DIAG_PUSH()
+SPOOPY_DIAG_IGNORE_CAST_ALIGN();
+
+static inline spoopy_static_block_t* spoopy_static_block_from_payload(void* ptr) {
+	return SPOOPY_CONTAINER_OF(ptr, spoopy_static_block_t, payload);
+}
+
+SPOOPY_DIAG_POP()
+
 
 static inline char* spoopy_heap_strdup(const char* str) {
     const size_t len = strlen(str) + 1;
     return (char*)memcpy(spoopy_heap_alloc(len), str, len);
 }
 
-static inline size_t spoopy_align_manually(size_t size, size_t min_alignment) {
-	assert(min_alignment != 0);
-
+static inline size_t spoopy_align_bound(size_t size, size_t min_alignment) {
 	const size_t clamped = spoopy_max(min_alignment, SPOOPY_MAX_ALIGN);
 	const size_t aligned_size = (size + (clamped - 1)) & ~(clamped - 1);
-	const size_t alignment = spoopy_ceil_pow2_size(spoopy_max(aligned_size, clamped));
 
-	return alignment;
+	return aligned_size;
 }
 
+
 // Slow, but portable
+
+static inline bool add_overflow_size_t(size_t a, size_t b, size_t* out) {
+	if (a > SIZE_MAX - b) {
+		return true;
+	}
+
+	*out = a + b;
+	return false;
+}
+
 static inline bool mul_overflow_size_t(size_t a, size_t b, size_t* out) {
 	if (a == 0 || b == 0) {
 		*out = 0;
@@ -170,7 +200,7 @@ static inline size_t spoopy_calc_array_size(size_t nmemb, size_t size) {
     runtime_assert((enum spoopy_memory_type)alloc_type >= spoopy_heap \
         && (enum spoopy_memory_type)alloc_type <= spoopy_aligned, \
         "Invalid allocation type for SPOOPY_FLEX_ALLOC, must be a value in the `spoopy_memory_type` enum"); \
-    (_type*)alloc_type##_alloc(sizeof(_type) + extra_size); \
+    alloc_type##_alloc(sizeof(_type) + extra_size); \
 });
 
 #endif

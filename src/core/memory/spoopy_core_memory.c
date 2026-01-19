@@ -10,56 +10,46 @@ static size_t spoopy_static_max_payload(void) {
 	return ((size_t)1U << (header_bits - 1U)) - 1U;
 }
 
-void* spoopy_static_alloc(size_t size) {
+spoopy_static_block_t* spoopy_static_alloc(size_t size) {
 	const size_t max_size = spoopy_static_max_payload();
 	assert(size <= max_size);
 
 	const size_t allocation = size + sizeof(spoopy_header_t);
-	const size_t alignment = spoopy_align_manually(
-		size + sizeof(spoopy_header_t) /*+ sizeof(void*)*/,
+	const size_t alignment = spoopy_align_bound(
+		allocation /*+ sizeof(void*)*/,
 		SPOOPY_MAX_ALIGN
 	);
 
-	spoopy_header_t* s = spoopy_aligned_alloc(alignment, allocation);
-	assert(s != NULL);
+	spoopy_static_block_t* s = spoopy_aligned_alloc(alignment, allocation);
+	assert(s);
 
-	s->is_unique = false;
-	s->unsigned_size = (uint16_t)size;
-	return s + 1;
+	s->header.is_unique = true;
+	s->header.unsigned_size = (uint16_t)size;
+	return s;
 }
 
 void spoopy_static_free(void* ptr) {
-	assert(ptr != NULL);
-
-	uint8_t* s8 = (uint8_t*)ptr;
-	s8 -= sizeof(spoopy_header_t);
-	spoopy_heap_free(s8);
+	spoopy_heap_free(spoopy_static_block_from_payload(ptr));
 }
 
-void* spoopy_static_realloc(void* ptr, size_t size) {
-	const size_t max_size = spoopy_static_max_payload();
-	assert(size <= max_size);
-
-	if (!ptr) {
+spoopy_static_block_t* spoopy_static_realloc(void* ptr, size_t size) {
+	if(!ptr) {
 		return spoopy_static_alloc(size);
 	}
 
-	uint8_t* s8 = (uint8_t*)ptr;
-	s8 -= sizeof(spoopy_header_t);
-
 	if(size == 0) {
-		spoopy_heap_free(s8);
+		spoopy_static_free(ptr);
 		return NULL;
 	}
 
-	spoopy_header_t* header = (spoopy_header_t*)ptr - 1;
-	if(size == header->unsigned_size) {
-		return ptr;
-	}
+	spoopy_static_block_t* new_block = spoopy_static_alloc(size);
+	assert(new_block);
 
-	void* new_ptr = spoopy_static_alloc(size);
-	memcpy(new_ptr, ptr, size);
-	spoopy_heap_free(s8);
+	spoopy_static_block_t* old_block = spoopy_static_block_from_payload(ptr);
+	const size_t old_size = (size_t)old_block->header.unsigned_size;
+	const size_t copy_size = spoopy_min(old_size, size);
 
-	return new_ptr;
+	memcpy(new_block->payload, old_block->payload, copy_size);
+	spoopy_static_free(ptr);
+	return new_block;
 }
