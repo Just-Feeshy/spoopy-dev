@@ -53,7 +53,7 @@ void* spoopy_static_realloc(void* ptr, size_t size) {
 	}
 
 	spoopy_header_t* header = (spoopy_header_t*)ptr - 1;
-	if(size <= header->unsigned_size) {
+	if(size == header->unsigned_size) {
 		return ptr;
 	}
 

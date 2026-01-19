@@ -15,14 +15,18 @@ if (target_platform === Platform.OSX) {
     target_platform = 'macos';
 
     project.addFile('src/metal/**');
+	project.addFile('src/apple/**');
     project.addFile('src/kore2/apple/**');
+
 	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/macosunit.m');
 	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/appleunit.m');
 	project.addExclude('Kore/Backends/System/macOS/Sources/kinc/backend/iosunit.m');
+
 	project.addDefine('SPOOPY_PLATFORM_MACOS');
 	project.addDefine('SPOOPY_DEVICE_MACOS');
 }
 
+project.addIncludeDir('Kore/Backends/System');
 project.addIncludeDir('include/kore2');
 project.addIncludeDir('../../include');
 
@@ -58,6 +62,7 @@ for (const flag of warningFlags) {
 // since this is a library, not a standalone application
 project.addDefine('KINC_NO_MAIN');
 project.addDefine('KINC_NO_KORE');
+project.addDefine('SPOOPY_USING_KORE2');
 
 project.flatten();
 resolve(project);

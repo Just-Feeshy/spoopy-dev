@@ -148,8 +148,8 @@ typedef enum spoopy_window_flags {
 	SPOOPY_WINDOW_FLAG_RESIZABLE = (1 << 0),
 	SPOOPY_WINDOW_FLAG_FULLSCREEN = (1 << 1),
 	SPOOPY_WINDOW_FLAG_BORDERLESS = (1 << 2),
-	SPOOPY_WINDOW_FLAG_HIDDEN = (1 << 3),
-	SPOOPY_WINDOW_FLAG_VSYNC = (1 << 4),
+	SPOOPY_WINDOW_FLAG_VSYNC = (1 << 3),
+	SPOOPY_WINDOW_FLAG_HIGHDPI = (1 << 4),
 } spoopy_window_flags_t;
 
 #ifdef __cplusplus
