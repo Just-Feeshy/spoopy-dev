@@ -15,7 +15,7 @@ static void test_init(void) {
 	spoopy_events_init(0, &handler_ptr);
 
 #ifndef __EMSCRIPTEN__
-    spoopy_sdl_thread_init();
+    spoopy_sys_thread_init();
 #endif
 
     spoopy_video_init(&(spoopy_video_init_params_t) {

@@ -1,12 +1,13 @@
 #include <spoopy_api.h>
+#include <spoopy_backend.h>
+#include <spoopy_graphics.h>
 #include <SDL3/SDL.h>
-
-#include "platform/spoopy_graphics.h"
 
 // TODO (All tests): Have a safe way to get the cached_displays that throws a warning
 // if you go out of bounds.
 
 static struct {
+	spoopy_aspect_axis_t aspect_ratio;
 	bool initialized;
 
 	SDL_AtomicInt should_quit;
@@ -19,10 +20,19 @@ static struct {
 	// TODO (Multi-Window): Have a `spoopy_window_data_t* windows` array that uses SDL_WindowID as indexes (kinda like a hash map)
 	// Also, have a `SDL_Window window_prop_cache` to store properties
 
+	spoopy_graphics_t* graphics; // TODO (Mutli-Window): Move this to `spoopy_window_data_t`
+
 #if defined(__APPLE__)
-	SDL_MetalView primary_view; // TODO (Multi-Window): Keep this
+	void* primary_view; // TODO (Multi-Window): Keep this
 #endif
 } app = { 0 };
+
+static void internal_init(void) {
+	spoopy_graphics_init();
+	_backend_funcs.init();
+
+	// TODO (States): Have `draw` state logic be initialized here
+}
 
 static void video_init_sdl(void) {
 	SDL_SetHintWithPriority(SDL_HINT_FRAMEBUFFER_ACCELERATION, "0", SDL_HINT_OVERRIDE);
@@ -104,9 +114,12 @@ static void new_primary_window(const char* title, uint32_t w, uint32_t h, spoopy
 	const int win_w_pts = spoopy_max(1, (int)SDL_lround(w_pos.x / scale));
 	const int win_h_pts = spoopy_max(1, (int)SDL_lround(w_pos.y / scale));
 
-	new_primary_window_internal(r_screen, title, (uint32_t)win_w_pts, (uint32_t)win_h_pts, flags, false);
+#if defined(__APPLE__)
 	app.primary_view = SDL_Metal_CreateView(app.primary_view);
-	assert(app.primary_view == NULL);
+	assert(app.primary_view != NULL);
+#endif
+
+	new_primary_window_internal(r_screen, title, (uint32_t)win_w_pts, (uint32_t)win_h_pts, flags, false);
 
 	SPOOPY_LOG_INFO("Create a new window: %ix%i, on display #%i %s\n", win_w_pts, win_h_pts, r_screen, spoopy_api_get_screen_name(r_screen));
 	SDL_RaiseWindow(app.primary_window);
@@ -139,7 +152,7 @@ void spoopy_api_refresh_screens(void) {
 	SDL_UnlockMutex(app.display_mutex);
 }
 
-void spoopy_api_video_init(const spoopy_video_init_params_t *params) {
+void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	if(app.initialized) {
 		SPOOPY_LOG_WARN("`spoopy_api_video_init()` has already been called!");
 		return;
@@ -147,10 +160,21 @@ void spoopy_api_video_init(const spoopy_video_init_params_t *params) {
 
 	video_init_sdl();
 
+	const char *driver = SDL_GetCurrentVideoDriver();
+	SPOOPY_LOG_INFO("Using driver '%s'", driver);
+
 	app.initialized = true;
+	app.aspect_ratio = params->aspect_axis;
 	app.display_mutex = SDL_CreateMutex();
 
+	internal_init();
+
+	uint32_t w = spoopy_min(params->width, 0);
+	uint32_t h = spoopy_min(params->height, 0);
+
 	spoopy_api_refresh_screens();
+
+
 }
 
 // This allows us to create our own file loading system even for other platforms later on.

@@ -8,10 +8,7 @@
     ((type*)((uint8_t*)(ptr) - offsetof(type, member)))
 
 #ifdef __cplusplus
-#	define SPOOPY_FLEX_ARR 1
 extern "C" {
-#else
-#	define SPOOPY_FLEX_ARR
 #endif
 
 

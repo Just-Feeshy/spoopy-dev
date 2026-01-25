@@ -26,7 +26,7 @@ spoopy_includes = include_directories('include', 'include')
 is_debug_build = get_option('debug')
 deprecation_warnings = get_option('deprecation_warnings')
 
-spoopy_sdl_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+spoopy_sys_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
 
 spoopy_deps = []
 if host_machine.system() == 'darwin'
@@ -132,9 +132,9 @@ subdir('scripts')
 subdir('src')
 subdir('test')
 
-spoopy_sdl_threads_support = get_option('have_sdl_thread_support')
+spoopy_sys_threads_support = get_option('have_sdl_thread_support')
 
-if not spoopy_sdl_threads_support
+if not spoopy_sys_threads_support
     config.set('SPOOPY_SUPPORT_SDL_THREADS', 0)
 endif
 
@@ -142,5 +142,5 @@ summary({
     'System Type': systype,
     'Build Type': is_debug_build ? 'debug' : 'release',
     'Deprecation Warnings': deprecation_warnings,
-    'SDL Threading Support': spoopy_sdl_threads_support ? 'enabled' : 'disabled',
+    'SDL Threading Support': spoopy_sys_threads_support ? 'enabled' : 'disabled',
 }, section: 'Configuration', bool_yn: true)

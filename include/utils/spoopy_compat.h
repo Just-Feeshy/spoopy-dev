@@ -121,6 +121,7 @@ extern "C" {
 #define SPOOPY_DIAG_IGNORE(option) _Pragma("clang diagnostic ignored \"" option "\"")
 #define SPOOPY_DIAG_IGNORE_CAST_ALIGN() _Pragma("clang diagnostic ignored \"-Wcast-align\"")
 #define SPOOPY_DIAG_IGNORE_CAST_QUAL()  _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
+#define SPOOPY_DIAG_
 
 #elif defined(__GNUC__)
 

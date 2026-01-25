@@ -12,6 +12,12 @@
 #define SPOOPY_PRIMARY_SCREEN_INDEX 0u
 #endif
 
+#ifdef __cplusplus
+#define SPOOPY_FLEX_ARR 1
+#else
+#define SPOOPY_FLEX_ARR
+#endif
+
 #ifndef SPOOPY_FUNC_CORE
 
 #ifdef _WIN32

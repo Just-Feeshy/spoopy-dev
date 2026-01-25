@@ -6,18 +6,20 @@ spoopy_core_src += files(
 	'format/spoopy_png.c',
 )
 
-subdir('sdl')
+subdir('platform')
+subdir('sys')
 subdir('memory')
 
 spoopy_core_src += [
-	spoopy_sdl_src,
+	spoopy_sys_src,
 	spoopy_memory_src,
+	spoopy_platform_src,
 ]
 
 spoopy_core_deps = [
 	spoopy_deps,
 	spoopy_src_deps,
-	spoopy_sdl_deps,
+	spoopy_sys_deps,
 	spoopy_memory_deps,
 ]
 
@@ -26,7 +28,6 @@ if host_machine.system() == 'emscripten'
         sources: [spoopy_core_src],
         include_directories: [spoopy_includes],
         dependencies: spoopy_core_deps,
-        link_with: [spoopy_renderer],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         install: false
@@ -36,7 +37,6 @@ else
         sources: [spoopy_core_src],
         include_directories: [spoopy_includes],
         dependencies: spoopy_core_deps,
-        link_with: [spoopy_renderer],
         c_args: spoopy_c_args,
         c_pch: 'pch/spoopy_pch.h',
         version: meson.project_version(),

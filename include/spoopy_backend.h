@@ -7,6 +7,7 @@
 #include <spoopy_types.h>
 
 typedef struct spoopy_backend_funcs {
+	void (*init)(void);
 	spoopy_shader_object_t* (*shader_init)(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
 	void (*shader_destroy)(spoopy_shader_object_t* shader);
 	spoopy_pipeline_t* (*spoopy_pipeline_link)(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
