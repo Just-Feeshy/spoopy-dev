@@ -1,3 +1,5 @@
+#define SPOOPY_GRAPHICS_IMPL
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_metal.h>
 
@@ -13,8 +15,11 @@ static struct {
 } app_device;
 
 struct spoopy_graphics {
+	spoopy_graphics_child_t child;
+
 	CAMetalLayer* metal_layer;
 	id<CAMetalDrawable> active_drawable;
+	id<MTLDevice> device;
 };
 
 // TODO (Base Optimize): Support low power mode
@@ -33,9 +38,12 @@ void spoopy_graphics_init(void) {
 	}
 }
 
-spoopy_graphics_t* spoopy_graphics_new(void) {
+spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer) {
 	@autoreleasepool {
 		spoopy_graphics_t* graphics = spoopy_heap_alloc(sizeof(spoopy_graphics_t));
+		graphics->child = (spoopy_graphics_child_t){ 0 };
+		graphics->child.renderer = renderer;
+		graphics->device = app_device.device;
 		return graphics;
 	}
 }
@@ -45,7 +53,7 @@ bool spoopy_graphics_set_mode(spoopy_graphics_t* graphics, void* context_view) {
 		SDL_MetalView view = (SDL_MetalView)context_view;
 		graphics->metal_layer = (CAMetalLayer*)SDL_Metal_GetLayer(view);
 
-		graphics->metal_layer.device = app_device.device;
+		graphics->metal_layer.device = graphics->device;
 		graphics->metal_layer.pixelFormat = spoopy_graphics_get_gamma_correction()
 			? MTLPixelFormatBGRA8Unorm_sRGB
 			: MTLPixelFormatBGRA8Unorm;

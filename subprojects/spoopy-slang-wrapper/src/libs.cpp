@@ -1,12 +1,16 @@
 #define SPOOPY_NO_HEADER_SLANG
 
-#include <slang-com-ptr.h>
 #include <slang.h>
+#include <slang-com-ptr.h>
+#include <slang-com-helper.h>
+
 #include <spoopy_log.h>
 #include <spoopy_shader.h>
+#include <spoopy_graphics.h>
 #include <memory/spoopy_memory.h>
 
 #include <cstdint>
+#include <initializer_list>
 #include <cstring>
 
 #include <bx/string.h>
@@ -15,84 +19,75 @@
 
 using namespace slang;
 
-// Those that know me personally, I REALLY don't like the C++ style of programming.
-extern "C" {
-
-static const int8_t slang_target_mapping[] = {
-    SLANG_SPIRV,           // 0 -> SLANG_SPIRV
-    SLANG_SPIRV_ASM,       // 1 -> SLANG_SPIRV_ASM
-    SLANG_HLSL,            // 2 -> SLANG_HLSL
-    SLANG_DXBC,            // 3 -> SLANG_DXBC
-    SLANG_DXBC_ASM,        // 4 -> SLANG_DXBC_ASM
-    SLANG_DXIL,            // 5 -> SLANG_DXIL
-    SLANG_DXIL_ASM,        // 6 -> SLANG_DXIL_ASM
-    SLANG_METAL            // 7 -> SLANG_METAL
+struct target_profile {
+	SlangCompileTarget target = SLANG_TARGET_UNKNOWN;
+	SlangProfileID     profile = SLANG_PROFILE_UNKNOWN;
 };
 
-uint32_t spoopy_slang_family = 0;
-const char* desired_slang_pf = NULL;
+static inline SlangProfileID try_find_profile(slang::IGlobalSession* globalSession, std::initializer_list<const char*> candidates) {
+	for (const char* name : candidates) {
+		if(!name) {
+			continue;
+		}
 
-static_assert(SPOOPY_OPTIMIZATION_LEVEL_NONE == (int)SLANG_OPTIMIZATION_LEVEL_NONE, "");
-static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL_DEFAULT, "");
-static_assert(SPOOPY_OPTIMIZATION_LEVEL_HIGH == (int)SLANG_OPTIMIZATION_LEVEL_HIGH, "");
-static_assert(SPOOPY_OPTIMIZATION_LEVEL_MAXIMAL == (int)SLANG_OPTIMIZATION_LEVEL_MAXIMAL, "");
+		SlangProfileID id = globalSession->findProfile(name);
+		if(id != SLANG_PROFILE_UNKNOWN) {
+			return id;
+		}
+	}
 
-static_assert(SPOOPY_STAGE_INVALID == (int)SLANG_STAGE_NONE, "");
-static_assert(SPOOPY_STAGE_VERTEX == (int)SLANG_STAGE_VERTEX, "");
-static_assert(SPOOPY_STAGE_FRAGMENT == (int)SLANG_STAGE_FRAGMENT, "");
-
-struct spoopy_context {
-    Slang::ComPtr<SlangSession> session;
-};
-
-spoopy_context_t global_context = {0};
-
-bool spoopy_global_context_init() {
-    SlangGlobalSessionDesc desc = {};
-    desc.structureSize = sizeof(SlangGlobalSessionDesc);
-    desc.apiVersion = SLANG_API_VERSION;
-    desc.minLanguageVersion = SLANG_LANGUAGE_VERSION_2025;
-    desc.enableGLSL = false;
-
-    SlangResult result = createGlobalSession(&desc, global_context.session.writeRef());
-    if(SLANG_FAILED(result)) {
-        SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
-        return false;
-    }
-
-    return true;
+	return SLANG_PROFILE_UNKNOWN;
 }
 
-void spoopy_shader_cleanup() {
-    global_context.session = nullptr;
+static inline target_profile pick_target_profile(slang::IGlobalSession* globalSession, spoopy_renderer_t renderer_mask) {
+	target_profile out{};
+
+    spoopy_renderer_t renderer = spoopy_graphics_pick_renderer(renderer_mask);
+    if(!spoopy_graphics_renderer_supported(renderer)) {
+        return out;
+	}
+
+	switch(renderer) {
+		case SPOOPY_RENDERER_API_D3D11: {
+			out.target  = SLANG_DXBC;
+			out.profile = try_find_profile(globalSession, { "sm_5_0", "sm_5_1" });
+
+			return out;
+		}
+		case SPOOPY_RENDERER_API_METAL: {
+			out.target = SLANG_METAL;
+			out.profile = try_find_profile(globalSession, {
+				"metal",
+				"metal_3_0", "metal_2_4", "metal_2_3", "metal_2_2", "metal_2_1", "metal_2_0"
+			});
+
+			return out;
+		}
+		case SPOOPY_RENDERER_API_WGPU: {
+			out.target = SLANG_WGSL;
+			out.profile = try_find_profile(globalSession, { "wgsl", "wgsl_1_0" });
+
+			return out;
+		}
+		default: {
+			break;
+		}
+	}
+
+	return out;
 }
 
-bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info) {
-    SPOOPY_LOG_INFO("Checking shader support - desired_slang_pf: %s, target: %d, family: %d",
-                    desired_slang_pf ? desired_slang_pf : "(null)", info->target, spoopy_slang_family);
+static inline void configure_target_desc(slang::TargetDesc& td, SlangCompileTarget target) {
+	td.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
+	td.flags = 0;
 
-    if(desired_slang_pf && transpile_opts) {
-        transpile_opts->profile = desired_slang_pf;
-        transpile_opts->target = info->target;
-        SPOOPY_LOG_INFO("Set transpile profile to: %s", desired_slang_pf);
-    }
-
-    return spoopy_slang_family & (1 << info->target);
-}
-
-typedef tinystl::basic_string<tinystl::allocator> tiny_string;
-typedef tinystl::vector<tiny_string> tiny_string_list;
-typedef tinystl::vector<slang::CompilerOptionEntry> compiler_option_list;
-
-static const char* find_substring(const char* start, const char* end, const char* keyword, size_t len) {
-    const char* cursor = start;
-    while (cursor + len <= end) {
-        if (0 == memcmp(cursor, keyword, len)) {
-            return cursor;
-        }
-        ++cursor;
-    }
-    return end;
+	switch (target) {
+		case SLANG_METAL:
+			td.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_NONE;
+			break;
+		default:
+			break;
+	}
 }
 
 static inline bool char_is_space(char ch) {
@@ -116,6 +111,63 @@ static inline bool char_is_alpha(char ch) {
 
 static inline bool char_is_alphanum(char ch) {
     return char_is_alpha(ch) || char_is_digit(ch);
+}
+
+
+// Those that know me personally, I REALLY don't like the C++ style of programming.
+extern "C" {
+
+static_assert(SPOOPY_OPTIMIZATION_LEVEL_NONE == (int)SLANG_OPTIMIZATION_LEVEL_NONE, "");
+static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL_DEFAULT, "");
+static_assert(SPOOPY_OPTIMIZATION_LEVEL_HIGH == (int)SLANG_OPTIMIZATION_LEVEL_HIGH, "");
+static_assert(SPOOPY_OPTIMIZATION_LEVEL_MAXIMAL == (int)SLANG_OPTIMIZATION_LEVEL_MAXIMAL, "");
+
+static_assert(SPOOPY_STAGE_INVALID == (int)SLANG_STAGE_NONE, "");
+static_assert(SPOOPY_STAGE_VERTEX == (int)SLANG_STAGE_VERTEX, "");
+static_assert(SPOOPY_STAGE_FRAGMENT == (int)SLANG_STAGE_FRAGMENT, "");
+
+const char* desired_slang_pf = NULL;
+
+struct spoopy_context {
+	Slang::ComPtr<slang::IGlobalSession> globalSession;
+};
+
+spoopy_context_t global_context;
+
+bool spoopy_global_context_init(void) {
+    SlangGlobalSessionDesc desc = {};
+    desc.structureSize = sizeof(SlangGlobalSessionDesc);
+    desc.apiVersion = SLANG_API_VERSION;
+    desc.minLanguageVersion = SLANG_LANGUAGE_VERSION_2025;
+    desc.enableGLSL = false;
+
+    SlangResult result = createGlobalSession(&desc, global_context.globalSession.writeRef());
+    if(SLANG_FAILED(result) || !global_context.globalSession) {
+        SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
+        return false;
+    }
+
+    return true;
+}
+
+void spoopy_shader_cleanup() {
+    global_context.globalSession = nullptr;
+}
+
+
+typedef tinystl::basic_string<tinystl::allocator> tiny_string;
+typedef tinystl::vector<tiny_string> tiny_string_list;
+typedef tinystl::vector<slang::CompilerOptionEntry> compiler_option_list;
+
+static const char* find_substring(const char* start, const char* end, const char* keyword, size_t len) {
+    const char* cursor = start;
+    while (cursor + len <= end) {
+        if (0 == memcmp(cursor, keyword, len)) {
+            return cursor;
+        }
+        ++cursor;
+    }
+    return end;
 }
 
 static bool name_exists(const tiny_string_list& list, const char* data, size_t len) {
@@ -223,6 +275,17 @@ static size_t normalize_resource_names(const tiny_string_list& list, char* text,
     return length;
 }
 
+static inline void add_int_compiler_option(compiler_option_list& opts, slang::CompilerOptionName name, int32_t value) {
+	slang::CompilerOptionEntry e = {};
+    e.name = name;
+    e.value.kind = slang::CompilerOptionValueKind::Int;
+    e.value.intValue0 = value;
+    e.value.intValue1 = 0;
+    e.value.stringValue0 = nullptr;
+    e.value.stringValue1 = nullptr;
+    opts.push_back(e);
+}
+
 bool spoopy_api_shader_transpile(
     spoopy_shader_source_t* source,
     spoopy_shader_source_t* target,
@@ -241,47 +304,27 @@ bool spoopy_api_shader_transpile(
     SlangResult result = SLANG_OK;
 
     SessionDesc sessionDesc = {};
-    TargetDesc targetDesc = {};
+	target_profile tp = pick_target_profile(global_context.globalSession.get(), source->target);
 
-    const int8_t mapped = slang_target_mapping[transpile_opts->target];
-    targetDesc.format = (SlangCompileTarget)mapped;
-    targetDesc.profile = global_context.session->findProfile(transpile_opts->profile);
-    targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_STANDARD;
+	if(tp.target == SLANG_TARGET_UNKNOWN || tp.profile == SLANG_PROFILE_UNKNOWN) {
+		SPOOPY_LOG_ERROR("Unsupported target/profile. renderer=%d", (int)source->target);
+		return false;
+	}
 
-    switch(mapped) {
-        case SLANG_SPIRV:
-        case SLANG_SPIRV_ASM:
-            targetDesc.flags |= SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY;
-            break;
-        case SLANG_METAL:
-            // Metal doesn't like whole-program hoisted resource params.
-            targetDesc.lineDirectiveMode = SLANG_LINE_DIRECTIVE_MODE_NONE;
-            break;
-        default:
-            targetDesc.flags = 0;
-            break;
-    }
+	TargetDesc targetDesc = {};
+	targetDesc.format  = tp.target;
+	targetDesc.profile = tp.profile;
 
-    // Compiler options
-    // Keep NoMangle if you want stable names.
-    // IMPORTANT: For Metal, avoid whole-program & parameter-preserve options so Slang
-    // doesn't hoist entryPointParams_* to program scope.
-    compiler_option_list compilerOptions;
-    compilerOptions.push_back({
-        slang::CompilerOptionName::NoMangle,
-        { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
-    });
+	configure_target_desc(targetDesc, tp.target);
+	SlangCompileTarget mapped = tp.target;
 
-    if(mapped != SLANG_METAL) {
-        compilerOptions.push_back({
-            slang::CompilerOptionName::GenerateWholeProgram,
-            { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
-        });
-        compilerOptions.push_back({
-            slang::CompilerOptionName::PreserveParameters,
-            { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr }
-        });
-    }
+	compiler_option_list compilerOptions;
+	add_int_compiler_option(compilerOptions, slang::CompilerOptionName::NoMangle, 1);
+
+	if(mapped != SLANG_METAL) {
+		add_int_compiler_option(compilerOptions, slang::CompilerOptionName::GenerateWholeProgram, 1);
+		add_int_compiler_option(compilerOptions, slang::CompilerOptionName::PreserveParameters, 1);
+	}
 
     targetDesc.compilerOptionEntries = compilerOptions.data();
     targetDesc.compilerOptionEntryCount = (uint32_t)compilerOptions.size();
@@ -292,7 +335,7 @@ bool spoopy_api_shader_transpile(
     sessionDesc.allowGLSLSyntax = true;
 
     Slang::ComPtr<ISession> session;
-    result = global_context.session->createSession(sessionDesc, session.writeRef());
+    result = global_context.globalSession->createSession(sessionDesc, session.writeRef());
     if(SLANG_FAILED(result)) {
         SPOOPY_LOG_ERROR("Failed to create Slang session: %d", result);
         return false;
@@ -410,11 +453,13 @@ bool spoopy_api_shader_transpile(
         memcpy((char*)target->content, buffer, target->content_size);
         ((char*)target->content)[target->content_size] = '\0';
         spoopy_heap_free(buffer);
+
         target->stage = source->stage;
+		target->target      = source->target;
         target->entry_point = source->entry_point;
         target->module_name = source->module_name;
-        target->lang = source->lang;
-        target->lang.profile = transpile_opts->profile;
+		target->entry_point = source->entry_point;
+		target->module_name = source->module_name;
     }
 
     return true;

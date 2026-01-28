@@ -16,24 +16,34 @@
 
 #define MAX_MIP_LEVELS 32
 
-spoopy_shader_object_t* spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	return _backend_funcs.shader_init(shader, info);
 }
 
-void spoopy_api_shader_destroy(spoopy_shader_object_t* shader) {
-	_backend_funcs.shader_destroy(shader);
+void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
+	_backend_funcs.shader_destroy(shader, must_free);
+
+	if(must_free) {
+		spoopy_heap_free(shader);
+	}
 }
 
-spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs) {
-	return _backend_funcs.spoopy_pipeline_link(num_objs, objs, num_structs);
+bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
+	(void)transpile_opts;
+	spoopy_renderer_t want = spoopy_graphics_pick_renderer(info.target);
+	return spoopy_graphics_renderer_supported(want);
+}
+
+spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]) {
+	return _backend_funcs.pipeline_link(num_objs, objs);
 }
 
 uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name) {
 	return _backend_funcs.pipeline_get_texture_unit(pipeline, name);
 }
 
-void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
-	_backend_funcs.pipeline_compile(pipeline, vertex_shader, spec_count, spec, structure);
+void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
+	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, structure);
 }
 
 void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline) {
@@ -151,10 +161,6 @@ void spoopy_api_uniform_set_matrix3(spoopy_uniform_t* uniform, const float* valu
 
 void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* values) {
 	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix4, uniform, values);
-}
-
-void* spoopy_api_window_create_pointer(uint32_t display) {
-	return _backend_funcs.window_create_pointer(display);
 }
 
 

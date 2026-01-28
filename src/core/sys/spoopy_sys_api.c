@@ -29,7 +29,7 @@ static struct {
 
 static void internal_init(void) {
 	spoopy_graphics_init();
-	_backend_funcs.init();
+	_backend_funcs.init(app.graphics);
 
 	// TODO (States): Have `draw` state logic be initialized here
 }
@@ -172,9 +172,8 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	uint32_t w = spoopy_min(params->width, 0);
 	uint32_t h = spoopy_min(params->height, 0);
 
+	app.graphics = spoopy_graphics_new(params->renderer);
 	spoopy_api_refresh_screens();
-
-
 }
 
 // This allows us to create our own file loading system even for other platforms later on.
@@ -291,4 +290,8 @@ spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t screen_index) {
 got_usable_rect:
 	SDL_UnlockMutex(app.display_mutex);
 	return rec2;
+}
+
+spoopy_renderer_t spoopy_api_get_renderer(void) {
+	return spoopy_graphics_get_renderer(app.graphics);
 }

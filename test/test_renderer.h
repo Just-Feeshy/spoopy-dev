@@ -23,6 +23,7 @@ static void test_init(void) {
         .width = 800,
         .height = 600,
 		.flags = SPOOPY_WINDOW_FLAG_FULLSCREEN,
+		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
     });
 }
 
@@ -30,33 +31,31 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
     spoopy_shader_source_t source = {
         .content = src,
         .content_size = strlen(src),
-        .stage = stage,
         .entry_point = (stage == SPOOPY_STAGE_VERTEX) ? "vertexMain" : "fragmentMain",
         .module_name = "shader",
-        .lang = {
-            .target = SLANG_METAL,
-        }
+		.target = spoopy_api_get_renderer(),
     };
 
     spoopy_transpile_options_t transpile_opts = {
         .filename = "<embedded>"
     };
 
-    if(!spoopy_api_shader_supported(&transpile_opts, &source.lang)) {
-        switch(source.lang.target) {
-            case SLANG_METAL:
+    if(!spoopy_api_shader_supported(&transpile_opts, source)) {
+        switch(source.target) {
+            case SPOOPY_RENDERER_API_METAL:
                 SPOOPY_LOG_ERROR("Metal shaders are not supported on this platform.");
                 break;
-            case SLANG_HLSL:
-            case SLANG_DXBC:
-            case SLANG_DXIL:
+            case SPOOPY_RENDERER_API_D3D11:
                 SPOOPY_LOG_ERROR("Direct3D shaders are not supported on this platform.");
                 break;
-            case SLANG_SPIRV:
-                SPOOPY_LOG_ERROR("Vulkan shaders are not supported on this platform.");
+            case SPOOPY_RENDERER_API_WGPU:
+                SPOOPY_LOG_ERROR("WGPU shaders are not supported on this platform.");
+                break;
+            case SPOOPY_RENDERER_API_UNSURE:
+                SPOOPY_LOG_ERROR("No renderer selected for shader target.");
                 break;
             default:
-                SPOOPY_LOG_ERROR("Shader target not supported: %d", source.lang.target);
+                SPOOPY_LOG_ERROR("Shader target not supported: %u", (unsigned)source.target);
         }
 
         return NULL;
@@ -76,7 +75,7 @@ static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_
 
 	SPOOPY_LOG_SUCCESS("Shader transpiled successfully: %s", source.entry_point);
 	spoopy_shader_object_t* shader = spoopy_heap_alloc(spoopy_shader_object_size);
-	shader = spoopy_api_shader_init(shader, &new_src);
+	spoopy_api_shader_init(shader, &new_src);
 
     SPOOPY_LOG_SUCCESS("Shader compiled and ready for use: %s", source.entry_point);
     return shader;

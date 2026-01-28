@@ -2,6 +2,7 @@
 
 #include <utils/spoopy_compat.h>
 #include <utils/spoopy_geometry.h>
+#include <spoopy_graphics.h>
 #include <spoopy_image.h>
 
 
@@ -110,6 +111,7 @@ typedef struct spoopy_video_init_params {
     int height;
 	spoopy_window_flags_t flags;
 	spoopy_aspect_axis_t aspect_axis;
+	spoopy_renderer_t renderer;
 } spoopy_video_init_params_t;
 
 typedef enum spoopy_vsync_mode {

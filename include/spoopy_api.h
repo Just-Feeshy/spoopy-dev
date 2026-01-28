@@ -22,16 +22,16 @@
 extern "C" {
 #endif
 
-SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs);
+SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]);
 SPOOPY_FUNC_CORE uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name);
-SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
+SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline);
-SPOOPY_FUNC_CORE spoopy_shader_object_t* spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
-SPOOPY_FUNC_CORE spoopy_vertex_buffer_t* spoopy_api_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
+SPOOPY_FUNC_CORE void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
+SPOOPY_FUNC_CORE bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
 SPOOPY_FUNC_CORE spoopy_index_buffer_t* spoopy_api_index_buffer_create(uint32_t count, void* data);
-SPOOPY_FUNC_CORE void spoopy_api_shader_destroy(spoopy_shader_object_t* shader);
+SPOOPY_FUNC_CORE void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_destroy);
 SPOOPY_FUNC_CORE void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value);
-SPOOPY_FUNC_CORE bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_lang_t* info);
+SPOOPY_FUNC_CORE bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info);
 SPOOPY_FUNC_CORE void spoopy_api_begin_frame(void);
 SPOOPY_FUNC_CORE void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val);
 SPOOPY_FUNC_CORE void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline);
@@ -51,6 +51,9 @@ SPOOPY_FUNC_CORE const char* spoopy_api_get_screen_name(uint32_t screen_index);
 SPOOPY_FUNC_CORE float spoopy_api_get_screen_max_scale(void);
 SPOOPY_FUNC_CORE spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t screen_index);
 SPOOPY_FUNC_CORE void spoopy_api_refresh_screens(void);
+
+// TODO (Multi-Window): Have a parameter `window_index` to get it for each window
+SPOOPY_FUNC_CORE spoopy_renderer_t spoopy_api_get_renderer(void);
 
 // SPOOPY_FUNC_CORE spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(uint32_t screen_index);
 // SPOOPY_FUNC_CORE bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window);

@@ -4,17 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <spoopy_slang.h>
+#include <spoopy_graphics.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef SlangCompileTarget spoopy_shader_target_t;
-
-struct spoopy_shader_lang {
-    spoopy_shader_target_t target;
-    const char* profile; // Optional, can be NULL
-};
 
 typedef struct spoopy_shader_lang spoopy_shader_lang_t;
 typedef struct spoopy_shader_object spoopy_shader_object_t;
@@ -30,7 +24,7 @@ typedef enum spoopy_optimization_level {
 typedef enum spoopy_shader_stage {
 	SPOOPY_STAGE_INVALID,
 	SPOOPY_STAGE_VERTEX,
-	SPOOPY_STAGE_FRAGMENT = 5,
+	SPOOPY_STAGE_FRAGMENT,
 } spoopy_shader_stage_t;
 
 typedef struct spoopy_shader_macro {
@@ -42,8 +36,7 @@ typedef struct spoopy_transpile_options {
     spoopy_shader_macro_t* macros;
 	size_t macro_count;
     // spoopy_optimization_level_t optimization_level;
-	spoopy_shader_target_t target;
-    const char* profile;
+    spoopy_shader_stage_t stage;
     const char* filename;
 	uint8_t flags;
 } spoopy_transpile_options_t;
@@ -51,8 +44,8 @@ typedef struct spoopy_transpile_options {
 typedef struct spoopy_shader_source {
     const char* content;
 	size_t content_size;
-    spoopy_shader_stage_t stage;
-    spoopy_shader_lang_t lang;
+	spoopy_shader_stage_t stage;
+	spoopy_renderer_t target;
     const char* entry_point;
     const char* module_name; // Optional, can be NULL
 } spoopy_shader_source_t;

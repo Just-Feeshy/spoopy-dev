@@ -63,3 +63,16 @@ option('need_mimalloc',
 	value: true,
 	description: 'Whether mimalloc is a required allocator'
 )
+
+option('enable_sokol',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Enable the Sokol renderer backend'
+)
+
+option('sokol_backend',
+    type: 'combo',
+    value: 'auto',
+    choices: ['auto', 'metal', 'd3d11', 'wgpu'],
+    description: 'Sokol backend to enable (maps to SPOOPY_RENDERER_* defines)'
+)

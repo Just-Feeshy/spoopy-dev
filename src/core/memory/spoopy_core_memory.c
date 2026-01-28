@@ -1,5 +1,4 @@
 #include <spoopy.h>
-#include <limits.h>
 #include <memory/spoopy_memory.h>
 #include <utils/assert.h>
 

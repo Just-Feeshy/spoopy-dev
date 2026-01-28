@@ -46,7 +46,7 @@ SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1);
 
-SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t alignment, size_t size)
+SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t alignment, size_t size, void* user_data)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1);
@@ -68,7 +68,7 @@ SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_realloc(void* ptr, size_t 
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
 	SPOOPY_ATTR_SIZE(2);
 
-SPOOPY_FUNC_CORE void spoopy_heap_free(spoopy_static_block_t* ptr);
+SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
 SPOOPY_FUNC_CORE void spoopy_static_free(spoopy_static_block_t* ptr);
 
 
@@ -85,6 +85,21 @@ SPOOPY_DIAG_POP()
 static inline char* spoopy_heap_strdup(const char* str) {
     const size_t len = strlen(str) + 1;
     return (char*)memcpy(spoopy_heap_alloc(len), str, len);
+}
+
+static inline char* spoopy_heap_strndup(const char* str, size_t len) {
+    if(!str) {
+        return NULL;
+    }
+
+    char* out = (char*)spoopy_heap_alloc(len + 1);
+    if(!out) {
+        return NULL;
+    }
+
+    memcpy(out, str, len);
+    out[len] = '\0';
+    return out;
 }
 
 static inline size_t spoopy_align_bound(size_t size, size_t min_alignment) {

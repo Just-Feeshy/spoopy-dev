@@ -7,6 +7,7 @@ spoopy_core_src += files(
 )
 
 subdir('platform')
+subdir('renderer')
 subdir('sys')
 subdir('memory')
 
@@ -14,6 +15,7 @@ spoopy_core_src += [
 	spoopy_sys_src,
 	spoopy_memory_src,
 	spoopy_platform_src,
+	spoopy_renderer_src,
 ]
 
 spoopy_core_deps = [
@@ -21,6 +23,7 @@ spoopy_core_deps = [
 	spoopy_src_deps,
 	spoopy_sys_deps,
 	spoopy_memory_deps,
+	spoopy_renderer_deps,
 ]
 
 if host_machine.system() == 'emscripten'

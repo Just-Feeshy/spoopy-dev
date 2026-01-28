@@ -36,6 +36,47 @@ spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrap
 spoopy_deps += dependency('libpng', required: true)
 spoopy_deps += dependency('cglm', required: true)
 
+enable_sokol = get_option('enable_sokol')
+sokol_backend = get_option('sokol_backend')
+sokol_compile_args = []
+sokol_dep = disabler()
+
+if enable_sokol.disabled()
+    if sokol_backend != 'auto'
+        error('sokol_backend is set but enable_sokol is disabled; enable with -Denable_sokol=enabled')
+    endif
+endif
+
+sokol_requested = enable_sokol.enabled() or (enable_sokol.auto() and sokol_backend != 'auto')
+if sokol_requested
+    if sokol_backend == 'auto'
+        if host_machine.system() == 'darwin'
+            sokol_backend = 'metal'
+        elif host_machine.system() == 'windows'
+            sokol_backend = 'd3d11'
+        else
+            sokol_backend = 'wgpu'
+        endif
+    endif
+
+    sokol_backend_map = {
+        'metal': 'SPOOPY_RENDERER_METAL',
+        'd3d11': 'SPOOPY_RENDERER_D3D11',
+        'wgpu': 'SPOOPY_RENDERER_WGPU',
+    }
+
+    if not sokol_backend_map.has_key(sokol_backend)
+        error('Unknown Sokol backend: @0@'.format(sokol_backend))
+    endif
+    sokol_compile_args += '-D@0@'.format(sokol_backend_map[sokol_backend])
+
+    sokol_dep = dependency('sokol', fallback: ['sokol', 'sokol_dep'], required: true)
+    sokol_dep = declare_dependency(
+        dependencies: [sokol_dep],
+        compile_args: sokol_compile_args,
+    )
+endif
+
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
 if has_posix

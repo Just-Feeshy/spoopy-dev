@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
-	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj }, 1);
+	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
 		{ 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT },
@@ -97,9 +97,11 @@ int main(int argc, char** argv) {
 		{ 3, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
 	};
 
-	spoopy_api_pipeline_compile(pipeline, vert_obj, 3, vertex_spec, 0);
+	spoopy_api_pipeline_compile(pipeline, 3, vertex_spec, 0);
 	spoopy_api_shader_destroy(vert_obj);
 	spoopy_api_shader_destroy(frag_obj);
+
+	spoopy_vertex_buffer_t vbuf = {0};
 
 	spoopy_mesh_t mesh = {
 		.vertex_buffer = NULL,
@@ -150,10 +152,10 @@ int main(int argc, char** argv) {
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
-		spoopy_vertex_buffer_t* vbuf = spoopy_api_vertex_buffer_create(vertex_data_size, ARRAY_SIZE(vertices), vertices, 0, pipeline);
+		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0, pipeline);
 		spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(ARRAY_SIZE(indices), indices);
 
-		mesh.vertex_buffer = vbuf;
+		mesh.vertex_buffer = &vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = (uint32_t)ARRAY_SIZE(indices);
 	}
