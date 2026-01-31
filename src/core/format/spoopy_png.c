@@ -85,19 +85,19 @@ static bool spoopy_png_probe(SDL_IOStream* stream) {
 	return !memcmp(magic, png_magic, sizeof(png_magic));
 }
 
-static spoopy_image_layout_t clrtype_to_layout(int color_type) {
+static spoopy_pixel_layout_t clrtype_to_layout(int color_type) {
 	switch(color_type) {
 		case PNG_COLOR_TYPE_RGB:
-			return SPOOPY_IMAGE_LAYOUT_RGB;
+			return SPOOPY_PIXEL_LAYOUT_RGB;
 		case PNG_COLOR_TYPE_RGB_ALPHA:
-			return SPOOPY_IMAGE_LAYOUT_RGBA;
+			return SPOOPY_PIXEL_LAYOUT_RGBA;
 		case PNG_COLOR_TYPE_GRAY:
 		case PNG_COLOR_TYPE_GRAY_ALPHA:
-			return SPOOPY_IMAGE_LAYOUT_R;
+			return SPOOPY_PIXEL_LAYOUT_R;
 		case PNG_COLOR_TYPE_PALETTE:
-			return SPOOPY_IMAGE_LAYOUT_RGB;
+			return SPOOPY_PIXEL_LAYOUT_RGB;
 		default:
-			return SPOOPY_IMAGE_LAYOUT_INVALID;
+			return SPOOPY_PIXEL_LAYOUT_INVALID;
 	}
 }
 
@@ -111,7 +111,7 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 
 	img->pixels.raw_data = NULL;
 	img->data_size = 0;
-	img->format = SPOOPY_IMAGE_FORMAT_INVALID;
+	img->format = SPOOPY_PIXEL_FORMAT_INVALID;
 	img->origin = SPOOPY_IMAGE_ORIGIN_TOP_LEFT;
 
 	if(!(png = spoopy_png_create_read_struct())) {
@@ -172,7 +172,7 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 	img->width = png_get_image_width(png, info_ptr);
 	img->height = png_get_image_height(png, info_ptr);
 	const uint8_t bits_per_pixel = (uint8_t)(channels * bit_depth);
-	img->format = SPOOPY_IMAGE_MAKE_FORMAT(
+	img->format = SPOOPY_PIXEL_MAKE_FORMAT(
 		clrtype_to_layout(color_type),
 		bits_per_pixel
 	);
@@ -229,7 +229,7 @@ finally:
 			img->pixels.raw_data = NULL;
 		}
 
-		img->format = SPOOPY_IMAGE_FORMAT_INVALID;
+		img->format = SPOOPY_PIXEL_FORMAT_INVALID;
 		img->data_size = 0;
 		return false;
 	}

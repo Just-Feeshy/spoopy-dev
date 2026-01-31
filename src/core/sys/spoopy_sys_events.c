@@ -111,12 +111,11 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 			SPOOPY_LOG_INFO("Window pixel size changed: %ux%u", event->window.data1, event->window.data2);
 			// TODO (All Tests): spoopy_video_update_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
-			spoopy_api_update_video_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
 
 			break;
 		case SDL_EVENT_DISPLAY_ADDED:
 		case SDL_EVENT_DISPLAY_REMOVED:
-			spoopy_api_refresh_displays();
+			spoopy_api_refresh_screens();
 			break;
 		default:
 	}

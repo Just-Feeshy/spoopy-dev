@@ -24,15 +24,20 @@
 
 #include <sokol_gfx.h>
 
+static inline void* spoopy_sokol_alloc(size_t size, void* user_data) {
+	return spoopy_aligned_alloc(SPOOPY_MAX_ALIGN, size, user_data);
+}
+
 #define SPOOPY_SG_DEFAULT_DESC \
 	.allocator = { \
-		.alloc_fn = spoopy_aligned_alloc, \
+		.alloc_fn = spoopy_sokol_alloc, \
 		.free_fn = spoopy_sokol_free, \
 		.user_data = NULL, \
 	}, \
 	.logger = { \
 		.func = spoopy_sokol_log_cb, \
-	},
+	}, \
+	.environment.defaults.depth_format = SG_PIXELFORMAT_NONE,
 
 static inline void spoopy_sokol_free(void* ptr, void* user_data) {
 	(void)user_data;
@@ -66,6 +71,7 @@ static inline void spoopy_sokol_log_cb(
 extern "C" {
 #endif
 
+extern sg_swapchain spoopy_swapchain;
 
 struct spoopy_vertex_buffer {
 	sg_buffer buffer;
@@ -81,14 +87,16 @@ struct spoopy_index_buffer {
 struct spoopy_pipeline {
 	sg_shader shader;
 	sg_pipeline pipeline;
+	sg_bindings bindings;
 };
+
 struct spoopy_shader_object {
 	spoopy_shader_stage_t stage;
 	sg_shader_function func;
 	bool owns_source;
 };
 
-void spoopy_sokol_init(spoopy_graphics_t* graphics);
+void spoopy_sokol_init(void);
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@ spoopy_static_block_t* spoopy_static_alloc(size_t size) {
 		SPOOPY_MAX_ALIGN
 	);
 
-	spoopy_static_block_t* s = spoopy_aligned_alloc(alignment, allocation);
+	spoopy_static_block_t* s = spoopy_aligned_alloc(alignment, allocation, NULL);
 	assert(s);
 
 	s->header.is_unique = true;
@@ -28,6 +28,10 @@ spoopy_static_block_t* spoopy_static_alloc(size_t size) {
 }
 
 void spoopy_static_free(void* ptr) {
+	if(!ptr) {
+		return;
+	}
+
 	spoopy_heap_free(spoopy_static_block_from_payload(ptr));
 }
 

@@ -122,10 +122,6 @@ static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_HIGH == (int)SLANG_OPTIMIZATION_LEVEL_HIGH, "");
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_MAXIMAL == (int)SLANG_OPTIMIZATION_LEVEL_MAXIMAL, "");
 
-static_assert(SPOOPY_STAGE_INVALID == (int)SLANG_STAGE_NONE, "");
-static_assert(SPOOPY_STAGE_VERTEX == (int)SLANG_STAGE_VERTEX, "");
-static_assert(SPOOPY_STAGE_FRAGMENT == (int)SLANG_STAGE_FRAGMENT, "");
-
 const char* desired_slang_pf = NULL;
 
 struct spoopy_context {

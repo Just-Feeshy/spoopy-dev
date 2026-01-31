@@ -42,20 +42,12 @@ uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const
 	return _backend_funcs.pipeline_get_texture_unit(pipeline, name);
 }
 
-void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
-	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, structure);
+void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, buffer_index);
 }
 
 void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline) {
 	_backend_funcs.pipeline_bind(pipeline);
-}
-
-void spoopy_api_begin_frame(void) {
-	_backend_funcs.begin_frame();
-}
-
-void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
-	_backend_funcs.clear(flags, color_val, depth_val);
 }
 
 void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
@@ -100,6 +92,10 @@ void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex) {
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
 	_backend_funcs.texture_destroy(tex);
+}
+
+size_t spoopy_api_buffer_size(spoopy_buffer_type_t type) {
+	return _backend_funcs.buffer_size(type);
 }
 
 spoopy_uniform_t* spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name) {
@@ -172,10 +168,10 @@ void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* valu
 //
 // But, also have a proper way to handle dynamic buffers that can grow and shrink
 // for other use cases.
-spoopy_vertex_buffer_t* spoopy_api_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline) {
-	return _backend_funcs.vertex_buffer_create(capacity, count, data, structure, pipeline);
+bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t stride) {
+	return _backend_funcs.vertex_buffer_create(buffer, capacity, count, data, stride);
 }
 
-spoopy_index_buffer_t* spoopy_api_index_buffer_create(uint32_t count, void* data) {
-	return _backend_funcs.index_buffer_create(count, data);
+bool spoopy_api_index_buffer_create(spoopy_index_buffer_t* buffer, uint32_t count, void* data) {
+	return _backend_funcs.index_buffer_create(buffer, count, data);
 }

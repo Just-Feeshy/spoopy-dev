@@ -1,18 +1,12 @@
 #include <spoopy_backend.h>
+#include <renderer/spoopy_metal.h>
 
-#include "spoopy_sokol.h"
+#include "../spoopy_sokol.h"
 
-void spoopy_sokol_init(spoopy_graphics_t* graphics) {
+void spoopy_sokol_init(void) {
 	sg_setup(&(sg_desc) {
 		SPOOPY_SG_DEFAULT_DESC
 
-		.environment = {
-			.defaults = {
-				.depth_format = SG_PIXELFORMAT_NONE, \\ TODO (All Tests): Needs to be handled by the user
-			},
-			.metal = {
-				.device = (__bridge const void*)graphics->device;
-			},
-		},
+		.environment.metal.device = (__bridge const void*) spoopy_metal_init(),
 	});
 }

@@ -24,6 +24,11 @@ typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
 
+typedef enum spoopy_buffer_type {
+	SPOOPY_BUFFER_TYPE_VERTEX,
+	SPOOPY_BUFFER_TYPE_INDEX,
+} spoopy_buffer_type_t;
+
 
 /** Defined Structures **/
 
@@ -35,9 +40,10 @@ typedef struct spoopy_file_read_callbacks {
 } spoopy_file_read_callbacks_t;
 
 struct spoopy_mesh {
-	spoopy_vertex_buffer_t* vertex_buffer;
-	spoopy_index_buffer_t* index_buffer;
 	uint32_t index_count;
+	uint16_t vertex_count;
+	spoopy_index_buffer_t* index_buffer;
+	spoopy_vertex_buffer_t* vertex_buffers;
 };
 
 struct spoopy_preset_vertex_model {
@@ -45,13 +51,6 @@ struct spoopy_preset_vertex_model {
 	spoopy_vec2_float_t uv;
 	spoopy_vec4_float_t tangent;
 };
-
-typedef enum spoopy_buffer_kind {
-	SPOOPY_BUFFER_COLOR = (1 << 0),
-	SPOOPY_BUFFER_DEPTH = (1 << 1),
-
-	SPOOPY_BUFFER_ALL = SPOOPY_BUFFER_COLOR | SPOOPY_BUFFER_DEPTH
-} spoopy_buffer_kind_t;
 
 typedef enum spoopy_texture_filter_mode {
 	SPOOPY_TEXTURE_FILTER_LINEAR,
@@ -78,7 +77,7 @@ typedef struct spoopy_texture_params {
 	uint32_t height;
 	uint32_t layers;
 	uint32_t mipmaps;
-	spoopy_image_format_t format;
+	spoopy_pixel_format_t format;
 	spoopy_texture_class_t texture_class;
 
 	struct {

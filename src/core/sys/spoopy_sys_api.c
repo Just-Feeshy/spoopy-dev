@@ -28,8 +28,7 @@ static struct {
 } app = { 0 };
 
 static void internal_init(void) {
-	spoopy_graphics_init();
-	_backend_funcs.init(app.graphics);
+	_backend_funcs.init();
 
 	// TODO (States): Have `draw` state logic be initialized here
 }
@@ -294,4 +293,8 @@ got_usable_rect:
 
 spoopy_renderer_t spoopy_api_get_renderer(void) {
 	return spoopy_graphics_get_renderer(app.graphics);
+}
+
+void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
+	_backend_funcs.clear(app.graphics, flags, color_val, depth_val);
 }

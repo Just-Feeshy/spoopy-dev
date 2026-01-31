@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 	spoopy_vertex_buffer_t vbuf = {0};
 
 	spoopy_mesh_t mesh = {
-		.vertex_buffer = NULL,
+		.vertex_buffers = NULL,
 		.index_buffer = NULL,
 		.index_count = 6
 	};
@@ -100,11 +100,13 @@ int main(int argc, char** argv) {
 			2, 1, 3
 		};
 
-		spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(6, indices);
+		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+		spoopy_api_index_buffer_create(ibuf, 6, indices);
 
-		mesh.vertex_buffer = &vbuf;
+		mesh.vertex_buffers = &vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = 6;
+		mesh.vertex_count = 1;
 	}
 
 	spoopy_texture_t* tex = test_renderer_load_texture("test/tung.png");

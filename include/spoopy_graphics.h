@@ -1,6 +1,8 @@
 #pragma once
 
 #include <spoopy.h>
+#include <spoopy_color.h>
+#include <utils/spoopy_geometry.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,11 +28,20 @@ typedef enum {
 		SPOOPY_RENDERER_API_BEST_OPTION = SPOOPY_RENDERER_AVAILABLE & (~SPOOPY_RENDERER_AVAILABLE + 1u),
 } spoopy_renderer_t;
 
+typedef enum spoopy_buffer_kind {
+	SPOOPY_BUFFER_NONE = 0,
+	SPOOPY_BUFFER_COLOR = (1 << 0),
+	SPOOPY_BUFFER_DEPTH = (1 << 1),
+
+	SPOOPY_BUFFER_ALL = SPOOPY_BUFFER_COLOR | SPOOPY_BUFFER_DEPTH
+} spoopy_buffer_kind_t;
+
+typedef struct spoopy_graphics spoopy_graphics_t;
+
 typedef struct spoopy_graphics_child {
 	spoopy_renderer_t renderer;
 } spoopy_graphics_child_t;
 
-typedef struct spoopy_graphics spoopy_graphics_t;
 
 void spoopy_graphics_init(void);
 spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer);
@@ -41,10 +52,13 @@ bool spoopy_graphics_renderer_supported(spoopy_renderer_t renderer);
 bool spoopy_graphics_renderer_is_single(spoopy_renderer_t renderer);
 spoopy_renderer_t spoopy_graphics_pick_renderer(spoopy_renderer_t want_mask);
 spoopy_renderer_t spoopy_graphics_get_renderer(spoopy_graphics_t* graphics);
+spoopy_vec2_int_t spoopy_graphics_update_present(spoopy_graphics_t* graphics);
 
-#ifdef SPOOPY_GRAPHICS_IMPL
-static_assert(offsetof(spoopy_graphics_t, child) == 0, "spoopy_graphics_child_t must be first!");
-#undef SPOOPY_GRAPHICS_IMPL
+#if defined(__OBJC__)
+#define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type) ((void)0)
+#else
+#define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type) \
+	static_assert(offsetof(type, child) == 0, "spoopy_graphics_child_t must be first!")
 #endif
 
 #ifdef __cplusplus

@@ -24,15 +24,16 @@ extern "C" {
 
 SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]);
 SPOOPY_FUNC_CORE uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name);
-SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure);
+SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline);
 SPOOPY_FUNC_CORE void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
-SPOOPY_FUNC_CORE bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline);
-SPOOPY_FUNC_CORE spoopy_index_buffer_t* spoopy_api_index_buffer_create(uint32_t count, void* data);
+SPOOPY_FUNC_CORE bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t stride);
+SPOOPY_FUNC_CORE bool spoopy_api_index_buffer_create(spoopy_index_buffer_t* buffer, uint32_t count, void* data);
 SPOOPY_FUNC_CORE void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_destroy);
 SPOOPY_FUNC_CORE void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value);
 SPOOPY_FUNC_CORE bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info);
-SPOOPY_FUNC_CORE void spoopy_api_begin_frame(void);
+//
+// TODO (Multi-Window): Have a parameter `window_index` to get it for each window
 SPOOPY_FUNC_CORE void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val);
 SPOOPY_FUNC_CORE void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline);
 SPOOPY_FUNC_CORE void spoopy_api_swap_buffers(void);
@@ -42,6 +43,7 @@ SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t 
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
 SPOOPY_FUNC_CORE void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
+SPOOPY_FUNC_CORE size_t spoopy_api_buffer_size(spoopy_buffer_type_t type);
 SPOOPY_FUNC_CORE void spoopy_api_video_init(const spoopy_video_init_params_t* params);
 SPOOPY_FUNC_CORE void spoopy_api_video_shutdown(void);
 

@@ -69,7 +69,7 @@ SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_realloc(void* ptr, size_t 
 	SPOOPY_ATTR_SIZE(2);
 
 SPOOPY_FUNC_CORE void spoopy_heap_free(void* ptr);
-SPOOPY_FUNC_CORE void spoopy_static_free(spoopy_static_block_t* ptr);
+SPOOPY_FUNC_CORE void spoopy_static_free(void* ptr);
 
 
 SPOOPY_DIAG_PUSH()

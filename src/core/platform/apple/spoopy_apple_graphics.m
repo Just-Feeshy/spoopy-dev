@@ -1,59 +1,32 @@
-#define SPOOPY_GRAPHICS_IMPL
-
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_metal.h>
-
-#include <spoopy_log.h>
 #include <spoopy_graphics.h>
+#include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
 
+#include <renderer/spoopy_metal.h>
+
+#import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-static struct {
-	id<MTLDevice> device;
-} app_device;
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_metal.h>
 
 struct spoopy_graphics {
 	spoopy_graphics_child_t child;
 
 	CAMetalLayer* metal_layer;
 	id<CAMetalDrawable> active_drawable;
-	id<MTLDevice> device;
 };
 
-// TODO (Base Optimize): Support low power mode
-void spoopy_graphics_init(void) {
-	@autoreleasepool {
-		if(@available(macOS 10.15, iOS 13.0, *)) {
-			if(app_device.device == nil) {
-				app_device.device = MTLCreateSystemDefaultDevice();
-				return;
-			}
+SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(spoopy_graphics_t);
 
-			SPOOPY_LOG_THROW("Metal is not supported on this system!");
-		}else {
-			SPOOPY_LOG_THROW("Spoopy's Metal graphics backend requires macOS 10.15+ or iOS 13+!");
-		}
-	}
-}
-
-spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer) {
-	@autoreleasepool {
-		spoopy_graphics_t* graphics = spoopy_heap_alloc(sizeof(spoopy_graphics_t));
-		graphics->child = (spoopy_graphics_child_t){ 0 };
-		graphics->child.renderer = renderer;
-		graphics->device = app_device.device;
-		return graphics;
-	}
-}
-
-bool spoopy_graphics_set_mode(spoopy_graphics_t* graphics, void* context_view) {
+static inline bool _spoopy_mtl_set_mode(spoopy_graphics_t* graphics, void* context_view) {
 	@autoreleasepool {
 		SDL_MetalView view = (SDL_MetalView)context_view;
 		graphics->metal_layer = (CAMetalLayer*)SDL_Metal_GetLayer(view);
 
-		graphics->metal_layer.device = graphics->device;
+		graphics->metal_layer.device = spoopy_metal.device;
 		graphics->metal_layer.pixelFormat = spoopy_graphics_get_gamma_correction()
 			? MTLPixelFormatBGRA8Unorm_sRGB
 			: MTLPixelFormatBGRA8Unorm;
@@ -62,4 +35,45 @@ bool spoopy_graphics_set_mode(spoopy_graphics_t* graphics, void* context_view) {
 
 		return true;
 	}
+}
+
+static inline const spoopy_vec2_int_t _spoopy_mtl_update_present(spoopy_graphics_t* graphics) {
+	graphics->active_drawable = [graphics->metal_layer nextDrawable];
+
+	const CGSize fb_size = graphics->metal_layer.drawableSize;
+	return (spoopy_vec2_int_t) { .x = (int)fb_size.width, .y = (int)fb_size.height };
+}
+
+spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer) {
+	@autoreleasepool {
+		spoopy_graphics_t* graphics = spoopy_heap_alloc(sizeof(spoopy_graphics_t));
+		graphics->child = (spoopy_graphics_child_t){ 0 };
+		graphics->child.renderer = renderer;
+		return graphics;
+	}
+}
+
+
+// TODO (WebGPU): Make `renderer` a parameter instead of a constant variable
+
+bool spoopy_graphics_set_mode(spoopy_graphics_t* graphics, void* context_view) {
+	switch(graphics->child.renderer) {
+		default:
+		case SPOOPY_RENDERER_API_METAL:
+			return _spoopy_mtl_set_mode(graphics, context_view);
+	}
+
+	SPOOPY_LOG_ERROR("Renderer API not supported on this device!");
+	return false;
+}
+
+spoopy_vec2_int_t spoopy_graphics_update_present(spoopy_graphics_t* graphics) {
+	switch(graphics->child.renderer) {
+		default:
+		case SPOOPY_RENDERER_API_METAL:
+			return _spoopy_mtl_update_present(graphics);
+	}
+
+	SPOOPY_LOG_ERROR("Renderer API not supported on this device!");
+	return (spoopy_vec2_int_t) { .x = 0, .y = 0 };
 }

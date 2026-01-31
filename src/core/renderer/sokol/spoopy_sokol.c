@@ -1,6 +1,18 @@
 #include <spoopy_backend.h>
+#include <utils/assert.h>
 
 #include "spoopy_sokol.h"
+
+static_assert(sizeof(spoopy_color_t) >= sizeof(sg_color), "spoopy_color_t must hold sg_color");
+static_assert(__alignof(spoopy_color_t) >= __alignof(sg_color), "spoopy_color_t alignment must satisfy sg_color");
+
+sg_swapchain spoopy_swapchain = {
+	.width = 0,
+	.height = 0,
+	.sample_count = 1,
+	.color_format = SG_PIXELFORMAT_BGRA8,
+	.depth_format = SG_PIXELFORMAT_NONE,
+};
 
 static const struct {
 	uint8_t elements;
@@ -41,7 +53,7 @@ static const struct {
 
 static const size_t vtx_array_size = sizeof(formats) / sizeof(formats[0]);
 
-
+// TODO (Windows): Actually test this
 static const char* spoopy_sokol_d3d_target(spoopy_shader_stage_t stage) {
 	switch (stage) {
 		case SPOOPY_STAGE_VERTEX:
@@ -51,6 +63,18 @@ static const char* spoopy_sokol_d3d_target(spoopy_shader_stage_t stage) {
 		default:
 			return NULL;
 	}
+}
+
+static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
+	spoopy_vec2_int_t fb_size = (spoopy_vec2_int_t){ 0 };
+
+	switch(spoopy_graphics_get_renderer(graphics)) {
+		default:
+		case SPOOPY_RENDERER_API_METAL: fb_size = spoopy_graphics_update_present(graphics); break;
+	}
+
+	spoopy_swapchain.width =  fb_size.w;
+	spoopy_swapchain.height = fb_size.h;
 }
 
 static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
@@ -154,9 +178,33 @@ static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec
 	return SG_VERTEXFORMAT_INVALID;
 }
 
-// TODO (Windows): Brind back the `vertex_shader` parameter to use for attribute semi-name for D3D11
-static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
-	assert(pipline->shader.id != SG_INVALID_ID);
+static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t flags, const spoopy_color_t *color_val, float depth_val) {
+	static const sg_load_action load_actions[2] = { SG_LOADACTION_LOAD, SG_LOADACTION_CLEAR };
+
+	sg_pass_action action = {0};
+	const uint32_t color_clear = (flags & SPOOPY_BUFFER_COLOR) != 0;
+	action.colors[0].load_action = load_actions[color_clear];
+	action.colors[0].clear_value = *(const sg_color*)color_val->rgba;
+
+	const uint32_t depth_clear = (flags & SPOOPY_BUFFER_DEPTH) != 0;
+	action.depth.load_action = load_actions[depth_clear];
+	action.depth.clear_value = depth_val;
+
+	spoopy_swapchain.depth_format = (flags & SPOOPY_BUFFER_DEPTH)
+		? SG_PIXELFORMAT_DEPTH_STENCIL
+		: SG_PIXELFORMAT_NONE;
+
+	spoopy_sokol_update_swapchain(graphics);
+
+	sg_begin_pass(&(sg_pass) {
+		.action = action,
+		.swapchain = spoopy_swapchain,
+	});
+}
+
+// TODO (Windows): Bring back `vertex_shader` parameter to use for attribute semi-name for D3D11
+static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+	assert(pipeline->shader.id == SG_INVALID_ID && "Pipeline has no valid shader");
 
 	if(spec_count == 0 || !spec) {
 		SPOOPY_LOG_ERROR("No vertex attributes provided");
@@ -166,7 +214,7 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	sg_pipeline_desc pdesc = {0};
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
-	pdesc.layout.buffers[structure].step_func = SG_VERTEXSTEP_PER_VERTEX;
+	pdesc.layout.buffers[buffer_index].step_func = SG_VERTEXSTEP_PER_VERTEX;
 
 	uint32_t offset = 0;
 	const uint32_t attr_count = (spec_count > SG_MAX_VERTEX_ATTRIBUTES) ? SG_MAX_VERTEX_ATTRIBUTES : spec_count;
@@ -180,11 +228,11 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 
 		pdesc.layout.attrs[i].format = fmt;
 		pdesc.layout.attrs[i].offset = offset;
-		pdesc.layout.attrs[i].buffer_index = 0;
+		pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
 		offset += formats[fmt].elements;
 	}
 
-	pdesc.layout.buffers[structure].stride = offset;
+	pdesc.layout.buffers[buffer_index].stride = offset;
 	pipeline->pipeline = sg_make_pipeline(&pdesc);
 	if(pipeline->pipeline.id == SG_INVALID_ID) {
 		SPOOPY_LOG_ERROR("Failed to create Sokol pipeline");
@@ -202,18 +250,26 @@ static void spoopy_sokol_shader_destroy(spoopy_shader_object_t* shader, bool mus
 	}
 }
 
-static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline) {
-	(void)pipeline;
+static size_t spoopy_sokol_buffer_size(spoopy_buffer_type_t type) {
+	switch (type) {
+		case SPOOPY_BUFFER_TYPE_VERTEX:
+			return sizeof(spoopy_vertex_buffer_t);
+		case SPOOPY_BUFFER_TYPE_INDEX:
+			return sizeof(spoopy_index_buffer_t);
+		default:
+			SPOOPY_LOG_ERROR("Unknown buffer type: %d", type);
+			return 0;
+	}
+}
+
+static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t stride) {
+	if(SPOOPY_UNLIKELY(!buffer)) {
+		return false;
+	}
 
 	memset(buffer, 0, sizeof(*buffer));
-	buffer->stride = (structure != 0) ? structure : 0;
+	buffer->stride = stride;
 	buffer->count = count;
-
-	const uint32_t size = (uint32_t)capacity;
-	if(size == 0) {
-		SPOOPY_LOG_ERROR("Vertex buffer size must be > 0");
-		return NULL;
-	}
 
 	if(!buffer) {
 		SPOOPY_LOG_ERROR("Vertex buffer output pointer is NULL");
@@ -223,11 +279,12 @@ static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, ui
 	sg_buffer_desc desc = {0};
 	desc.usage.vertex_buffer = true;
 	desc.usage.immutable = true;
+
 	if(data) {
 		desc.data.ptr = data;
-		desc.data.size = size;
+		desc.data.size = capacity;
 	} else {
-		desc.size = size;
+		desc.size = capacity;
 	}
 
 	sg_buffer buf = sg_make_buffer(&desc);
@@ -236,14 +293,87 @@ static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, ui
 		return false;
 	}
 
-	buffer->handle = buf.id;
+	buffer->buffer = buf;
 	return true;
+}
+
+static bool spoopy_sokol_index_buffer_create(spoopy_index_buffer_t* buffer, uint32_t count, void* data) {
+	if(SPOOPY_UNLIKELY(!buffer)) {
+		return false;
+	}
+
+	memset(buffer, 0, sizeof(*buffer));
+	buffer->count = count;
+
+	const size_t buffer_size = (size_t)count * sizeof(uint16_t);
+	if(buffer_size == 0) {
+		SPOOPY_LOG_ERROR("Index buffer size must be greater than 0");
+		return false;
+	}
+
+	sg_buffer_desc desc = {0};
+	desc.usage.index_buffer = true;
+	desc.usage.immutable = true;
+	if(data) {
+		desc.data.ptr = data;
+		desc.data.size = buffer_size;
+	} else {
+		desc.size = buffer_size;
+	}
+
+	sg_buffer buf = sg_make_buffer(&desc);
+	if(buf.id == SG_INVALID_ID) {
+		SPOOPY_LOG_ERROR("Failed to create Sokol index buffer");
+		return false;
+	}
+
+	buffer->buffer = buf;
+	return true;
+}
+
+static void spoopy_sokol_pipeline_bind(spoopy_pipeline_t* pipeline) {
+	sg_apply_pipeline(pipeline->pipeline);
+}
+
+static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
+	pipeline->bindings = (sg_bindings){ 0 };
+
+	const uint16_t max_buffers = mesh->vertex_count;
+	assert(max >= SG_MAX_VERTEXBUFFER_BINDSLOTS);
+
+	for(uint16_t i=0; i<max_buffers; i++) {
+		pipeline->bindings.vertex_buffers[i] = mesh->vertex_buffers[i].buffer;
+	}
+
+	pipeline->bindings.index_buffer = mesh->index_buffer->buffer;
+	sg_apply_bindings(&pipeline->bindings);
+
+	if(mesh->index_buffer && mesh->index_count != 0) {
+		sg_draw(0, mesh->index_count, 1);
+		return;
+	}
+
+	if(mesh->vertex_count != 0) {
+		sg_draw(0, mesh->vertex_buffers[0].count, 1);
+	}
+}
+
+static void spoopy_sokol_swap_buffers(void) {
+	sg_end_pass();
+    sg_commit();
 }
 
 spoopy_backend_funcs_t _backend_funcs = {
 	.init = spoopy_sokol_init,
 	.shader_init = spoopy_sokol_shader_init,
-	.spoopy_pipeline_link = spoopy_sokol_pipeline_link,
+	.shader_destroy = spoopy_sokol_shader_destroy,
+	.pipeline_link = spoopy_sokol_pipeline_link,
 	.pipeline_compile = spoopy_sokol_pipeline_compile,
 	.vertex_buffer_create = spoopy_sokol_vertex_buffer_create,
+	.index_buffer_create = spoopy_sokol_index_buffer_create,
+	.buffer_size = spoopy_sokol_buffer_size,
+	.clear = spoopy_sokol_clear,
+	.pipeline_bind = spoopy_sokol_pipeline_bind,
+	.draw_mesh = spoopy_sokol_draw_mesh,
+	.swap_buffers = spoopy_sokol_swap_buffers,
 };

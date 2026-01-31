@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 	spoopy_vertex_buffer_t vbuf = {0};
 
 	spoopy_mesh_t mesh = {
-		.vertex_buffer = NULL,
+		.vertex_buffers = NULL,
 		.index_buffer = NULL,
 		.index_count = 3
 	};
@@ -153,11 +153,13 @@ int main(int argc, char** argv) {
 
 		size_t vertex_data_size = sizeof(vertices);
 		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0, pipeline);
-		spoopy_index_buffer_t* ibuf = spoopy_api_index_buffer_create(ARRAY_SIZE(indices), indices);
+		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+		spoopy_api_index_buffer_create(ibuf, ARRAY_SIZE(indices), indices);
 
-		mesh.vertex_buffer = &vbuf;
+		mesh.vertex_buffers = &vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = (uint32_t)ARRAY_SIZE(indices);
+		mesh.vertex_count = 1;
 	}
 
 	uint32_t u_tex = spoopy_api_pipeline_get_texture_unit(pipeline, "tex0");

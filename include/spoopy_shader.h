@@ -1,9 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <spoopy_slang.h>
 #include <spoopy_graphics.h>
 
 #ifdef __cplusplus
@@ -22,9 +18,9 @@ typedef enum spoopy_optimization_level {
 } spoopy_optimization_level_t;
 
 typedef enum spoopy_shader_stage {
-	SPOOPY_STAGE_INVALID,
-	SPOOPY_STAGE_VERTEX,
-	SPOOPY_STAGE_FRAGMENT,
+	SPOOPY_STAGE_INVALID = 0,
+	SPOOPY_STAGE_VERTEX = 1,
+	SPOOPY_STAGE_FRAGMENT = 5,
 } spoopy_shader_stage_t;
 
 typedef struct spoopy_shader_macro {
