@@ -187,6 +187,19 @@ static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec
 	return SG_VERTEXFORMAT_INVALID;
 }
 
+static uint32_t spoopy_vertex_attr_type_size(spoopy_vertex_attr_type_t type) {
+	switch(type) {
+		case SPOOPY_VA_FLOAT:  return sizeof(float);
+		case SPOOPY_VA_BYTE:   return sizeof(int8_t);
+		case SPOOPY_VA_UBYTE:  return sizeof(uint8_t);
+		case SPOOPY_VA_SHORT:  return sizeof(int16_t);
+		case SPOOPY_VA_USHORT: return sizeof(uint16_t);
+		case SPOOPY_VA_INT:    return sizeof(int32_t);
+		case SPOOPY_VA_UINT:   return sizeof(uint32_t);
+		default: return 0;
+	}
+}
+
 static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t flags, const spoopy_color_t *color_val, float depth_val) {
 	static const sg_load_action load_actions[2] = { SG_LOADACTION_LOAD, SG_LOADACTION_CLEAR };
 
@@ -232,6 +245,9 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	sg_pipeline_desc pdesc = {0};
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
+	pdesc.color_count = 1;
+	pdesc.colors[0].pixel_format = spoopy_swapchain.color_format;
+	pdesc.depth.pixel_format = spoopy_swapchain.depth_format;
 	// pdesc.layout.buffers[buffer_index].step_func = SG_VERTEXSTEP_PER_VERTEX;
 
 	uint32_t offset = 0;
@@ -239,11 +255,13 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 
 	for(uint32_t i = 0; i < attr_count; i++) {
 		const sg_vertex_format fmt = spoopy_sokol_vertex_format(&spec[i]);
+
 		pdesc.layout.attrs[i].format = fmt;
-		// pdesc.layout.attrs[i].offset = offset;
-		// pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
-		// const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
-		// offset += formats[fmt].elements * elem_size;
+		pdesc.layout.attrs[i].offset = offset;
+		pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
+
+		const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
+		offset += formats[fmt].elements * elem_size;
 	}
 
 	pdesc.layout.buffers[buffer_index].stride = offset;
@@ -353,13 +371,15 @@ static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t*
 	pipeline->bindings = (sg_bindings){ 0 };
 
 	const uint16_t max_buffers = mesh->vertex_count;
-	assert(max >= SG_MAX_VERTEXBUFFER_BINDSLOTS);
+	assert(max_buffers <= SG_MAX_VERTEXBUFFER_BINDSLOTS);
 
 	for(uint16_t i=0; i<max_buffers; i++) {
 		pipeline->bindings.vertex_buffers[i] = mesh->vertex_buffers[i].buffer;
 	}
 
-	pipeline->bindings.index_buffer = mesh->index_buffer->buffer;
+	if(mesh->index_buffer) {
+		pipeline->bindings.index_buffer = mesh->index_buffer->buffer;
+	}
 	sg_apply_bindings(&pipeline->bindings);
 
 	if(mesh->index_buffer && mesh->index_count != 0) {
