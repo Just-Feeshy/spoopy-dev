@@ -9,6 +9,7 @@ const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 static_assert(sizeof(spoopy_color_t) >= sizeof(sg_color), "spoopy_color_t must hold sg_color");
 static_assert(__alignof(spoopy_color_t) >= __alignof(sg_color), "spoopy_color_t alignment must satisfy sg_color");
 
+// Valid
 sg_swapchain spoopy_swapchain = {
 	.width = 0,
 	.height = 0,
@@ -82,7 +83,7 @@ static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
 			break;
 	}
 
-	spoopy_swapchain.width =  fb_size.w;
+	spoopy_swapchain.width  = fb_size.w;
 	spoopy_swapchain.height = fb_size.h;
 }
 
@@ -213,15 +214,6 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 
 	spoopy_sokol_update_swapchain(graphics);
 
-#if defined(SOKOL_METAL)
-	if(!spoopy_swapchain.metal.current_drawable) {
-		SPOOPY_LOG_WARN("No drawable available, skipping frame");
-		return;
-	}
-#endif
-
-	SPOOPY_LOG_INFO("Begin pass: %dx%d", spoopy_swapchain.width, spoopy_swapchain.height);
-
 	sg_begin_pass(&(sg_pass) {
 		.action = action,
 		.swapchain = spoopy_swapchain,
@@ -280,10 +272,10 @@ static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, ui
 	}
 
 	sg_buffer_desc desc = {0};
-	desc.usage.vertex_buffer = true;
-	desc.usage.immutable = true;
+	desc.usage.vertex_buffer = true; // Valid
+	desc.usage.immutable = true; // Valid
 
-	if(data) {
+	if(data) { // Valud
 		desc.data.ptr = data;
 		desc.data.size = capacity;
 	} else {
@@ -316,8 +308,8 @@ static bool spoopy_sokol_index_buffer_create(spoopy_index_buffer_t* buffer, uint
 
 	sg_buffer_desc desc = {0};
 	desc.usage.index_buffer = true;
-	desc.usage.immutable = true;
-	if(data) {
+	desc.usage.immutable = true; // Valid
+	if(data) { // Valid
 		desc.data.ptr = data;
 		desc.data.size = buffer_size;
 	} else {

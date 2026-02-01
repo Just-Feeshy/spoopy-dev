@@ -40,8 +40,7 @@ static inline void* spoopy_sokol_alloc(size_t size, void* user_data) {
 	}, \
 	.logger = { \
 		.func = spoopy_sokol_log_cb, \
-	}, \
-	.environment.defaults.depth_format = SG_PIXELFORMAT_NONE,
+	},
 
 static inline void spoopy_sokol_free(void* ptr, void* user_data) {
 	(void)user_data;

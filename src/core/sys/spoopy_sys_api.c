@@ -48,9 +48,9 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 		SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
 	}
 
-#if defined(__APPLE__)
-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);
-#endif
+	if(spoopy_graphics_get_renderer(app.graphics) & SPOOPY_RENDERER_API_METAL) {
+		SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);
+	}
 
 	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
 	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
