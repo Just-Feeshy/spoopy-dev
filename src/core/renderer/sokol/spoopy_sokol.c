@@ -181,6 +181,19 @@ static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec
 	return SG_VERTEXFORMAT_INVALID;
 }
 
+static uint32_t spoopy_vertex_attr_type_size(spoopy_vertex_attr_type_t type) {
+	switch(type) {
+		case SPOOPY_VA_FLOAT:  return sizeof(float);
+		case SPOOPY_VA_BYTE:   return sizeof(int8_t);
+		case SPOOPY_VA_UBYTE:  return sizeof(uint8_t);
+		case SPOOPY_VA_SHORT:  return sizeof(int16_t);
+		case SPOOPY_VA_USHORT: return sizeof(uint16_t);
+		case SPOOPY_VA_INT:    return sizeof(int32_t);
+		case SPOOPY_VA_UINT:   return sizeof(uint32_t);
+		default: return 0;
+	}
+}
+
 static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t flags, const spoopy_color_t *color_val, float depth_val) {
 	static const sg_load_action load_actions[2] = { SG_LOADACTION_LOAD, SG_LOADACTION_CLEAR };
 
@@ -207,7 +220,7 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 
 // TODO (Windows): Bring back `vertex_shader` parameter to use for attribute semi-name for D3D11
 static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
-	assert(pipeline->shader.id == SG_INVALID_ID && "Pipeline has no valid shader");
+	assert(pipeline->shader.id != SG_INVALID_ID && "Pipeline has no valid shader");
 
 	if(spec_count == 0 || !spec) {
 		SPOOPY_LOG_ERROR("No vertex attributes provided");
@@ -224,15 +237,11 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 
 	for(uint32_t i = 0; i < attr_count; i++) {
 		const sg_vertex_format fmt = spoopy_sokol_vertex_format(&spec[i]);
-		if(fmt == SG_VERTEXFORMAT_INVALID) {
-			SPOOPY_LOG_ERROR("Unsupported vertex attribute format at index %u", i);
-			return;
-		}
-
 		pdesc.layout.attrs[i].format = fmt;
 		pdesc.layout.attrs[i].offset = offset;
 		pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
-		offset += formats[fmt].elements;
+		const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
+		offset += formats[fmt].elements * elem_size;
 	}
 
 	pdesc.layout.buffers[buffer_index].stride = offset;
