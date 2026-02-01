@@ -53,6 +53,7 @@ bool spoopy_graphics_renderer_is_single(spoopy_renderer_t renderer);
 spoopy_renderer_t spoopy_graphics_pick_renderer(spoopy_renderer_t want_mask);
 spoopy_renderer_t spoopy_graphics_get_renderer(spoopy_graphics_t* graphics);
 spoopy_vec2_int_t spoopy_graphics_update_present(spoopy_graphics_t* graphics);
+void* spoopy_graphics_get_native_drawable(spoopy_graphics_t* graphics);
 
 #if defined(__OBJC__)
 #define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type)

@@ -73,7 +73,13 @@ static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
 
 	switch(spoopy_graphics_get_renderer(graphics)) {
 		default:
-		case SPOOPY_RENDERER_API_METAL: fb_size = spoopy_graphics_update_present(graphics); break;
+		case SPOOPY_RENDERER_API_METAL:
+			fb_size = spoopy_graphics_update_present(graphics);
+
+			#if defined(SPOOPY_RENDERER_METAL)
+			spoopy_swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
+			#endif
+			break;
 	}
 
 	spoopy_swapchain.width =  fb_size.w;
@@ -181,19 +187,6 @@ static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec
 	return SG_VERTEXFORMAT_INVALID;
 }
 
-static uint32_t spoopy_vertex_attr_type_size(spoopy_vertex_attr_type_t type) {
-	switch(type) {
-		case SPOOPY_VA_FLOAT:  return sizeof(float);
-		case SPOOPY_VA_BYTE:   return sizeof(int8_t);
-		case SPOOPY_VA_UBYTE:  return sizeof(uint8_t);
-		case SPOOPY_VA_SHORT:  return sizeof(int16_t);
-		case SPOOPY_VA_USHORT: return sizeof(uint16_t);
-		case SPOOPY_VA_INT:    return sizeof(int32_t);
-		case SPOOPY_VA_UINT:   return sizeof(uint32_t);
-		default: return 0;
-	}
-}
-
 static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t flags, const spoopy_color_t *color_val, float depth_val) {
 	static const sg_load_action load_actions[2] = { SG_LOADACTION_LOAD, SG_LOADACTION_CLEAR };
 
@@ -212,10 +205,19 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 
 	spoopy_sokol_update_swapchain(graphics);
 
+#if defined(SOKOL_METAL)
+	if(!spoopy_swapchain.metal.current_drawable) {
+		return;
+	}
+#endif
+
 	sg_begin_pass(&(sg_pass) {
 		.action = action,
 		.swapchain = spoopy_swapchain,
 	});
+
+	sg_apply_viewport(0, 0, spoopy_swapchain.width, spoopy_swapchain.height, true);
+	sg_apply_scissor_rect(0, 0, spoopy_swapchain.width, spoopy_swapchain.height, true);
 }
 
 // TODO (Windows): Bring back `vertex_shader` parameter to use for attribute semi-name for D3D11
@@ -230,7 +232,7 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	sg_pipeline_desc pdesc = {0};
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
-	pdesc.layout.buffers[buffer_index].step_func = SG_VERTEXSTEP_PER_VERTEX;
+	// pdesc.layout.buffers[buffer_index].step_func = SG_VERTEXSTEP_PER_VERTEX;
 
 	uint32_t offset = 0;
 	const uint32_t attr_count = (spec_count > SG_MAX_VERTEX_ATTRIBUTES) ? SG_MAX_VERTEX_ATTRIBUTES : spec_count;
@@ -238,10 +240,10 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	for(uint32_t i = 0; i < attr_count; i++) {
 		const sg_vertex_format fmt = spoopy_sokol_vertex_format(&spec[i]);
 		pdesc.layout.attrs[i].format = fmt;
-		pdesc.layout.attrs[i].offset = offset;
-		pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
-		const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
-		offset += formats[fmt].elements * elem_size;
+		// pdesc.layout.attrs[i].offset = offset;
+		// pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
+		// const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
+		// offset += formats[fmt].elements * elem_size;
 	}
 
 	pdesc.layout.buffers[buffer_index].stride = offset;
