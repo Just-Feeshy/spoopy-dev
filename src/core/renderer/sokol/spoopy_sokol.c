@@ -57,29 +57,17 @@ static const struct {
 
 static const size_t vtx_array_size = sizeof(formats) / sizeof(formats[0]);
 
-// TODO (Windows): Actually test this
-static const char* spoopy_sokol_d3d_target(spoopy_shader_stage_t stage) {
-	switch (stage) {
-		case SPOOPY_STAGE_VERTEX:
-			return "vs_5_0";
-		case SPOOPY_STAGE_FRAGMENT:
-			return "ps_5_0";
-		default:
-			return NULL;
-	}
-}
 
 static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
-	spoopy_vec2_int_t fb_size = (spoopy_vec2_int_t){ 0 };
+	spoopy_vec2_int_t fb_size = spoopy_graphics_update_present(graphics);
 
 	switch(spoopy_graphics_get_renderer(graphics)) {
 		default:
 		case SPOOPY_RENDERER_API_METAL:
-			fb_size = spoopy_graphics_update_present(graphics);
-
 			#if defined(SPOOPY_RENDERER_METAL)
 			spoopy_swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
 			#endif
+
 			break;
 	}
 
@@ -113,10 +101,6 @@ static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shad
 	if(!spoopy_graphics_renderer_is_single(renderer)) {
 		SPOOPY_LOG_ERROR("Cannot support multiple renderers!");
 		return;
-	}
-
-	if(renderer & SPOOPY_RENDERER_API_D3D11) {
-		shader->func.d3d11_target = spoopy_sokol_d3d_target(info->stage);
 	}
 }
 

@@ -66,7 +66,6 @@ int main(int argc, char** argv) {
     // Setup sokol
     sg_setup(&(sg_desc){
         .environment = {
-            .defaults.depth_format = SG_PIXELFORMAT_NONE,
             .metal.device = (__bridge const void*)metal_device,
         },
         .logger.func = slog_func,
@@ -135,7 +134,7 @@ int main(int argc, char** argv) {
             "\n"
             "[[fragment]] pixelOutput_0 fragmentMain()\n"
             "{\n"
-            "    pixelOutput_0 _S1 = { float4(0.0, 1.0, 0.0, 1.0) };\n"
+            "    pixelOutput_0 _S1 = { float4(0.0, 0.0, 1.0, 1.0) };\n"
             "    return _S1;\n"
             "}\n",
         .fragment_func.entry = "fragmentMain"
