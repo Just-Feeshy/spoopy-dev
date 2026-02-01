@@ -39,6 +39,29 @@ static inline SlangProfileID try_find_profile(slang::IGlobalSession* globalSessi
 	return SLANG_PROFILE_UNKNOWN;
 }
 
+static void log_profile_candidates(slang::IGlobalSession* globalSession, const char* label, std::initializer_list<const char*> candidates) {
+	if(!globalSession || !label) {
+		return;
+	}
+
+	bool found_any = false;
+	for (const char* name : candidates) {
+		if(!name) {
+			continue;
+		}
+
+		SlangProfileID id = globalSession->findProfile(name);
+		if(id != SLANG_PROFILE_UNKNOWN) {
+			found_any = true;
+			SPOOPY_LOG_INFO("Slang profile available (%s): %s", label, name);
+		}
+	}
+
+	if(!found_any) {
+		SPOOPY_LOG_WARN("No Slang profiles found for %s candidates.", label);
+	}
+}
+
 static inline target_profile pick_target_profile(slang::IGlobalSession* globalSession, spoopy_renderer_t renderer_mask) {
 	target_profile out{};
 
@@ -57,6 +80,8 @@ static inline target_profile pick_target_profile(slang::IGlobalSession* globalSe
 		case SPOOPY_RENDERER_API_METAL: {
 			out.target = SLANG_METAL;
 			out.profile = try_find_profile(globalSession, {
+				"metallib_3_1", "metallib_3_0",
+				"metallib_2_4", "metallib_2_3", "metallib_2_2", "metallib_2_1", "metallib_2_0",
 				"metal",
 				"metal_3_0", "metal_2_4", "metal_2_3", "metal_2_2", "metal_2_1", "metal_2_0"
 			});
@@ -131,6 +156,7 @@ struct spoopy_context {
 spoopy_context_t global_context;
 
 bool spoopy_global_context_init(void) {
+    static bool logged_profiles = false;
     SlangGlobalSessionDesc desc = {};
     desc.structureSize = sizeof(SlangGlobalSessionDesc);
     desc.apiVersion = SLANG_API_VERSION;
@@ -141,6 +167,20 @@ bool spoopy_global_context_init(void) {
     if(SLANG_FAILED(result) || !global_context.globalSession) {
         SPOOPY_LOG_ERROR("Failed to create global Slang session: %d", result);
         return false;
+    }
+
+    if(!logged_profiles) {
+		log_profile_candidates(global_context.globalSession.get(), "metal", {
+			"metallib_3_1", "metallib_3_0",
+			"metallib_2_4", "metallib_2_3", "metallib_2_2", "metallib_2_1", "metallib_2_0",
+			"metal",
+			"metal_3_1", "metal_3_0",
+			"metal_2_4", "metal_2_3", "metal_2_2", "metal_2_1", "metal_2_0",
+			"msl",
+			"msl_3_1", "msl_3_0",
+			"msl_2_4", "msl_2_3", "msl_2_2", "msl_2_1", "msl_2_0"
+		});
+        logged_profiles = true;
     }
 
     return true;
