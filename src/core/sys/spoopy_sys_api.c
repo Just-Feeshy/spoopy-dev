@@ -89,13 +89,13 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 	return new_primary_window_internal(display, title, width, height, flags & ~SPOOPY_WINDOW_FLAG_FULLSCREEN, true);
 }
 
-static void new_primary_window(const char* title, uint32_t w, uint32_t h, spoopy_window_flags_t flags, const spoopy_rec_int_t* p_rect) {
+static void new_primary_window(const char* title, spoopy_window_flags_t flags, const spoopy_rec_int_t* p_rect) {
 	const float scale = spoopy_api_get_screen_max_scale();
+
 	int32_t r_screen = spoopy_api_get_screen_from_rect(p_rect);
 	if(r_screen < 0) {
 		r_screen = SPOOPY_PRIMARY_SCREEN_INDEX;
 	}
-
 
 	spoopy_vec2_int_t w_pos  = p_rect->point;
 	spoopy_rec_int_t s_rect = spoopy_api_screen_get_usable_rect(r_screen);
@@ -173,6 +173,17 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 
 	app.graphics = spoopy_graphics_new(params->renderer);
 	spoopy_api_refresh_screens();
+
+	spoopy_rec_int_t window_screen = (spoopy_rec_int_t){
+		.point = { .x = 0, .y = 0 },
+		.size  = {
+			.w = w,
+			.h = h
+		}
+	};
+
+	new_primary_window(params->title, params->flags, &window_screen);
+	// TODO (Set Mode): Include `set_mode` API function here
 }
 
 // This allows us to create our own file loading system even for other platforms later on.

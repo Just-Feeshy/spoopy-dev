@@ -6,7 +6,11 @@
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
 
+#if defined(SPOOPY_SOKOL_IMPLEMENTATION)
 #define SOKOL_IMPL
+#elif defined(SOKOL_IMPL)
+#error "Define SPOOPY_SOKOL_IMPLEMENTATION in exactly one translation unit instead of SOKOL_IMPL."
+#endif
 
 #if (defined(SPOOPY_RENDERER_METAL) + defined(SPOOPY_RENDERER_D3D11) + defined(SPOOPY_RENDERER_WGPU)) == 0
 #error "No SPOOPY_RENDERER_* backend defined for Sokol."

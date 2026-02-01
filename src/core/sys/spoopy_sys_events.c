@@ -118,6 +118,7 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 			spoopy_api_refresh_screens();
 			break;
 		default:
+			break;
 	}
 
 	return false;

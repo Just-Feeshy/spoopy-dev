@@ -18,7 +18,7 @@ static void test_init(void) {
     spoopy_sys_thread_init();
 #endif
 
-    spoopy_video_init(&(spoopy_video_init_params_t) {
+    spoopy_api_video_init(&(spoopy_video_init_params_t) {
         .title = "Test Renderer",
         .width = 800,
         .height = 600,

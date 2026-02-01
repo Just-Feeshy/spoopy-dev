@@ -81,6 +81,7 @@ extern "C" {
 #define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
 #define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
 #define SPOOPY_ATTR_ALLOC_ALIGN(arg_index) __attribute__((alloc_align(arg_index)))
+#define SPOOPY_ATTR_WEAK __attribute__((weak))
 #define SPOOPY_ATTR_PURE __attribute__((pure))
 #define SPOOPY_ATTR_CONST __attribute__((const))
 #define SPOOPY_ATTR_NORETURN __attribute__((noreturn))
@@ -99,9 +100,13 @@ extern "C" {
 #define SPOOPY_ATTR_USED
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT
 
+#define SPOOPY_ATTR_WEAK
+
 #endif
 
 #define SPOOPY_UNUSED(x) (void)(x)
+
+#define SPOOPY_WEAK SPOOPY_ATTR_WEAK
 
 
 /* =============================================================================

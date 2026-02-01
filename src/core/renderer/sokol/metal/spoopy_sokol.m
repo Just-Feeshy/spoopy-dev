@@ -1,7 +1,8 @@
 #include <spoopy_backend.h>
 #include <renderer/spoopy_metal.h>
 
-#include "../spoopy_sokol.h"
+// Simple any easy unity solution to handle Sokol for Darwin platforms
+#include "../spoopy_sokol.c"
 
 void spoopy_sokol_init(void) {
 	sg_setup(&(sg_desc) {

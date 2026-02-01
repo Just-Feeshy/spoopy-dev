@@ -55,7 +55,7 @@ spoopy_renderer_t spoopy_graphics_get_renderer(spoopy_graphics_t* graphics);
 spoopy_vec2_int_t spoopy_graphics_update_present(spoopy_graphics_t* graphics);
 
 #if defined(__OBJC__)
-#define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type) ((void)0)
+#define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type)
 #else
 #define SPOOPY_GRAPHICS_ASSERT_CHILD_FIRST(type) \
 	static_assert(offsetof(type, child) == 0, "spoopy_graphics_child_t must be first!")

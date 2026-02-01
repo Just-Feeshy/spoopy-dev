@@ -1,7 +1,10 @@
 #include <spoopy_backend.h>
 #include <utils/assert.h>
 
+#define SPOOPY_SOKOL_IMPLEMENTATION
 #include "spoopy_sokol.h"
+
+const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 
 static_assert(sizeof(spoopy_color_t) >= sizeof(sg_color), "spoopy_color_t must hold sg_color");
 static_assert(__alignof(spoopy_color_t) >= __alignof(sg_color), "spoopy_color_t alignment must satisfy sg_color");
