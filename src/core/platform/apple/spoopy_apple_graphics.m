@@ -38,21 +38,20 @@ static inline bool _spoopy_mtl_set_mode(spoopy_graphics_t* graphics, void* conte
 }
 
 static inline const spoopy_vec2_int_t _spoopy_mtl_update_present(spoopy_graphics_t* graphics) {
-	const CGSize bounds = graphics->metal_layer.bounds.size;
-	const CGFloat scale = graphics->metal_layer.contentsScale;
-	graphics->metal_layer.drawableSize = (CGSize) {
-		.width = bounds.width * scale,
-		.height = bounds.height * scale
-	};
-
+	// Don't set drawableSize manually - let the system handle it like the reference
 	graphics->active_drawable = [graphics->metal_layer nextDrawable];
+
+	if (!graphics->active_drawable) {
+		SPOOPY_LOG_WARN("nextDrawable returned nil!");
+		return (spoopy_vec2_int_t) { .x = 0, .y = 0 };
+	}
 
 	const CGSize fb_size = graphics->metal_layer.drawableSize;
 	return (spoopy_vec2_int_t) { .x = (int)fb_size.width, .y = (int)fb_size.height };
 }
 
 void* spoopy_graphics_get_native_drawable(spoopy_graphics_t* graphics) {
-	return (void*)graphics->active_drawable;
+	return (__bridge void*)graphics->active_drawable;
 }
 
 spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer) {

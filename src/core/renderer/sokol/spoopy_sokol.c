@@ -140,10 +140,16 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 			case SPOOPY_STAGE_VERTEX:
 				desc.vertex_func = obj->func;
 				has_vertex = true;
+				SPOOPY_LOG_INFO("Vertex shader entry: '%s', source len: %zu",
+					obj->func.entry ? obj->func.entry : "(null)",
+					obj->func.source ? strlen(obj->func.source) : 0);
 				break;
 			case SPOOPY_STAGE_FRAGMENT:
 				desc.fragment_func = obj->func;
 				has_fragment = true;
+				SPOOPY_LOG_INFO("Fragment shader entry: '%s', source len: %zu",
+					obj->func.entry ? obj->func.entry : "(null)",
+					obj->func.source ? strlen(obj->func.source) : 0);
 				break;
 			default:
 				SPOOPY_LOG_WARN("Unsupported shader stage: %d", obj->stage);
@@ -161,6 +167,8 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 
 	*pipeline = (spoopy_pipeline_t){0};
 	pipeline->shader = sg_make_shader(&desc);
+
+	SPOOPY_LOG_INFO("Created shader with id=%u", pipeline->shader.id);
 
 	if(pipeline->shader.id == SG_INVALID_ID) {
 		SPOOPY_LOG_ERROR("Failed to create Sokol shader");
@@ -220,55 +228,31 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 
 #if defined(SOKOL_METAL)
 	if(!spoopy_swapchain.metal.current_drawable) {
+		SPOOPY_LOG_WARN("No drawable available, skipping frame");
 		return;
 	}
 #endif
+
+	SPOOPY_LOG_INFO("Begin pass: %dx%d", spoopy_swapchain.width, spoopy_swapchain.height);
 
 	sg_begin_pass(&(sg_pass) {
 		.action = action,
 		.swapchain = spoopy_swapchain,
 	});
-
-	sg_apply_viewport(0, 0, spoopy_swapchain.width, spoopy_swapchain.height, true);
-	sg_apply_scissor_rect(0, 0, spoopy_swapchain.width, spoopy_swapchain.height, true);
 }
 
 // TODO (Windows): Bring back `vertex_shader` parameter to use for attribute semi-name for D3D11
 static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
-	assert(pipeline->shader.id != SG_INVALID_ID && "Pipeline has no valid shader");
-
-	if(spec_count == 0 || !spec) {
-		SPOOPY_LOG_ERROR("No vertex attributes provided");
-		return;
-	}
-
 	sg_pipeline_desc pdesc = {0};
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
-	pdesc.color_count = 1;
-	pdesc.colors[0].pixel_format = spoopy_swapchain.color_format;
-	pdesc.depth.pixel_format = spoopy_swapchain.depth_format;
-	// pdesc.layout.buffers[buffer_index].step_func = SG_VERTEXSTEP_PER_VERTEX;
 
-	uint32_t offset = 0;
-	const uint32_t attr_count = (spec_count > SG_MAX_VERTEX_ATTRIBUTES) ? SG_MAX_VERTEX_ATTRIBUTES : spec_count;
-
-	for(uint32_t i = 0; i < attr_count; i++) {
-		const sg_vertex_format fmt = spoopy_sokol_vertex_format(&spec[i]);
-
-		pdesc.layout.attrs[i].format = fmt;
-		pdesc.layout.attrs[i].offset = offset;
-		pdesc.layout.attrs[i].buffer_index = (uint8_t)buffer_index;
-
-		const uint32_t elem_size = spoopy_vertex_attr_type_size(spec[i].type);
-		offset += formats[fmt].elements * elem_size;
+	// Simplified to match minimal working test - only set what's necessary
+	for(uint32_t i = 0; i < spec_count && i < SG_MAX_VERTEX_ATTRIBUTES; i++) {
+		pdesc.layout.attrs[i].format = spoopy_sokol_vertex_format(&spec[i]);
 	}
 
-	pdesc.layout.buffers[buffer_index].stride = offset;
 	pipeline->pipeline = sg_make_pipeline(&pdesc);
-	if(pipeline->pipeline.id == SG_INVALID_ID) {
-		SPOOPY_LOG_ERROR("Failed to create Sokol pipeline");
-	}
 }
 
 static void spoopy_sokol_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
@@ -380,6 +364,7 @@ static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t*
 	if(mesh->index_buffer) {
 		pipeline->bindings.index_buffer = mesh->index_buffer->buffer;
 	}
+
 	sg_apply_bindings(&pipeline->bindings);
 
 	if(mesh->index_buffer && mesh->index_count != 0) {
