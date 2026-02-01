@@ -31,18 +31,3 @@ void* spoopy_heap_realloc(void* ptr, size_t size) {
     assert(size > 0);
     return mi_realloc(ptr, size);
 }
-
-void* spoopy_stack_alloc(size_t size) {
-#if SPOOPY_ALLOCA_AVAILABLE == 0
-    SPOOPY_LOG_ERROR("Stack allocation is not supported on this platform");
-    return NULL;
-#endif
-
-#ifdef SPOOPY_HAS_BUILTIN_ALLOCA
-    return __builtin_alloca(size);
-#elif defined(SPOOPY_HAS_MSVC_ALLOCA)
-    return _alloca(size);
-#elif defined(SPOOPY_HAS_ALLOCA_H) || defined(SPOOPY_HAS_STDLIB_ALLOCA) || defined(SPOOPY_HAS_MALLOC_H_ALLOCA)
-    return alloca(size);
-#endif
-}

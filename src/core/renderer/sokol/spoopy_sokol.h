@@ -12,6 +12,8 @@
 #error "Define SPOOPY_SOKOL_IMPLEMENTATION in exactly one translation unit instead of SOKOL_IMPL."
 #endif
 
+#define SOKOL_DEBUG
+
 #if (defined(SPOOPY_RENDERER_METAL) + defined(SPOOPY_RENDERER_D3D11) + defined(SPOOPY_RENDERER_WGPU)) == 0
 #error "No SPOOPY_RENDERER_* backend defined for Sokol."
 #endif

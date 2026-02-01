@@ -209,6 +209,9 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	sg_pipeline_desc pdesc = {0};
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
+	pdesc.color_count = 1;
+	pdesc.colors[0].pixel_format = spoopy_swapchain.color_format;
+	pdesc.depth.pixel_format = spoopy_swapchain.depth_format;
 
 	// Simplified to match minimal working test - only set what's necessary
 	for(uint32_t i = 0; i < spec_count && i < SG_MAX_VERTEX_ATTRIBUTES; i++) {

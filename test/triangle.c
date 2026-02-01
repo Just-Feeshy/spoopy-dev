@@ -55,26 +55,24 @@ int main(int argc, char** argv) {
 		.index_count = 3
 	};
 
-	{
 		float vertex_data[] = {
 			-0.75f, -0.75f, 0.0f,
 			 0.75f, -0.75f, 0.0f,
 			 0.0f,  0.75f, 0.0f
 		};
 
-		size_t vertex_data_size = sizeof(vertex_data);
-		spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
-		assert(spoopy_api_vertex_buffer_create(vbuf, vertex_data_size, 3, vertex_data, 0));
+	size_t vertex_data_size = sizeof(vertex_data);
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
+	assert(spoopy_api_vertex_buffer_create(vbuf, vertex_data_size, 3, vertex_data, 0));
 
-		uint16_t index_data[] = { 0, 1, 2 };
-		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
-		assert(spoopy_api_index_buffer_create(ibuf, 3, index_data));
+	uint16_t index_data[] = { 0, 1, 2 };
+	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+	assert(spoopy_api_index_buffer_create(ibuf, 3, index_data));
 
-		mesh.vertex_buffers = vbuf;
-		mesh.index_buffer = ibuf;
-		mesh.index_count = 3;
-		mesh.vertex_count = 1;
-	}
+	mesh.vertex_buffers = vbuf;
+	mesh.index_buffer = ibuf;
+	mesh.index_count = 3;
+	mesh.vertex_count = 1;
 
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);

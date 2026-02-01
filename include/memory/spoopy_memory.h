@@ -38,9 +38,6 @@ enum spoopy_memory_type {
 
 SPOOPY_FUNC_CORE void spoopy_memory_init_hooks(void);
 
-SPOOPY_FUNC_CORE void* spoopy_stack_alloc(size_t size)
-    SPOOPY_ATTR_SIZE(1);
-
 SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
     SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
@@ -59,11 +56,6 @@ SPOOPY_FUNC_CORE void* spoopy_heap_realloc(void* ptr, size_t size)
 // (CAUTION): spoopy_static_alloc must be freed with spoopy_static_free, not spoopy_heap_free
 // If you free a static allocation with spoopy_heap_free, it will cause memory corruption
 
-SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_alloc(size_t size)
-	SPOOPY_ATTR(malloc)
-	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
-	SPOOPY_ATTR_SIZE(1);
-
 SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_realloc(void* ptr, size_t size)
 	SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
 	SPOOPY_ATTR_SIZE(2);
@@ -74,6 +66,8 @@ SPOOPY_FUNC_CORE void spoopy_static_free(void* ptr);
 
 SPOOPY_DIAG_PUSH()
 SPOOPY_DIAG_IGNORE_CAST_ALIGN();
+
+SPOOPY_FUNC_CORE spoopy_static_block_t* spoopy_static_alloc(size_t size);
 
 static inline spoopy_static_block_t* spoopy_static_block_from_payload(void* ptr) {
 	return SPOOPY_CONTAINER_OF(ptr, spoopy_static_block_t, payload);
@@ -160,19 +154,26 @@ static inline size_t spoopy_calc_array_size(size_t nmemb, size_t size) {
 
 /* GCC/Clang: alloca is built-in */
 #define SPOOPY_HAS_BUILTIN_ALLOCA 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
+#define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #elif defined(_MSC_VER)
 
 /* MSVC: alloca is available in <malloc.h> */
 #include <malloc.h>
 #define SPOOPY_HAS_MSVC_ALLOCA 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 
 /* C99: alloca is available in <alloca.h> */
 #define SPOOPY_HAS_C99_ALLOCA 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #endif
 
@@ -180,23 +181,47 @@ static inline size_t spoopy_calc_array_size(size_t nmemb, size_t size) {
 
 #include <alloca.h>
 #define SPOOPY_HAS_ALLOCA_H 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 
 #define SPOOPY_HAS_STDLIB_ALLOCA 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #elif defined(_WIN32) && !defined(_MSC_VER)
 
 #include <malloc.h>
 #define SPOOPY_HAS_MALLOC_H_ALLOCA 1
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 1
+#endif
 
 #else
 
+#ifndef SPOOPY_ALLOCA_AVAILABLE
 #define SPOOPY_ALLOCA_AVAILABLE 0
+#endif
 
+#endif
+
+#if SPOOPY_ALLOCA_AVAILABLE == 0
+static inline void* spoopy_stack_alloc(size_t size) {
+    SPOOPY_LOG_ERROR("Stack allocation is not supported on this platform");
+    (void)size;
+    return NULL;
+}
+#else
+    #ifdef SPOOPY_HAS_BUILTIN_ALLOCA
+        #define spoopy_stack_alloc(size) __builtin_alloca(size)
+    #elif defined(SPOOPY_HAS_MSVC_ALLOCA)
+        #define spoopy_stack_alloc(size) _alloca(size)
+    #elif defined(SPOOPY_HAS_ALLOCA_H) || defined(SPOOPY_HAS_STDLIB_ALLOCA) || defined(SPOOPY_HAS_MALLOC_H_ALLOCA)
+        #define spoopy_stack_alloc(size) alloca(size)
+    #endif
 #endif
 
 

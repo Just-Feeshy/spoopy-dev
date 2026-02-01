@@ -88,6 +88,7 @@ extern "C" {
 #define SPOOPY_ATTR_UNUSED __attribute__((unused))
 #define SPOOPY_ATTR_USED __attribute__((used))
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define SPOOPY_FORCE_INLINE static inline __attribute__((always_inline))
 
 #else
 
@@ -101,6 +102,11 @@ extern "C" {
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT
 
 #define SPOOPY_ATTR_WEAK
+#if defined(_MSC_VER)
+#define SPOOPY_FORCE_INLINE static __forceinline
+#else
+#define SPOOPY_FORCE_INLINE static inline
+#endif
 
 #endif
 
