@@ -13,13 +13,11 @@ spoopy_static_block_t* spoopy_static_alloc(size_t size) {
 	const size_t max_size = spoopy_static_max_payload();
 	assert(size <= max_size);
 
-	const size_t allocation = size + sizeof(spoopy_header_t);
-	const size_t alignment = spoopy_align_bound(
-		allocation /*+ sizeof(void*)*/,
-		SPOOPY_MAX_ALIGN
-	);
+	const size_t header_size = offsetof(spoopy_static_block_t, payload);
+	const size_t allocation = size + header_size;
+	const size_t aligned_allocation = spoopy_align_bound(allocation, SPOOPY_MAX_ALIGN);
 
-	spoopy_static_block_t* s = spoopy_aligned_alloc(alignment, allocation, NULL);
+	spoopy_static_block_t* s = spoopy_aligned_alloc(SPOOPY_MAX_ALIGN, aligned_allocation, NULL);
 	assert(s);
 
 	s->header.is_unique = true;

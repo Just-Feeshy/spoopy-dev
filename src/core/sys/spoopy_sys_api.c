@@ -50,7 +50,6 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 
 #if defined(__APPLE__)
 	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN, true);
-	SDL_SetPointerProperty(props, SDL_PROP_WINDOW_CREATE_COCOA_VIEW_POINTER, app.primary_view);
 #endif
 
 	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
@@ -97,28 +96,17 @@ static void new_primary_window(const char* title, spoopy_window_flags_t flags, c
 		r_screen = SPOOPY_PRIMARY_SCREEN_INDEX;
 	}
 
-	spoopy_vec2_int_t w_pos  = p_rect->point;
-	spoopy_rec_int_t s_rect = spoopy_api_screen_get_usable_rect(r_screen);
-	if(!spoopy_rec_int_equal(s_rect, (spoopy_rec_int_t){ 0 })) {
-		spoopy_vec2_int_t hi = s_rect.point;
-		spoopy_vec2_int_add(&hi, s_rect.size);
-
-		spoopy_vec2_int_t p_size_third = p_rect->size;
-		spoopy_vec2_int_div(&p_size_third, 3);
-		spoopy_vec2_int_sub(&hi, p_size_third);
-
-		spoopy_vec2_int_clamp(&w_pos, s_rect.point, hi);
-	}
-
-	const int win_w_pts = spoopy_max(1, (int)SDL_lround(w_pos.x / scale));
-	const int win_h_pts = spoopy_max(1, (int)SDL_lround(w_pos.y / scale));
+	const int win_w_pts = spoopy_max(1, (int)SDL_lround(p_rect->size.w / scale));
+	const int win_h_pts = spoopy_max(1, (int)SDL_lround(p_rect->size.h / scale));
+	new_primary_window_internal(r_screen, title, (uint32_t)win_w_pts, (uint32_t)win_h_pts, flags, false);
 
 #if defined(__APPLE__)
-	app.primary_view = SDL_Metal_CreateView(app.primary_view);
-	assert(app.primary_view != NULL);
+	if(app.primary_window) {
+		app.primary_view = SDL_Metal_CreateView(app.primary_window);
+		assert(app.primary_view != NULL);
+		spoopy_graphics_set_mode(app.graphics, app.primary_view);
+	}
 #endif
-
-	new_primary_window_internal(r_screen, title, (uint32_t)win_w_pts, (uint32_t)win_h_pts, flags, false);
 
 	SPOOPY_LOG_INFO("Create a new window: %ix%i, on display #%i %s\n", win_w_pts, win_h_pts, r_screen, spoopy_api_get_screen_name(r_screen));
 	SDL_RaiseWindow(app.primary_window);
@@ -168,8 +156,8 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 
 	internal_init();
 
-	uint32_t w = spoopy_min(params->width, 0);
-	uint32_t h = spoopy_min(params->height, 0);
+	uint32_t w = spoopy_max(params->width, 1u);
+	uint32_t h = spoopy_max(params->height, 1u);
 
 	app.graphics = spoopy_graphics_new(params->renderer);
 	spoopy_api_refresh_screens();

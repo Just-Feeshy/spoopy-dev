@@ -288,6 +288,12 @@ bool spoopy_api_shader_transpile(
     spoopy_transpile_options_t* transpile_opts
 ) {
     if(!source || !target || !transpile_opts) return false;
+    if(!global_context.globalSession) {
+        if(!spoopy_global_context_init()) {
+            SPOOPY_LOG_ERROR("Slang global context is not initialized.");
+            return false;
+        }
+    }
 
     auto log_diags = [](const char* prefix, slang::IBlob* blob) {
         if(!blob) return;
@@ -302,9 +308,12 @@ bool spoopy_api_shader_transpile(
     SessionDesc sessionDesc = {};
 	target_profile tp = pick_target_profile(global_context.globalSession.get(), source->target);
 
-	if(tp.target == SLANG_TARGET_UNKNOWN || tp.profile == SLANG_PROFILE_UNKNOWN) {
-		SPOOPY_LOG_ERROR("Unsupported target/profile. renderer=%d", (int)source->target);
+	if(tp.target == SLANG_TARGET_UNKNOWN) {
+		SPOOPY_LOG_ERROR("Unsupported target. renderer=%d", (int)source->target);
 		return false;
+	}
+	if(tp.profile == SLANG_PROFILE_UNKNOWN) {
+		SPOOPY_LOG_WARN("No Slang profile found for renderer=%d; continuing with default.", (int)source->target);
 	}
 
 	TargetDesc targetDesc = {};

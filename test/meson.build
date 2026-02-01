@@ -21,7 +21,7 @@ endif
 # Only testing gets access to SDL
 
 foreach test : tests
-    test_deps = [spoopy_deps] + [spoopy_sys_deps]
+    test_deps = [spoopy_deps] + [spoopy_sys_deps] + [spoopy_renderer_deps]
     test_inc = [test_inc, spoopy_includes]
 
     executable(test,

@@ -22,15 +22,15 @@ static void test_init(void) {
         .title = "Test Renderer",
         .width = 800,
         .height = 600,
-		.flags = SPOOPY_WINDOW_FLAG_FULLSCREEN,
 		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
     });
 }
 
-static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_t stage) {
+SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, spoopy_shader_stage_t stage) {
     spoopy_shader_source_t source = {
         .content = src,
         .content_size = strlen(src),
+        .stage = stage,
         .entry_point = (stage == SPOOPY_STAGE_VERTEX) ? "vertexMain" : "fragmentMain",
         .module_name = "shader",
 		.target = spoopy_api_get_renderer(),

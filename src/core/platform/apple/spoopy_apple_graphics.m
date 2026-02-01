@@ -26,7 +26,7 @@ static inline bool _spoopy_mtl_set_mode(spoopy_graphics_t* graphics, void* conte
 		SDL_MetalView view = (SDL_MetalView)context_view;
 		graphics->metal_layer = (CAMetalLayer*)SDL_Metal_GetLayer(view);
 
-		graphics->metal_layer.device = spoopy_metal.device;
+		graphics->metal_layer.device = spoopy_metal_init();
 		graphics->metal_layer.pixelFormat = spoopy_graphics_get_gamma_correction()
 			? MTLPixelFormatBGRA8Unorm_sRGB
 			: MTLPixelFormatBGRA8Unorm;
