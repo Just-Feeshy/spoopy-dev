@@ -9,6 +9,7 @@
 
 typedef struct spoopy_backend_funcs {
 	void (*init)(void);
+	void (*shutdown)(void);
 	void (*shader_init)(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
 	spoopy_pipeline_t* (*pipeline_link)(uint32_t num_objs, spoopy_shader_object_t* objs[]);
 	void (*pipeline_compile)(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index);

@@ -9,6 +9,10 @@ int main(int argc, char** argv) {
 
 	// Simple vertex shader - just pass through position
 	const char* shader_vert = R"(
+		#ifndef ShaderTypes_h
+		#define ShaderTypes_h
+		#endif
+
 		struct VertexInput
 		{
 			float3 pos : POSITION;
@@ -17,22 +21,32 @@ int main(int argc, char** argv) {
 		struct VertexOutput
 		{
 			float4 position : SV_POSITION;
+			float4 color : COLOR0;
 		};
 
 		[shader("vertex")]
 		VertexOutput vertexMain(VertexInput input)
 		{
 			VertexOutput output;
-			output.position = float4(input.pos, 1.0);
+			output.position = float4(input.pos.x, input.pos.y, input.pos.z, 1.0);
+			output.color = float4(ceil(input.pos.x), 1.0 - ceil(input.pos.x), ceil(input.pos.y), 1.0);
 			return output;
 		}
 	)";
 
-	// Simple fragment shader - output solid green
 	const char* shader_frag = R"(
+		#ifndef ShaderTypes_h
+		#define ShaderTypes_h
+		#endif
+
+		struct VertexOutput {
+			float4 position : SV_Position;
+			float4 color : COLOR0;
+		};
+
 		[shader("fragment")]
-		float4 fragmentMain() : SV_Target {
-			return float4(0.0, 1.0, 0.0, 1.0);
+		float4 fragmentMain(VertexOutput input) : SV_Target {
+			return input.color;
 		}
 	)";
 
@@ -76,11 +90,12 @@ int main(int argc, char** argv) {
 
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);
-		spoopy_api_clear(SPOOPY_BUFFER_COLOR, SPOOPY_RGB(1.0, 0.0, 0.0), 0.0f);
+		spoopy_api_clear(SPOOPY_BUFFER_COLOR, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
 		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_draw_mesh(&mesh, pipeline);
 		spoopy_api_swap_buffers();
 	}
 
+	spoopy_api_video_shutdown();
     return 0;
 }

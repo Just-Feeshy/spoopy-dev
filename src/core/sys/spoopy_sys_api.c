@@ -188,6 +188,45 @@ bool spoopy_api_image_load_from_file(const char* path, spoopy_image_file_format_
 }
 
 void spoopy_api_video_shutdown(void) {
+	if(!app.initialized) {
+		return;
+	}
+
+	if(_backend_funcs.shutdown) {
+		_backend_funcs.shutdown();
+	}
+
+#if defined(__APPLE__)
+	if(app.primary_view) {
+		SDL_Metal_DestroyView(app.primary_view);
+		app.primary_view = NULL;
+	}
+#endif
+
+	if(app.primary_window) {
+		SDL_DestroyWindow(app.primary_window);
+		app.primary_window = NULL;
+	}
+
+	if(app.display_mutex) {
+		SDL_DestroyMutex(app.display_mutex);
+		app.display_mutex = NULL;
+	}
+
+	if(app.cached_displays) {
+		SDL_free(app.cached_displays);
+		app.cached_displays = NULL;
+		app.cached_display_count = 0;
+	}
+
+	if(app.graphics) {
+		spoopy_heap_free(app.graphics);
+		app.graphics = NULL;
+	}
+
+	SDL_SetAtomicInt(&app.should_quit, 0);
+	app.aspect_ratio = SPOOPY_ASPECT_AXIS_NONE;
+	app.initialized = false;
 }
 
 int32_t spoopy_api_get_screen_from_rect(const spoopy_rec_int_t* rect) {

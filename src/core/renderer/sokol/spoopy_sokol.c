@@ -348,8 +348,13 @@ static void spoopy_sokol_swap_buffers(void) {
     sg_commit();
 }
 
+static void spoopy_sokol_shutdown(void) {
+	sg_shutdown();
+}
+
 spoopy_backend_funcs_t _backend_funcs = {
 	.init = spoopy_sokol_init,
+	.shutdown = spoopy_sokol_shutdown,
 	.shader_init = spoopy_sokol_shader_init,
 	.shader_destroy = spoopy_sokol_shader_destroy,
 	.pipeline_link = spoopy_sokol_pipeline_link,
