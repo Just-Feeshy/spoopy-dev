@@ -70,7 +70,23 @@ if host_machine.system() == 'darwin'
     spoopy_deps += dependency('appleframeworks', modules: ['AppKit', 'Cocoa', 'Foundation', 'Metal', 'QuartzCore'])
 endif
 spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
-spoopy_deps += dependency('libpng', required: true)
+libpng_dep = dependency('libpng', 'libpng16', version: '>=1.5', required: false)
+if not libpng_dep.found()
+    cmake = import('cmake')
+    libpng_options = cmake.subproject_options()
+    libpng_options.set_install(false)
+    libpng_options.add_cmake_defines({
+        'PNG_SHARED': false,
+        'PNG_STATIC': true,
+        'PNG_FRAMEWORK': false,
+        'PNG_TESTS': false,
+        'PNG_TOOLS': false,
+    })
+
+    libpng_subproject = cmake.subproject('libpng', options: libpng_options)
+    libpng_dep = libpng_subproject.dependency('png_static')
+endif
+spoopy_deps += libpng_dep
 spoopy_deps += dependency('cglm', required: true)
 
 if sokol_requested

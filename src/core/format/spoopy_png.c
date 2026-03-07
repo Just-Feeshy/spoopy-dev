@@ -103,10 +103,7 @@ static spoopy_pixel_layout_t clrtype_to_layout(int color_type) {
 
 static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 	png_structp png = NULL;
-	png_infop info_ptr = NULL;
-
-	int bit_depth = 0;
-	int color_type = 0;
+	png_infop png_info = NULL;
 	const char *volatile error = NULL;
 
 	img->pixels.raw_data = NULL;
@@ -115,36 +112,50 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 	img->origin = SPOOPY_IMAGE_ORIGIN_TOP_LEFT;
 
 	if(!(png = spoopy_png_create_read_struct())) {
-		error = "Failed to create PNG read struct";
+		error = "png_create_read_struct() failed";
 		goto finally;
 	}
 
-	if(!(info_ptr = png_create_info_struct(png))) {
-		error = "Failed to create PNG info struct";
+	if(!(png_info = png_create_info_struct(png))) {
+		error = "png_create_info_struct() failed";
 		goto finally;
 	}
 
 	if(setjmp(png_jmpbuf(png))) {
-		error = "Error during PNG read";
+		error = "PNG error";
 		goto finally;
 	}
 
 	spoopy_png_init_rwops_read(png, stream);
-	png_read_info(png, info_ptr);
-	png_get_IHDR(png, info_ptr, NULL, NULL, &bit_depth, &color_type, NULL, NULL, NULL);
+	png_read_info(png, png_info);
+
+	png_byte color_type = png_get_color_type(png, png_info);
+	png_byte bit_depth = png_get_bit_depth(png, png_info);
+
 	png_set_alpha_mode(png, PNG_ALPHA_PNG, PNG_DEFAULT_sRGB);
 
-	/* Read any color_type into a canonical format. */
+	/*
+	 * Expand palette into RGB
+	 * Expand grayscale to full 8 bits
+	 * Expand transparency to full RGBA
+	 */
 	png_set_expand(png);
 
-	bool keep_gray = (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA);
+	/*
+	 * Keep pure grayscale images single-channel.
+	 * Gray+alpha images are converted to RGB/RGBA for canonical upload format.
+	 */
+	bool keep_gray = (color_type == PNG_COLOR_TYPE_GRAY);
 	if(!keep_gray) {
 		png_set_gray_to_rgb(png);
-	}
 
-	bool needs_alpha = (color_type == PNG_COLOR_TYPE_RGB) || (color_type == PNG_COLOR_TYPE_PALETTE) || (color_type == PNG_COLOR_TYPE_GRAY);
-	if (needs_alpha) {
-		png_set_add_alpha(png, 0xFF, PNG_FILLER_AFTER);
+		/*
+		 * Sokol doesn't support 3-channel RGB textures directly.
+		 * Ensure color images end up as RGBA even when source has no alpha.
+		 */
+		if(!(color_type & PNG_COLOR_MASK_ALPHA) && !png_get_valid(png, png_info, PNG_INFO_tRNS)) {
+			png_set_add_alpha(png, bit_depth == 16 ? 0xFFFFu : 0xFFu, PNG_FILLER_AFTER);
+		}
 	}
 
 	if(bit_depth == 16) {
@@ -156,43 +167,45 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 #endif
 
 	int num_passes = png_set_interlace_handling(png);
-	png_read_update_info(png, info_ptr);
+	png_read_update_info(png, png_info);
 
-	int channels = png_get_channels(png, info_ptr);
-	color_type = png_get_color_type(png, info_ptr);
-	bit_depth = png_get_bit_depth(png, info_ptr);
+	png_byte channels = png_get_channels(png, png_info);
+	color_type = png_get_color_type(png, png_info);
+	bit_depth = png_get_bit_depth(png, png_info);
 
 	assert(
-		(color_type == PNG_COLOR_TYPE_RGB && channels == 3) ||
 		(color_type == PNG_COLOR_TYPE_RGB_ALPHA && channels == 4) ||
 		(color_type == PNG_COLOR_TYPE_GRAY && channels == 1)
 	);
 	assert(bit_depth == 8 || bit_depth == 16);
 
-	img->width = png_get_image_width(png, info_ptr);
-	img->height = png_get_image_height(png, info_ptr);
-	const uint8_t bits_per_pixel = (uint8_t)(channels * bit_depth);
+	img->width = png_get_image_width(png, png_info);
+	img->height = png_get_image_height(png, png_info);
 	img->format = SPOOPY_PIXEL_MAKE_FORMAT(
 		clrtype_to_layout(color_type),
-		bits_per_pixel
+		(uint8_t)bit_depth
 	);
 
 	img->origin = SPOOPY_IMAGE_ORIGIN_BOTTOM_LEFT;
 
-	const png_size_t rowbytes = png_get_rowbytes(png, info_ptr);
-	const uint32_t h = img->height;
-
-	if(rowbytes == 0 || h == 0) {
+	const size_t pixel_size = ((size_t)channels * (size_t)bit_depth) / 8u;
+	if(pixel_size == 0 || img->width == 0 || img->height == 0) {
 		error = "Invalid PNG image dimensions";
 		goto finally;
 	}
 
-	if(rowbytes > SIZE_MAX / h) {
+	if(img->width > SIZE_MAX / pixel_size) {
 		error = "PNG image size is too large";
 		goto finally;
 	}
 
-	size_t total_size = (size_t)rowbytes * h;
+	const size_t row_size = (size_t)img->width * pixel_size;
+	if((size_t)img->height > SIZE_MAX / row_size) {
+		error = "PNG image size is too large";
+		goto finally;
+	}
+
+	size_t total_size = (size_t)img->height * row_size;
 	if(total_size > UINT32_MAX) {
 		error = "PNG image size exceeds supported range";
 		goto finally;
@@ -208,17 +221,16 @@ static bool spoopy_png_decode(SDL_IOStream* stream, spoopy_image_t* img) {
 	img->data_size = (uint32_t)total_size;
 
 	for(int pass = 0; pass < num_passes; pass++) {
-		for(uint32_t y = 0; y < img->height; y++) {
-			size_t dst_row = (size_t)(h - 1 - y) * rowbytes;
-			png_read_row(png, buffer + dst_row, NULL);
+		for(int row = (int)img->height - 1; row >= 0; row--) {
+			png_read_row(png, buffer + ((size_t)row * row_size), NULL);
 		}
 	}
 
-	png_read_end(png, info_ptr);
+	png_read_end(png, png_info);
 
 finally:
 	if(png != NULL) {
-		png_destroy_read_struct(&png, info_ptr ? &info_ptr : NULL, NULL);
+		png_destroy_read_struct(&png, png_info ? &png_info : NULL, NULL);
 	}
 
 	if(error != NULL) {

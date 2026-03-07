@@ -24,7 +24,7 @@ typedef struct spoopy_backend_funcs {
 	size_t (*texture_size)(void);
 	void (*texture_create)(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 	void (*texture_fill)(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
-	void (*texture_set)(uint8_t u_tex, uint8_t u_samp, spoopy_texture_t* tex);
+	void (*texture_set)(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex);
 	void (*texture_destroy)(spoopy_texture_t* tex);
 	size_t (*buffer_size)(spoopy_buffer_type_t type);
 	spoopy_uniform_t* (*shader_uniform)(spoopy_pipeline_t* pipeline, const char* name);

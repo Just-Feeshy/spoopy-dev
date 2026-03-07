@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 	spoopy_api_shader_destroy(vert_obj, true);
 	spoopy_api_shader_destroy(frag_obj, true);
 
-	spoopy_vertex_buffer_t vbuf = {0};
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
 
 	spoopy_mesh_t mesh = {
 		.vertex_buffers = NULL,
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
-		spoopy_api_vertex_buffer_create(&vbuf, (uint32_t)vertex_data_size, 4, vertices, 0);
+		assert(spoopy_api_vertex_buffer_create(vbuf, (uint32_t)vertex_data_size, 4, vertices, 0));
 
 		uint16_t indices[] = {
 			0, 1, 2,
@@ -98,9 +98,9 @@ int main(int argc, char** argv) {
 		};
 
 		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
-		spoopy_api_index_buffer_create(ibuf, 6, indices);
+		assert(spoopy_api_index_buffer_create(ibuf, 6, indices));
 
-		mesh.vertex_buffers = &vbuf;
+		mesh.vertex_buffers = vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = 6;
 		mesh.vertex_count = 1;
@@ -111,10 +111,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	uint8_t u_tex = spoopy_api_get_bind_slot("tex0");
-	uint8_t u_samp = spoopy_api_get_bind_slot("samp0");
-	spoopy_api_texture_set(u_tex, u_samp, tex);
-
+	spoopy_api_texture_set(pipeline, "tex0", "samp0", tex);
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);

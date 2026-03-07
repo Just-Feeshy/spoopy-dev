@@ -41,7 +41,7 @@ SPOOPY_FUNC_CORE size_t spoopy_api_texture_size(void);
 SPOOPY_FUNC_CORE void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height);
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
-SPOOPY_FUNC_CORE void spoopy_api_texture_set(uint8_t u_tex, uint8_t u_samp, spoopy_texture_t* tex);
+SPOOPY_FUNC_CORE void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE size_t spoopy_api_buffer_size(spoopy_buffer_type_t type);
 SPOOPY_FUNC_CORE void spoopy_api_video_init(const spoopy_video_init_params_t* params);

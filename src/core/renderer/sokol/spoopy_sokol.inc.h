@@ -1,3 +1,4 @@
+#include <spoopy_api.h>
 #include <spoopy_backend.h>
 #include <spoopy_image.h>
 #include <utils/assert.h>
@@ -67,6 +68,8 @@ static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
 		case SPOOPY_RENDERER_API_METAL:
 			#if defined(SPOOPY_RENDERER_METAL)
 			spoopy_swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
+			spoopy_swapchain.metal.depth_stencil_texture = NULL;
+			spoopy_swapchain.metal.msaa_color_texture = NULL;
 			#endif
 
 			break;
@@ -209,6 +212,7 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 	sg_shader_desc desc = {0};
 	bool has_vertex = false;
 	bool has_fragment = false;
+	bool has_fragment_texture_binding = false;
 
 	for(uint32_t i=0; i<num_objs; i++) {
 		spoopy_shader_object_t* obj = objs[i];
@@ -227,6 +231,10 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 				break;
 			case SPOOPY_STAGE_FRAGMENT:
 				desc.fragment_func = obj->func;
+				has_fragment_texture_binding =
+					obj->func.source != NULL &&
+					strstr(obj->func.source, "tex0") != NULL &&
+					strstr(obj->func.source, "samp0") != NULL;
 				has_fragment = true;
 				SPOOPY_LOG_INFO("Fragment shader entry: '%s', source len: %zu",
 					obj->func.entry ? obj->func.entry : "(null)",
@@ -241,6 +249,32 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 	if(!has_vertex || !has_fragment) {
 		SPOOPY_LOG_ERROR("Pipeline link requires both vertex and fragment shaders");
 		return NULL;
+	}
+
+	if(has_fragment_texture_binding) {
+		desc.views[0].texture = (sg_shader_texture_view) {
+			.stage = SG_SHADERSTAGE_FRAGMENT,
+			.image_type = SG_IMAGETYPE_2D,
+			.sample_type = SG_IMAGESAMPLETYPE_FLOAT,
+			.multisampled = false,
+			.hlsl_register_t_n = 0,
+			.msl_texture_n = 0,
+			.wgsl_group1_binding_n = 0,
+			.spirv_set1_binding_n = 0,
+		};
+		desc.samplers[0] = (sg_shader_sampler) {
+			.stage = SG_SHADERSTAGE_FRAGMENT,
+			.sampler_type = SG_SAMPLERTYPE_FILTERING,
+			.hlsl_register_s_n = 0,
+			.msl_sampler_n = 0,
+			.wgsl_group1_binding_n = 1,
+			.spirv_set1_binding_n = 1,
+		};
+		desc.texture_sampler_pairs[0] = (sg_shader_texture_sampler_pair) {
+			.stage = SG_SHADERSTAGE_FRAGMENT,
+			.view_slot = 0,
+			.sampler_slot = 0,
+		};
 	}
 
 	spoopy_pipeline_t* pipeline = spoopy_heap_alloc(sizeof(*pipeline));
@@ -284,13 +318,12 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 	action.colors[0].load_action = load_actions[color_clear];
 	action.colors[0].clear_value = *(const sg_color*)color_val->rgba;
 
-	const uint32_t depth_clear = (flags & SPOOPY_BUFFER_DEPTH) != 0;
-	action.depth.load_action = load_actions[depth_clear];
+	const uint32_t wants_depth_clear = (flags & SPOOPY_BUFFER_DEPTH) != 0;
+	const uint32_t has_depth_attachment = spoopy_swapchain.depth_format != SG_PIXELFORMAT_NONE;
+	action.depth.load_action = has_depth_attachment
+		? load_actions[wants_depth_clear]
+		: SG_LOADACTION_DONTCARE;
 	action.depth.clear_value = depth_val;
-
-	spoopy_swapchain.depth_format = (flags & SPOOPY_BUFFER_DEPTH)
-		? SG_PIXELFORMAT_DEPTH_STENCIL
-		: SG_PIXELFORMAT_NONE;
 
 	spoopy_sokol_update_swapchain(graphics);
 
@@ -305,6 +338,7 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
 	pdesc.color_count = 1;
+	pdesc.sample_count = spoopy_swapchain.sample_count;
 	pdesc.colors[0].pixel_format = spoopy_swapchain.color_format;
 	pdesc.depth.pixel_format = spoopy_swapchain.depth_format;
 
@@ -374,6 +408,75 @@ static bool spoopy_sokol_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, ui
 	return true;
 }
 
+static inline spoopy_texture_filter_mode_t spoopy_linear_to_nearest(spoopy_texture_filter_mode_t filter) {
+	switch(filter) {
+		case SPOOPY_TEXTURE_FILTER_LINEAR:
+			return SPOOPY_TEXTURE_FILTER_NEAREST;
+
+		case SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
+		case SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
+			return SPOOPY_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST;
+
+		default:
+			return filter;
+	}
+}
+
+static inline bool spoopy_sample_type_is_filterable(sg_image_sample_type st) {
+	return st == SG_IMAGESAMPLETYPE_FLOAT;
+}
+
+static inline sg_filter spoopy_filter_to_sg_filter(spoopy_texture_filter_mode_t mode, bool filterable) {
+	static const sg_filter map[] = {
+		[SPOOPY_TEXTURE_FILTER_LINEAR] = SG_FILTER_LINEAR,
+		[SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST] = SG_FILTER_LINEAR,
+		[SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR] = SG_FILTER_LINEAR,
+		[SPOOPY_TEXTURE_FILTER_NEAREST] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR] = SG_FILTER_NEAREST,
+	};
+
+	assert((uint32_t)mode < sizeof(map) / sizeof(*map));
+	sg_filter filter = map[mode];
+
+	if(filterable) {
+		return filter;
+	}
+
+	return map[spoopy_linear_to_nearest(mode)];
+}
+
+static inline sg_filter spoopy_filter_to_sg_mipmap_filter(spoopy_texture_filter_mode_t mode, bool filterable) {
+	static const sg_filter map[] = {
+		[SPOOPY_TEXTURE_FILTER_LINEAR] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR] = SG_FILTER_LINEAR,
+		[SPOOPY_TEXTURE_FILTER_NEAREST] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST] = SG_FILTER_NEAREST,
+		[SPOOPY_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR] = SG_FILTER_LINEAR,
+	};
+
+	assert((uint32_t)mode < sizeof(map) / sizeof(*map));
+	sg_filter filter = map[mode];
+
+	if(filterable) {
+		return filter;
+	}
+
+	return map[spoopy_linear_to_nearest(mode)];
+}
+
+static inline sg_wrap spoopy_wrap_to_sg_wrap(spoopy_texture_wrap_mode_t mode) {
+	static const sg_wrap map[] = {
+		[SPOOPY_TEXTURE_WRAP_CLAMP] = SG_WRAP_CLAMP_TO_EDGE,
+		[SPOOPY_TEXTURE_WRAP_MIRROR] = SG_WRAP_MIRRORED_REPEAT,
+		[SPOOPY_TEXTURE_WRAP_REPEAT] = SG_WRAP_REPEAT,
+	};
+
+	assert((uint32_t)mode < sizeof(map) / sizeof(*map));
+	return map[mode];
+}
+
 static inline sg_sampler_type spoopy_sampler_type_for_sample_type(sg_image_sample_type st, const spoopy_texture_params_t* p) {
 	if (st == SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT ||
         st == SG_IMAGESAMPLETYPE_UINT ||
@@ -385,9 +488,11 @@ static inline sg_sampler_type spoopy_sampler_type_for_sample_type(sg_image_sampl
         return SG_SAMPLERTYPE_NONFILTERING;
     }
 
+	const bool filterable = spoopy_sample_type_is_filterable(st);
 	const bool wants_linear =
-        (p->filter.min == SPOOPY_TEXTURE_FILTER_LINEAR) ||
-        (p->filter.mag == SPOOPY_TEXTURE_FILTER_LINEAR);
+		(spoopy_filter_to_sg_filter(p->filter.min, filterable) == SG_FILTER_LINEAR) ||
+		(spoopy_filter_to_sg_filter(p->filter.mag, filterable) == SG_FILTER_LINEAR) ||
+		(spoopy_filter_to_sg_mipmap_filter(p->filter.min, filterable) == SG_FILTER_LINEAR);
 
     return wants_linear ? SG_SAMPLERTYPE_FILTERING : SG_SAMPLERTYPE_NONFILTERING;
 }
@@ -431,7 +536,10 @@ static void spoopy_sokol_pipeline_bind(spoopy_pipeline_t* pipeline) {
 }
 
 static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
-	pipeline->bindings = (sg_bindings){ 0 };
+	memset(pipeline->bindings.vertex_buffers, 0, sizeof(pipeline->bindings.vertex_buffers));
+	memset(pipeline->bindings.vertex_buffer_offsets, 0, sizeof(pipeline->bindings.vertex_buffer_offsets));
+	pipeline->bindings.index_buffer = (sg_buffer){0};
+	pipeline->bindings.index_buffer_offset = 0;
 
 	const uint16_t max_buffers = mesh->vertex_count;
 	assert(max_buffers <= SG_MAX_VERTEXBUFFER_BINDSLOTS);
@@ -466,7 +574,7 @@ static void spoopy_sokol_shutdown(void) {
 }
 
 static size_t spoopy_sokol_texture_size(void) {
-	return 0;
+	return sizeof(spoopy_texture_t);
 }
 
 static void spoopy_sokol_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
@@ -481,6 +589,20 @@ static void spoopy_sokol_texture_create(spoopy_texture_t* tex, const spoopy_text
 
 	tex->sampler.stage = stage;
 	tex->sampler.sampler_type = spoopy_sampler_type_for_sample_type(tex->texture_view.sample_type, p);
+
+	const bool filterable = spoopy_sample_type_is_filterable(tex->texture_view.sample_type);
+	sg_sampler_desc sampler_desc = {0};
+	sampler_desc.min_filter = spoopy_filter_to_sg_filter(p->filter.min, filterable);
+	sampler_desc.mag_filter = spoopy_filter_to_sg_filter(p->filter.mag, filterable);
+	sampler_desc.mipmap_filter = spoopy_filter_to_sg_mipmap_filter(p->filter.min, filterable);
+	sampler_desc.wrap_u = spoopy_wrap_to_sg_wrap(p->wrap.u);
+	sampler_desc.wrap_v = spoopy_wrap_to_sg_wrap(p->wrap.v);
+	sampler_desc.wrap_w = sampler_desc.wrap_u;
+
+	tex->sampler_state = sg_make_sampler(&sampler_desc);
+	if(tex->sampler_state.id == SG_INVALID_ID) {
+		SPOOPY_LOG_ERROR("Failed to create Sokol sampler");
+	}
 }
 
 static void spoopy_sokol_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img) {
@@ -514,18 +636,66 @@ static void spoopy_sokol_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, ui
 			SPOOPY_LOG_ERROR("Failed to create Sokol image");
 			return;
 		}
+
+		tex->view = sg_make_view(&(sg_view_desc) {
+			.texture.image = tex->image,
+		});
+		if(tex->view.id == SG_INVALID_ID) {
+			SPOOPY_LOG_ERROR("Failed to create Sokol texture view");
+		}
 	} else {
 		SPOOPY_LOG_WARN("Cannot update immutable texture after creation");
 	}
 }
 
 uint8_t spoopy_sokol_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name) {
+	(void)pipeline;
+	(void)name;
 	return 0;
 }
 
-void spoopy_sokol_texture_set(uint8_t u_tex, uint8_t u_samp, spoopy_texture_t *tex) {
-	tex->texture_view.msl_texture_n = u_tex;
-	tex->sampler.msl_sampler_n = u_samp;
+void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
+	const uint8_t tex_slot = spoopy_api_get_bind_slot(u_tex);
+	const uint8_t sampler_slot = spoopy_api_get_bind_slot(u_samp);
+
+	if(!pipeline) {
+		SPOOPY_LOG_WARN("Texture bind request ignored: pipeline is NULL");
+		return;
+	}
+
+	if(tex_slot >= SG_MAX_VIEW_BINDSLOTS || sampler_slot >= SG_MAX_SAMPLER_BINDSLOTS) {
+		SPOOPY_LOG_WARN("Texture bind request out of range: view=%u sampler=%u", tex_slot, sampler_slot);
+		return;
+	}
+
+	if(!tex) {
+		pipeline->bindings.views[tex_slot] = (sg_view){0};
+		pipeline->bindings.samplers[sampler_slot] = (sg_sampler){0};
+		return;
+	}
+
+	tex->texture_view.msl_texture_n = tex_slot;
+	tex->sampler.msl_sampler_n = sampler_slot;
+	pipeline->bindings.views[tex_slot] = tex->view;
+	pipeline->bindings.samplers[sampler_slot] = tex->sampler_state;
+}
+
+static void spoopy_sokol_texture_destroy(spoopy_texture_t* tex) {
+	if(!tex) {
+		return;
+	}
+
+	if(tex->view.id != SG_INVALID_ID) {
+		sg_destroy_view(tex->view);
+	}
+	if(tex->image.id != SG_INVALID_ID) {
+		sg_destroy_image(tex->image);
+	}
+	if(tex->sampler_state.id != SG_INVALID_ID) {
+		sg_destroy_sampler(tex->sampler_state);
+	}
+
+	*tex = (spoopy_texture_t){0};
 }
 
 spoopy_backend_funcs_t _backend_funcs = {
@@ -545,6 +715,7 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.texture_size = spoopy_sokol_texture_size,
 	.texture_create = spoopy_sokol_texture_create,
 	.texture_fill = spoopy_sokol_texture_fill,
+	.texture_destroy = spoopy_sokol_texture_destroy,
 	.pipeline_get_texture_unit = spoopy_sokol_pipeline_get_texture_unit,
 	.texture_set = spoopy_sokol_texture_set,
 };

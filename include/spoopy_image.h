@@ -98,7 +98,7 @@ typedef struct spoopy_image {
 } spoopy_image_t;
 
 static inline bool spoopy_pixel_format_is_float(spoopy_pixel_format_t fmt) {
-	return ((fmt) & SPOOPY_FORMAT_FLOAT_BIT);
+	return (((uint32_t)fmt) & ((uint32_t)SPOOPY_FORMAT_FLOAT_BIT)) != 0u;
 }
 
 static inline unsigned int spoopy_pixel_format_depth(spoopy_pixel_format_t fmt) {

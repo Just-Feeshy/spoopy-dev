@@ -78,8 +78,8 @@ void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t la
 	_backend_funcs.texture_fill(tex, mipmap, layer, img);
 }
 
-void spoopy_api_texture_set(uint8_t u_tex, uint8_t u_samp, spoopy_texture_t* tex) {
-	_backend_funcs.texture_set(u_tex, u_samp, tex);
+void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
+	_backend_funcs.texture_set(pipeline, u_tex, u_samp, tex);
 }
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
@@ -91,11 +91,6 @@ size_t spoopy_api_buffer_size(spoopy_buffer_type_t type) {
 }
 
 spoopy_uniform_t* spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name) {
-	if(_backend_funcs.shader_uniform == NULL) {
-		SPOOPY_LOG_ERROR("Uniform lookup is not available on this backend.");
-		return NULL;
-	}
-
 	return _backend_funcs.shader_uniform(pipeline, name);
 }
 
