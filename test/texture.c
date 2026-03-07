@@ -107,10 +107,6 @@ int main(int argc, char** argv) {
 	}
 
 	spoopy_texture_t* tex = test_renderer_load_texture("test/tung.png");
-	if(!tex) {
-		return 1;
-	}
-
 	spoopy_api_texture_set(pipeline, "tex0", "samp0", tex);
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);
