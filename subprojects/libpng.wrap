@@ -2,7 +2,7 @@
 directory = libpng
 url = https://github.com/pnggroup/libpng.git
 push-url = git@github.com:pnggroup/libpng.git
-revision = main
+revision = libpng18
 
 [provide]
 libpng = libpng_dep

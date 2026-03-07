@@ -1,5 +1,5 @@
 #define __SPOOPY_USE_CORE_THREAD_DESIGN
-#include "spoopy_core.h"
+#include "spoopy_core.inc"
 
 #if SPOOPY_SUPPORT_SDL_THREADS
 

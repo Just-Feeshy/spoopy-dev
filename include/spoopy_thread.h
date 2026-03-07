@@ -125,7 +125,7 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index)
 // if they want to use something else other than SDL threads, or have a different
 // artchitecture for threads using SDL_Thread.
 
-_spoopy_thread(sdl,
+_spoopy_thread(sys,
     SDL_Thread* thrd,
     SDL_AtomicInt ref_count;
     SDL_AtomicInt thread_state;

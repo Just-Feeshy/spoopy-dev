@@ -1,38 +1,49 @@
 #include <spoopy_api.h>
 #include <spoopy_backend.h>
 
+
+// My dumbass always forgets to create a uniform function
+// and waste time figuring out why a segfault occured
+// Also `if` parsing is annoying
+#define SPOOPY_CALL_UNIFORM_FN(fn, ...) \
+    do { \
+        if(_backend_funcs.fn == NULL) { \
+            SPOOPY_LOG_ERROR("Uniform function '%s' not available on this backend.", #fn); \
+            return; \
+        } \
+        _backend_funcs.fn(__VA_ARGS__); \
+    } while(0)
+
 #define MAX_MIP_LEVELS 32
 
-spoopy_shader_object_t* spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	return _backend_funcs.shader_init(shader, info);
 }
 
-void spoopy_api_shader_destroy(spoopy_shader_object_t* shader) {
-	_backend_funcs.shader_destroy(shader);
+void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
+	_backend_funcs.shader_destroy(shader, must_free);
+
+	if(must_free) {
+		spoopy_heap_free(shader);
+	}
 }
 
-spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[], uint32_t num_structs) {
-	return _backend_funcs.spoopy_pipeline_link(num_objs, objs, num_structs);
+bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
+	(void)transpile_opts;
+	spoopy_renderer_t want = spoopy_graphics_pick_renderer(info.target);
+	return spoopy_graphics_renderer_supported(want);
 }
 
-uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name) {
-	return _backend_funcs.pipeline_get_texture_unit(pipeline, name);
+spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]) {
+	return _backend_funcs.pipeline_link(num_objs, objs);
 }
 
-void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, spoopy_shader_object_t* vertex_shader, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t structure) {
-	_backend_funcs.pipeline_compile(pipeline, vertex_shader, spec_count, spec, structure);
+void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, buffer_index);
 }
 
 void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline) {
 	_backend_funcs.pipeline_bind(pipeline);
-}
-
-void spoopy_api_begin_frame(void) {
-	_backend_funcs.begin_frame();
-}
-
-void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
-	_backend_funcs.clear(flags, color_val, depth_val);
 }
 
 void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
@@ -45,10 +56,6 @@ void spoopy_api_swap_buffers(void) {
 
 size_t spoopy_api_texture_size(void) {
 	return _backend_funcs.texture_size();
-}
-
-void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
-	_backend_funcs.texture_create(tex, p);
 }
 
 void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height) {
@@ -71,12 +78,72 @@ void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t la
 	_backend_funcs.texture_fill(tex, mipmap, layer, img);
 }
 
-void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex) {
-	_backend_funcs.texture_set(unit, tex);
+void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
+	_backend_funcs.texture_set(pipeline, u_tex, u_samp, tex);
 }
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
 	_backend_funcs.texture_destroy(tex);
+}
+
+size_t spoopy_api_buffer_size(spoopy_buffer_type_t type) {
+	return _backend_funcs.buffer_size(type);
+}
+
+spoopy_uniform_t* spoopy_api_shader_uniform(spoopy_pipeline_t* pipeline, const char* name) {
+	return _backend_funcs.shader_uniform(pipeline, name);
+}
+
+void spoopy_api_uniform_set_int(spoopy_uniform_t* uniform, int value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int, uniform, value);
+}
+
+void spoopy_api_uniform_set_int2(spoopy_uniform_t* uniform, int value0, int value1) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int2, uniform, value0, value1);
+}
+
+void spoopy_api_uniform_set_int3(spoopy_uniform_t* uniform, int value0, int value1, int value2) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int3, uniform, value0, value1, value2);
+}
+
+void spoopy_api_uniform_set_int4(spoopy_uniform_t* uniform, int value0, int value1, int value2, int value3) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_int4, uniform, value0, value1, value2, value3);
+}
+
+void spoopy_api_uniform_set_ints(spoopy_uniform_t* uniform, const int* values, int count) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_ints, uniform, values, count);
+}
+
+void spoopy_api_uniform_set_float(spoopy_uniform_t* uniform, float value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float, uniform, value);
+}
+
+void spoopy_api_uniform_set_float2(spoopy_uniform_t* uniform, float value0, float value1) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float2, uniform, value0, value1);
+}
+
+void spoopy_api_uniform_set_float3(spoopy_uniform_t* uniform, float value0, float value1, float value2) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float3, uniform, value0, value1, value2);
+}
+
+void spoopy_api_uniform_set_float4(spoopy_uniform_t* uniform, float value0, float value1, float value2, float value3) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_float4, uniform, value0, value1, value2, value3);
+}
+
+void spoopy_api_uniform_set_floats(spoopy_uniform_t* uniform, const float* values, int count) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_floats, uniform, values, count);
+}
+
+void spoopy_api_uniform_set_bool(spoopy_uniform_t* uniform, bool value) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_bool, uniform, value);
+}
+
+void spoopy_api_uniform_set_matrix3(spoopy_uniform_t* uniform, const float* values) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix3, uniform, values);
+}
+
+void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* values) {
+	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix4, uniform, values);
 }
 
 
@@ -88,10 +155,10 @@ void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
 //
 // But, also have a proper way to handle dynamic buffers that can grow and shrink
 // for other use cases.
-spoopy_vertex_buffer_t* spoopy_api_vertex_buffer_create(uint32_t capacity, uint32_t count, void* data, uint32_t structure, spoopy_pipeline_t* pipeline) {
-	return _backend_funcs.vertex_buffer_create(capacity, count, data, structure, pipeline);
+bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t stride) {
+	return _backend_funcs.vertex_buffer_create(buffer, capacity, count, data, stride);
 }
 
-spoopy_index_buffer_t* spoopy_api_index_buffer_create(uint32_t count, void* data) {
-	return _backend_funcs.index_buffer_create(count, data);
+bool spoopy_api_index_buffer_create(spoopy_index_buffer_t* buffer, uint32_t count, void* data) {
+	return _backend_funcs.index_buffer_create(buffer, count, data);
 }

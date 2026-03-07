@@ -1,0 +1,6 @@
+option(
+    'xmalloc',
+    type : 'feature',
+    value : 'auto',
+    description : 'Enable abort() call on memory allocation failure by default'
+)

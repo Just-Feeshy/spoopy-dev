@@ -20,5 +20,5 @@ typedef struct spoopy_fileformat_handler {
 } spoopy_fileformat_handler_t;
 
 extern spoopy_fileformat_handler_t spoopy_fileformat_png;
-// extern spoopy_fileformat_handler_t spoopy_fileformat_hpeg;
+// extern spoopy_fileformat_handler_t spoopy_fileformat_jpeg;
 // extern spoopy_fileformat_handler_t spoopy_fileformat_svg;

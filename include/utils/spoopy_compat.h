@@ -1,6 +1,5 @@
 #pragma once
 
-#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -16,10 +15,12 @@ extern "C" {
 
 
 /* =============================================================================
- * SDL & KORE COMPATIBILITY
+ * SDL & CGLM COMPATIBILITY
  * ============================================================================= */
 
 #define SDL_GPU_DISABLE
+#define CGLM_CONFIG_CLIP_CONTROL CGLM_CLIP_CONTROL_RH_ZO
+#define SPOOPY_HAS_SDL_WINDOW_SUPPORT
 
 
 /* =============================================================================
@@ -60,23 +61,39 @@ extern "C" {
  * FUNCTION ATTRIBUTES
  * ============================================================================= */
 
+#if !defined(SPOOPY_ALIGN_AS)
+
+#if SPOOPY_HAVE_ATTRIBUTES
+  #define SPOOPY_ALIGN_AS(align) __attribute__((aligned(align)))
+#elif defined(_MSC_VER)
+  #define SPOOPY_ALIGN_AS(align) __declspec(align(align))
+#elif __STDC_VERSION__ >= 201112L
+  #define SPOOPY_ALIGN_AS(align) _Alignas(align)
+#else
+  #define SPOOPY_ALIGN_AS(align)
+#endif
+
+#endif // If SPOOPY_ALIGN_AS is not defined already
+
+
 #if SPOOPY_HAVE_ATTRIBUTES
 
 #define SPOOPY_ATTR(...) __attribute__((__VA_ARGS__))
 #define SPOOPY_ATTR_SIZE(...) __attribute__((alloc_size(__VA_ARGS__)))
-#define SPOOPY_ATTR_ALIGN(index) __attribute__ ((alloc_align(index)))
+#define SPOOPY_ATTR_ALLOC_ALIGN(arg_index) __attribute__((alloc_align(arg_index)))
+#define SPOOPY_ATTR_WEAK __attribute__((weak))
 #define SPOOPY_ATTR_PURE __attribute__((pure))
 #define SPOOPY_ATTR_CONST __attribute__((const))
 #define SPOOPY_ATTR_NORETURN __attribute__((noreturn))
 #define SPOOPY_ATTR_UNUSED __attribute__((unused))
 #define SPOOPY_ATTR_USED __attribute__((used))
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define SPOOPY_FORCE_INLINE static inline __attribute__((always_inline))
 
 #else
 
 #define SPOOPY_ATTR(...)
 #define SPOOPY_ATTR_SIZE(...)
-#define SPOOPY_ATTR_ALIGN(index)
 #define SPOOPY_ATTR_PURE
 #define SPOOPY_ATTR_CONST
 #define SPOOPY_ATTR_NORETURN
@@ -84,9 +101,56 @@ extern "C" {
 #define SPOOPY_ATTR_USED
 #define SPOOPY_ATTR_WARN_UNUSED_RESULT
 
+#define SPOOPY_ATTR_WEAK
+#if defined(_MSC_VER)
+#define SPOOPY_FORCE_INLINE static __forceinline
+#else
+#define SPOOPY_FORCE_INLINE static inline
+#endif
+
 #endif
 
 #define SPOOPY_UNUSED(x) (void)(x)
+
+#define SPOOPY_WEAK SPOOPY_ATTR_WEAK
+
+
+/* =============================================================================
+ * COMPILER DIAGNOSTIC HELPERS
+ * ============================================================================= */
+
+#if defined(_MSC_VER)
+
+#define SPOOPY_DIAGNOSTIC_PUSH __pragma(warning(push))
+#define SPOOPY_DIAGNOSTIC_POP  __pragma(warning(pop))
+#define SPOOPY_DIAGNOSTIC_IGNORE(option) __pragma(warning(disable : option))
+
+#elif defined(__clang__)
+
+#define SPOOPY_DIAG_PUSH() _Pragma("clang diagnostic push")
+#define SPOOPY_DIAG_POP()  _Pragma("clang diagnostic pop")
+#define SPOOPY_DIAG_IGNORE(option) _Pragma("clang diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN() _Pragma("clang diagnostic ignored \"-Wcast-align\"")
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()  _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
+#define SPOOPY_DIAG_
+
+#elif defined(__GNUC__)
+
+#define SPOOPY_DIAG_PUSH() _Pragma("GCC diagnostic push")
+#define SPOOPY_DIAG_POP()  _Pragma("GCC diagnostic pop")
+#define SPOOPY_DIAG_IGNORE(option) _Pragma("GCC diagnostic ignored \"" option "\"")
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN() _Pragma("GCC diagnostic ignored \"-Wcast-align\"")
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()  _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
+
+#else
+
+#define SPOOPY_DIAG_PUSH()
+#define SPOOPY_DIAG_POP()
+#define SPOOPY_DIAG_IGNORE(option)
+#define SPOOPY_DIAG_IGNORE_CAST_ALIGN()
+#define SPOOPY_DIAG_IGNORE_CAST_QUAL()
+
+#endif
 
 
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 11

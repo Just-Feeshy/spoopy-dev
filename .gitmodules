@@ -5,3 +5,9 @@
 [submodule "subprojects/spoopy-slang-wrapper/bx"]
 	path = subprojects/spoopy-slang-wrapper/bx
 	url = https://github.com/bkaradzic/bx.git
+[submodule "subprojects/cglm"]
+	path = subprojects/cglm
+	url = https://github.com/recp/cglm.git
+[submodule "subprojects/mimalloc"]
+	path = subprojects/mimalloc
+	url = https://github.com/microsoft/mimalloc.git

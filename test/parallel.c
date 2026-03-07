@@ -56,15 +56,15 @@ int main(int argc, char** argv) {
     SPOOPY_LOG_INFO("Multi-Thread Parallel Test Application - Creating %d threads", THREAD_COUNT);
 
     // Initialize thread system
-    spoopy_sdl_thread_init();
+    spoopy_sys_thread_init();
 
     assert(spoopy_get_main_id() != 0);
-    assert(spoopy_sdl_current_is_main());
+    assert(spoopy_sys_current_is_main());
 
     SPOOPY_LOG_INFO("Thread system initialized successfully");
 
     // Arrays to hold thread data
-    spoopy_sdl_thread_t* threads[THREAD_COUNT];
+    spoopy_sys_thread_t* threads[THREAD_COUNT];
     thread_args_t thread_args[THREAD_COUNT];
     spoopy_core_thread_data_t core_data[THREAD_COUNT];
 
@@ -103,15 +103,15 @@ int main(int argc, char** argv) {
         const char* prio_names[] = {"LOW", "NORM", "HIGH", "CRIT"};
         snprintf(thread_name, sizeof(thread_name), "Worker-%d-%s", i, prio_names[priority]);
 
-        threads[i] = spoopy_sdl_thread_create(thread_name, core_data[i]);
+        threads[i] = spoopy_sys_thread_create(thread_name, core_data[i]);
 
         if (!threads[i]) {
             SPOOPY_LOG_ERROR("Failed to create thread %d", i);
             // Clean up previously created threads
             for (int j = 0; j < i; j++) {
-                spoopy_sdl_thread_wait(threads[j]);
+                spoopy_sys_thread_wait(threads[j]);
             }
-            spoopy_sdl_thread_shutdown();
+            spoopy_sys_thread_shutdown();
             return -1;
         }
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
     int finished_count = 0;
     for (int i = 0; i < THREAD_COUNT; i++) {
         void* result = NULL;
-        bool is_finished = spoopy_sdl_thread_get_result(threads[i], &result);
+        bool is_finished = spoopy_sys_thread_get_result(threads[i], &result);
         if (is_finished) {
             finished_count++;
             SPOOPY_LOG_INFO("Thread %d finished early!", i);
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < THREAD_COUNT; i++) {
         SPOOPY_LOG_INFO("Waiting for thread %d...", i);
 
-        void* result_ptr = spoopy_sdl_thread_wait(threads[i]);
+        void* result_ptr = spoopy_sys_thread_wait(threads[i]);
 
         if (result_ptr) {
             thread_args_t* result = (thread_args_t*)result_ptr;
@@ -186,14 +186,14 @@ int main(int argc, char** argv) {
     SPOOPY_LOG_SUCCESS("Main thread work counter: %d", main_work);
 
     // Verify we're still on main thread
-    if (spoopy_sdl_current_is_main()) {
+    if (spoopy_sys_current_is_main()) {
         SPOOPY_LOG_SUCCESS("Confirmed: Still running on main thread");
     } else {
         SPOOPY_LOG_ERROR("ERROR: Not on main thread anymore!");
     }
 
     // Shutdown thread system
-    spoopy_sdl_thread_shutdown();
+    spoopy_sys_thread_shutdown();
 
     SPOOPY_LOG_SUCCESS("Multi-Thread Parallel Test Application completed successfully");
 
