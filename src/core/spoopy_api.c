@@ -38,10 +38,6 @@ spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_obj
 	return _backend_funcs.pipeline_link(num_objs, objs);
 }
 
-uint32_t spoopy_api_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name) {
-	return _backend_funcs.pipeline_get_texture_unit(pipeline, name);
-}
-
 void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
 	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, buffer_index);
 }
@@ -60,10 +56,6 @@ void spoopy_api_swap_buffers(void) {
 
 size_t spoopy_api_texture_size(void) {
 	return _backend_funcs.texture_size();
-}
-
-void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
-	_backend_funcs.texture_create(tex, p);
 }
 
 void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height) {
@@ -86,8 +78,8 @@ void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t la
 	_backend_funcs.texture_fill(tex, mipmap, layer, img);
 }
 
-void spoopy_api_texture_set(uint32_t unit, spoopy_texture_t* tex) {
-	_backend_funcs.texture_set(unit, tex);
+void spoopy_api_texture_set(uint8_t u_tex, uint8_t u_samp, spoopy_texture_t* tex) {
+	_backend_funcs.texture_set(u_tex, u_samp, tex);
 }
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {

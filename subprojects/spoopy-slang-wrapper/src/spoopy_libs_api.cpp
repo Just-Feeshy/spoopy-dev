@@ -1,21 +1,18 @@
 #define SPOOPY_NO_HEADER_SLANG
 
+#include "libs.hpp"
+
 #include <slang.h>
 #include <slang-com-ptr.h>
 #include <slang-com-helper.h>
 
 #include <spoopy_log.h>
+#include <spoopy_types.h>
 #include <spoopy_shader.h>
 #include <spoopy_graphics.h>
-#include <memory/spoopy_memory.h>
 
-#include <cstdint>
 #include <initializer_list>
 #include <cstring>
-
-#include <bx/string.h>
-#include <tinystl/string.h>
-#include <tinystl/vector.h>
 
 using namespace slang;
 
@@ -138,6 +135,39 @@ static inline bool char_is_alphanum(char ch) {
     return char_is_alpha(ch) || char_is_digit(ch);
 }
 
+static tinystl::unordered_map<tiny_string, uint8_t> uniform_bind_map;
+
+static bool parse_trailing_slot(const char* name, uint8_t* slot) {
+    if (!name || !slot) {
+        return false;
+    }
+
+    size_t len = strlen(name);
+    size_t pos = len;
+    uint32_t multiplier = 1;
+    uint32_t value = 0;
+    bool has_digits = false;
+
+    while (pos > 0) {
+        const char ch = name[pos - 1];
+        if (ch < '0' || ch > '9') {
+            break;
+        }
+
+        has_digits = true;
+        value += (uint32_t)(ch - '0') * multiplier;
+        multiplier *= 10;
+        pos--;
+    }
+
+    if (!has_digits || value > UINT8_MAX) {
+        return false;
+    }
+
+    *slot = (uint8_t)value;
+    return true;
+}
+
 
 // Those that know me personally, I REALLY don't like the C++ style of programming.
 extern "C" {
@@ -147,13 +177,12 @@ static_assert(SPOOPY_OPTIMIZATION_LEVEL_DEFAULT == (int)SLANG_OPTIMIZATION_LEVEL
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_HIGH == (int)SLANG_OPTIMIZATION_LEVEL_HIGH, "");
 static_assert(SPOOPY_OPTIMIZATION_LEVEL_MAXIMAL == (int)SLANG_OPTIMIZATION_LEVEL_MAXIMAL, "");
 
-const char* desired_slang_pf = NULL;
-
 struct spoopy_context {
 	Slang::ComPtr<slang::IGlobalSession> globalSession;
 };
 
-spoopy_context_t global_context;
+const char* desired_slang_pf = NULL;
+spoopy_context global_context = { 0 };
 
 bool spoopy_global_context_init(void) {
     static bool logged_profiles = false;
@@ -191,7 +220,6 @@ void spoopy_shader_cleanup() {
 }
 
 
-typedef tinystl::basic_string<tinystl::allocator> tiny_string;
 typedef tinystl::vector<tiny_string> tiny_string_list;
 typedef tinystl::vector<slang::CompilerOptionEntry> compiler_option_list;
 
@@ -449,6 +477,31 @@ bool spoopy_api_shader_transpile(
         }
     }
 
+    // ---- Gather uniforms from reflection ----
+    uniform_bind_map.clear();
+    {
+        slang::ProgramLayout* layout = linked->getLayout();
+        if(layout && layout->getEntryPointCount() > 0) {
+            slang::EntryPointReflection* entryPoint = layout->getEntryPointByIndex(0);
+
+            if(entryPoint) {
+                unsigned int paramCount = entryPoint->getParameterCount();
+
+                for(unsigned int i = 0; i < paramCount; i++) {
+                    slang::VariableLayoutReflection* param = entryPoint->getParameterByIndex(i);
+
+                    if(param) {
+                        const char* name = param->getName();
+                        unsigned int bindSlot = param->getBindingIndex();
+
+                        uniform_bind_map[tiny_string(name)] = (uint8_t)bindSlot;
+                        SPOOPY_LOG_INFO("Uniform: %s at bind slot %u", name, bindSlot);
+                    }
+                }
+            }
+        }
+    }
+
     // ---- Get ONLY the entry point code (fixes entryPointParams_* globals on Metal) ----
     Slang::ComPtr<IBlob> codeBlob;
     {
@@ -523,6 +576,21 @@ void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name,
     options->macros[options->macro_count].name = name;
     options->macros[options->macro_count].value = value;
     options->macro_count++;
+}
+
+uint8_t spoopy_api_get_bind_slot(const char* name) {
+    auto it = uniform_bind_map.find(tiny_string(name));
+    if(it == uniform_bind_map.end()) {
+        uint8_t parsed_slot = 0;
+        if (parse_trailing_slot(name, &parsed_slot)) {
+            return parsed_slot;
+        }
+
+        SPOOPY_LOG_WARN("spoopy_api_get_bind_slot: '%s' not found", name);
+        return UINT8_MAX;
+    }
+
+    return it->second;
 }
 
 } // extern "C"

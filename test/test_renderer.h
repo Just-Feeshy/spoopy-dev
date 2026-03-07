@@ -113,6 +113,8 @@ SPOOPY_ATTR_UNUSED static spoopy_texture_t* test_renderer_load_texture(const cha
 		.mipmaps = 1,
 		.format = image.format,
 		.texture_class = SPOOPY_TEXTURE_CLASS_2D,
+		.stage = SPOOPY_STAGE_FRAGMENT,
+		.depth_texture = false,
 		.filter = {
 			.min = SPOOPY_TEXTURE_FILTER_LINEAR,
 			.mag = SPOOPY_TEXTURE_FILTER_LINEAR

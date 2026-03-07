@@ -2,6 +2,7 @@
 
 #include <utils/spoopy_compat.h>
 #include <utils/spoopy_geometry.h>
+#include <spoopy_shader.h>
 #include <spoopy_graphics.h>
 #include <spoopy_image.h>
 
@@ -79,6 +80,8 @@ typedef struct spoopy_texture_params {
 	uint32_t mipmaps;
 	spoopy_pixel_format_t format;
 	spoopy_texture_class_t texture_class;
+	spoopy_shader_stage_t stage;
+	bool depth_texture;
 
 	struct {
 		spoopy_texture_filter_mode_t min;

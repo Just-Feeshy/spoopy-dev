@@ -123,7 +123,7 @@ endif
 
 
 # Get absolute paths
-# "Borrowed" from Sway, also, very confused about what
+# "Borrowed" from Sway desktop environment, also, very confused about what
 # this was for, so I wrote comments to explain each process
 # for others' planning to "borrow" this code.
 

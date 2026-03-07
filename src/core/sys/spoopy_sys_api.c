@@ -336,3 +336,7 @@ spoopy_renderer_t spoopy_api_get_renderer(void) {
 void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
 	_backend_funcs.clear(app.graphics, flags, color_val, depth_val);
 }
+
+void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
+	_backend_funcs.texture_create(tex, p);
+}

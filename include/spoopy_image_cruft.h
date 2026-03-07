@@ -2,6 +2,7 @@
 
 #include <spoopy.h>
 #include <spoopy_image.h>
+#include <spoopy_types.h>
 
 #ifdef __cplusplus
 extern "C" {

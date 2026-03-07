@@ -10,7 +10,7 @@ test_links = []
 
 tests = [
     'triangle',
-	# 'texture',
+	'texture',
 ]
 
 if host_machine.system() != 'emscripten'

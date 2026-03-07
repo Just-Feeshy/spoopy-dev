@@ -4,7 +4,7 @@
 #include <spoopy_color.h>
 
 #define SPOOPY_PIXEL_MAKE_FORMAT(layout, depth) (((uint32_t)(layout) << 8) | (uint32_t)(depth))
-#define SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(layout, depth) (SPOOPY_PIXEL_MAKE_FORMAT((layout), (depth)) | 0x80000000u)
+#define SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(layout, depth) (SPOOPY_PIXEL_MAKE_FORMAT((layout), (depth)) | SPOOPY_FORMAT_FLOAT_BIT)
 
 #define SPOOPY_PIXEL_FORMAT_LAYOUT(fmt) (((fmt) >> 8) & 0xFF)
 #define SPOOPY_PIXEL_FORMAT_DEPTH(fmt)  ((fmt) & 0xFF)
@@ -13,6 +13,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+enum {
+	SPOOPY_FORMAT_FLOAT_BIT = 0x80,
+	SPOOPY_FORMAT_FLAG_BITS = SPOOPY_FORMAT_FLOAT_BIT
+};
 
 typedef enum spoopy_image_file_format {
 	SPOOPY_IMAGE_FILE_FORMAT_AUTO = -1,
@@ -28,7 +33,6 @@ typedef enum spoopy_pixel_layout {
 	SPOOPY_PIXEL_LAYOUT_RG,
 	SPOOPY_PIXEL_LAYOUT_RGB,
 	SPOOPY_PIXEL_LAYOUT_RGBA,
-	SPOOPY_PIXEL_LAYOUT_BGRA,
 } spoopy_pixel_layout_t;
 
 typedef enum spoopy_pixel_format {
@@ -92,6 +96,18 @@ typedef struct spoopy_image {
 	spoopy_pixel_format_t format;
 	spoopy_image_origin_t origin;
 } spoopy_image_t;
+
+static inline bool spoopy_pixel_format_is_float(spoopy_pixel_format_t fmt) {
+	return ((fmt) & SPOOPY_FORMAT_FLOAT_BIT);
+}
+
+static inline unsigned int spoopy_pixel_format_depth(spoopy_pixel_format_t fmt) {
+    return ((uint32_t)fmt & 0xFFu) & ~((uint32_t)SPOOPY_FORMAT_FLAG_BITS);
+}
+
+static inline spoopy_pixel_layout_t spoopy_format_layout(spoopy_pixel_format_t fmt) {
+	return (spoopy_pixel_layout_t)SPOOPY_PIXEL_FORMAT_LAYOUT(fmt);
+}
 
 #ifdef __cplusplus
 }

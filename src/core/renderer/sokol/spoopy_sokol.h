@@ -1,6 +1,7 @@
 #pragma once
 
 #include <spoopy.h>
+#include <spoopy_types.h>
 #include <spoopy_log.h>
 #include <spoopy_graphics.h>
 #include <spoopy_shader.h>
@@ -99,6 +100,15 @@ struct spoopy_shader_object {
 	spoopy_shader_stage_t stage;
 	sg_shader_function func;
 	bool owns_source;
+};
+
+struct spoopy_texture {
+	sg_image image;
+	sg_view view;
+	sg_sampler sampler_state;
+	sg_shader_texture_view texture_view;
+	sg_shader_sampler sampler;
+	spoopy_texture_params_t params;
 };
 
 void spoopy_sokol_init(void);

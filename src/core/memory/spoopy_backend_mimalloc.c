@@ -29,5 +29,5 @@ void* spoopy_aligned_alloc(size_t alignment, size_t size, void* user_data) {
 
 void* spoopy_heap_realloc(void* ptr, size_t size) {
     assert(size > 0);
-    return mi_realloc(ptr, size);
+    return mi_realloc(ptr, size - 1);
 }

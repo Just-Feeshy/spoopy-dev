@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
 		mesh.vertex_count = 1;
 	}
 
-	uint32_t u_tex = spoopy_api_pipeline_get_texture_unit(pipeline, "tex0");
+	uint32_t u_tex = spoopy_api_get_bind_slot("tex0");
 	spoopy_uniform_t* u_lightPos = spoopy_api_shader_uniform(pipeline, "u_lightPos");
 	spoopy_uniform_t* u_viewPos = spoopy_api_shader_uniform(pipeline, "u_viewPos");
 

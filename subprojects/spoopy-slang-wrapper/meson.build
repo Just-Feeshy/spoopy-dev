@@ -61,7 +61,7 @@ else
 endif
 
 slang_src = [
-    'src/libs.cpp'
+    'src/spoopy_libs_api.cpp'
 ]
 
 spoopy_slang_lib = static_library('spoopy-slang',

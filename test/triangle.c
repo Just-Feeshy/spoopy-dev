@@ -8,47 +8,45 @@ int main(int argc, char** argv) {
     test_init();
 
 	// Simple vertex shader - just pass through position
-	const char* shader_vert = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
+	const char* shader_vert =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"struct VertexInput\n"
+		"{\n"
+		"    float3 pos : POSITION;\n"
+		"};\n"
+		"\n"
+		"struct VertexOutput\n"
+		"{\n"
+		"    float4 position : SV_POSITION;\n"
+		"    float4 color : COLOR0;\n"
+		"};\n"
+		"\n"
+		"[shader(\"vertex\")]\n"
+		"VertexOutput vertexMain(VertexInput input)\n"
+		"{\n"
+		"    VertexOutput output;\n"
+		"    output.position = float4(input.pos.x, input.pos.y, input.pos.z, 1.0);\n"
+		"    output.color = float4(ceil(input.pos.x), 1.0 - ceil(input.pos.x), ceil(input.pos.y), 1.0);\n"
+		"    return output;\n"
+		"}\n";
 
-		struct VertexInput
-		{
-			float3 pos : POSITION;
-		};
-
-		struct VertexOutput
-		{
-			float4 position : SV_POSITION;
-			float4 color : COLOR0;
-		};
-
-		[shader("vertex")]
-		VertexOutput vertexMain(VertexInput input)
-		{
-			VertexOutput output;
-			output.position = float4(input.pos.x, input.pos.y, input.pos.z, 1.0);
-			output.color = float4(ceil(input.pos.x), 1.0 - ceil(input.pos.x), ceil(input.pos.y), 1.0);
-			return output;
-		}
-	)";
-
-	const char* shader_frag = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
-
-		struct VertexOutput {
-			float4 position : SV_Position;
-			float4 color : COLOR0;
-		};
-
-		[shader("fragment")]
-		float4 fragmentMain(VertexOutput input) : SV_Target {
-			return input.color;
-		}
-	)";
+	const char* shader_frag =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"struct VertexOutput {\n"
+		"    float4 position : SV_Position;\n"
+		"    float4 color : COLOR0;\n"
+		"};\n"
+		"\n"
+		"[shader(\"fragment\")]\n"
+		"float4 fragmentMain(VertexOutput input) : SV_Target {\n"
+		"    return input.color;\n"
+		"}\n";
 
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
@@ -69,11 +67,11 @@ int main(int argc, char** argv) {
 		.index_count = 3
 	};
 
-		float vertex_data[] = {
-			-0.75f, -0.75f, 0.0f,
-			 0.75f, -0.75f, 0.0f,
-			 0.0f,  0.75f, 0.0f
-		};
+	float vertex_data[] = {
+		-0.75f, -0.75f, 0.0f,
+		 0.75f, -0.75f, 0.0f,
+		 0.0f,  0.75f, 0.0f
+	};
 
 	size_t vertex_data_size = sizeof(vertex_data);
 	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
