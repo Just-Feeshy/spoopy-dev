@@ -7,7 +7,9 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 #include <limits.h>
+#include <assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,6 +23,17 @@ extern "C" {
 #define SDL_GPU_DISABLE
 #define CGLM_CONFIG_CLIP_CONTROL CGLM_CLIP_CONTROL_RH_ZO
 #define SPOOPY_HAS_SDL_WINDOW_SUPPORT
+
+
+/* =============================================================================
+ * FEATURE DETECTION
+ * ============================================================================= */
+
+#ifdef __has_include
+#define SPOOPY_HAS_INCLUDE(header) __has_include(header)
+#else
+#define SPOOPY_HAS_INCLUDE(header) 0
+#endif
 
 
 /* =============================================================================
@@ -113,6 +126,17 @@ extern "C" {
 #define SPOOPY_UNUSED(x) (void)(x)
 
 #define SPOOPY_WEAK SPOOPY_ATTR_WEAK
+
+#if defined(__GNUC__) || defined(__clang__)
+#define SPOOPY_UNREACHABLE() do { \
+	assert(0 && "This code should never be reachable"); \
+	__builtin_unreachable(); \
+} while(0)
+#else
+#define SPOOPY_UNREACHABLE() do { \
+	assert(0 && "This code should never be reachable"); \
+} while(0)
+#endif
 
 
 /* =============================================================================

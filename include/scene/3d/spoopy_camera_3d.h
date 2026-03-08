@@ -14,15 +14,13 @@ typedef enum spoopy_camera_3d_projection_type {
 } spoopy_camera_3d_projection_type_t;
 
 typedef struct spoopy_camera_3d {
-	spoopy_camera_3d_projection_type_t projection_type;
-	spoopy_aspect_axis_t aspect_axis;
-
-	float position[3];
-
 	spoopy_interp_float_t _size;
 	spoopy_interp_float_t _fov;
 	spoopy_interp_float_t _near;
 	spoopy_interp_float_t _far;
+	float position[3];
+	spoopy_camera_3d_projection_type_t projection_type;
+	spoopy_aspect_axis_t aspect_axis;
 } spoopy_camera_3d_t;
 
 SPOOPY_FUNC_CORE spoopy_camera_3d_t spoopy_camera_3d_init(void);

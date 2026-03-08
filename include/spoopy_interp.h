@@ -8,10 +8,10 @@ extern "C" {
 #endif
 
 #define SPOOPY_INTERPOLATION(type) typedef struct { \
-	bool _need_update; \
 	type curr; \
 	type prev; \
 	type _next; \
+	bool _need_update; \
 } spoopy_interp_##type##_t; \
 static inline spoopy_interp_##type##_t spoopy_interp_##type##_init(void) { \
 	spoopy_interp_##type##_t interp; \

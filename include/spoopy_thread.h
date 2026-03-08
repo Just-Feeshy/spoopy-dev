@@ -44,8 +44,8 @@ typedef struct spoopy_thread_buffers {
 typedef struct {
     spoopy_thread_buffers_t buffers;
     spoopy_thread_process_t process;
-    spoopy_thread_priority_t priority;
     void* args_buff;
+    spoopy_thread_priority_t priority;
 } spoopy_core_thread_data_t;
 
 

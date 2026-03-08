@@ -539,8 +539,6 @@ bool spoopy_api_shader_transpile(
             normalized_size = normalize_resource_names(resources, buffer, size);
         }
 
-        SPOOPY_LOG_INFO("Content:\n%s\n", buffer);
-
         target->content_size = normalized_size;
         target->content = (char*)spoopy_heap_alloc(target->content_size + 1);
         if (target->content == NULL) {

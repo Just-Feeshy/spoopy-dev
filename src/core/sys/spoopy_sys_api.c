@@ -3,29 +3,78 @@
 #include <spoopy_graphics.h>
 #include <SDL3/SDL.h>
 
-// TODO (All tests): Have a safe way to get the cached_displays that throws a warning
-// if you go out of bounds.
-
+#if SPOOPY_HAS_INCLUDE("spoopy_system_info.h")
+#include "spoopy_system_info.h"
+#endif
 static struct {
-	spoopy_aspect_axis_t aspect_ratio;
-	bool initialized;
-
-	SDL_AtomicInt should_quit;
+	// Pointers (Assuming 8 bytes)
+	spoopy_vec2_vec_int_t* fs_modes;
 	SDL_Mutex* display_mutex;
-
 	SDL_DisplayID* cached_displays;
-	int32_t cached_display_count;
-
 	SDL_Window* primary_window; // TODO (Multi-Window): Keep this
 	// TODO (Multi-Window): Have a `spoopy_window_data_t* windows` array that uses SDL_WindowID as indexes (kinda like a hash map)
 	// Also, have a `SDL_Window window_prop_cache` to store properties
-
+	// TODO (Mutli-Window): Have `spoopy_content_scale_aspect` be part of `spoopy_window_data_t`
 	spoopy_graphics_t* graphics; // TODO (Mutli-Window): Move this to `spoopy_window_data_t`
-
 #if defined(__APPLE__)
 	void* primary_view; // TODO (Multi-Window): Keep this
 #endif
+
+	// 8-byte types
+	double scaling_factor; // TODO (Mutli-Window): Move this to `spoopy_window_data_t`
+
+	// 4-byte types
+	SDL_AtomicInt should_quit;
+	int32_t cached_display_count;
+
+	// 1-byte types
+	bool initialized;
 } app = { 0 };
+
+static spoopy_video_cap_state_t (*video_query_capability)(spoopy_video_cap_t cap);
+
+static inline SDL_DisplayID get_cached_display_safe(int32_t index) {
+	if(index < 0 || index >= app.cached_display_count) {
+		SPOOPY_LOG_WARN("Display index %i out of bounds (count: %i)", index, app.cached_display_count);
+		return 0;
+	}
+	return app.cached_displays[index];
+}
+
+SPOOPY_ATTR_UNUSED static inline spoopy_vec2_int_t coords_pixels_to_screen(spoopy_vec2_int_t pixel_ofs) {
+	spoopy_vec2_int_t screen_ofs;
+	screen_ofs.x = round(pixel_ofs.x / app.scaling_factor);
+	screen_ofs.y = round(pixel_ofs.y / app.scaling_factor);
+	return screen_ofs;
+}
+
+static void video_add_mode_dpi_aware(spoopy_vec2_vec_int_t** vec_vec, spoopy_vec2_int_t screen, spoopy_vec2_int_t min_screen, spoopy_vec2_int_t max_screen) {
+	spoopy_vec2_int_t pix_screen = coords_pixels_to_screen(screen);
+
+	// The explaination provided makes sense:
+	// https://github.com/taisei-project/taisei/blob/master/src/video.c
+	spoopy_vec2_vec_int_add_if_bounded(vec_vec, pix_screen, min_screen, max_screen);
+	spoopy_vec2_vec_int_add_if_bounded(vec_vec, screen, min_screen, max_screen);
+}
+
+static int video_compare_vec2(const void* a, const void* b) {
+	const spoopy_vec2_int_t* va = a;
+	const spoopy_vec2_int_t* vb = b;
+	return va->w * va->h - vb->w * vb->h;
+}
+
+static spoopy_video_cap_state_t video_query_capability_generic(spoopy_video_cap_t cap) {
+	switch(cap) {
+		case SPOOPY_VIDEO_CAP_FULLSCREEN:
+			return SPOOPY_VIDEO_CAP_STATE_AVAILABLE;
+		case SPOOPY_VIDEO_CAP_EXTERNAL_RESIZE:
+			return spoopy_api_window_is_fullscreen()
+				? SPOOPY_VIDEO_CAP_STATE_UNAVAILABLE
+				: SPOOPY_VIDEO_CAP_STATE_AVAILABLE;
+	}
+
+	SPOOPY_UNREACHABLE();
+}
 
 static void internal_init(void) {
 	_backend_funcs.init();
@@ -38,6 +87,92 @@ static void video_init_sdl(void) {
 
 	if(!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 		SPOOPY_LOG_ERROR("SDL_InitSubSystem() - ERROR: %s\n", SDL_GetError());
+	}
+}
+
+// TODO (Multi-Window): Have window index, that straightforward
+static spoopy_vec2_int_t video_get_screen_framebuffer_size(void) {
+	spoopy_vec2_int_t size;
+	SDL_GetWindowSizeInPixels(app.primary_window, &size.w, &size.h);
+	return size;
+}
+
+static void video_set_viewport(void) {
+	spoopy_rec_int_t vp;
+}
+
+// TODO (Mutli-Window): We need a window index..
+// TODO (Events): Have a update mode lists event for Spoopy
+static void video_update_mode_lists(void) {
+	bool fullscreen_available = false;
+
+	SDL_LockMutex(app.display_mutex);
+
+	spoopy_vec2_vec_int_resize(app.fs_modes, 16);
+
+	spoopy_vec2_int_t screenspace_min_size = (spoopy_vec2_int_t) { 0 };
+	SDL_GetWindowMinimumSize(app.primary_window, &screenspace_min_size.x, &screenspace_min_size.y);
+	coords_pixels_to_screen(screenspace_min_size);
+
+	for(int i=0; i<spoopy_api_get_screen_count(); ++i) {
+		SDL_DisplayID display = get_cached_display_safe(i);
+		SPOOPY_LOG_INFO("Found display #%i: %s", i, spoopy_api_get_screen_name(i));
+
+		const SDL_DisplayMode* desktop_mode;
+		spoopy_vec2_int_t screenspace_max_size = {};
+
+		if(!(desktop_mode = SDL_GetDesktopDisplayMode(display))) {
+			SPOOPY_LOG_WARN("SDL_GetDesktopDisplayMode() - WARN: %s\n", SDL_GetError());
+		}else {
+#ifdef SPOOPY_BUILD_DEBUG
+			SPOOPY_LOG_INFO("Desktop mode: %ix%i@gHz, scale: %g",
+				desktop_mode->w, desktop_mode->h,
+				desktop_mode->refresh_rate, desktop_mode->pixel_density
+			);
+#endif
+
+			screenspace_max_size.w = desktop_mode->w;
+			screenspace_max_size.h = desktop_mode->h;
+		}
+
+		int mcount;
+		SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display, &mcount);
+
+		for(int j=0; j<mcount; ++j) {
+			const SDL_DisplayMode* mode = modes[j];
+
+#ifdef SPOOPY_BUILD_DEBUG
+			SPOOPY_LOG_INFO("Display mode #%i: %ix%i@%gHz; scale = %g", i,
+				mode->w, mode->h, mode->refresh_rate, mode->pixel_density);
+#endif
+
+			video_add_mode_dpi_aware(&app.fs_modes, (spoopy_vec2_int_t) {{mode->w, mode->h }}, screenspace_min_size, screenspace_max_size);
+			fullscreen_available = true;
+		}
+
+		SDL_free(modes);
+	}
+
+	spoopy_vec2_vec_int_compact(&app.fs_modes);
+	spoopy_vec2_vec_int_qsort(app.fs_modes, video_compare_vec2);
+
+	if(!fullscreen_available) {
+		SPOOPY_LOG_WARN("No available fullscreen modes");
+	}
+
+	SDL_UnlockMutex(app.display_mutex);
+}
+
+// TODO (Multi-Window): Have window index, that straightforward
+static void video_update_scaling_factor(int width) {
+	spoopy_vec2_int_t fb = video_get_screen_framebuffer_size();
+	assert(fb.w > 0);
+
+	double scaling_factor = (double)fb.w / width;
+	if(scaling_factor != app.scaling_factor) {
+		SPOOPY_LOG_INFO("Scaling factor updated: %f -> %f", app.scaling_factor, scaling_factor);
+		app.scaling_factor = scaling_factor;
+		video_update_mode_lists();
 	}
 }
 
@@ -70,8 +205,7 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 
 	if(app.primary_window) {
 		SDL_ShowWindow(app.primary_window);
-
-		// TODO (All Tests): Update video mode
+		spoopy_api_video_update_mode(0);
 		return;
 	}
 
@@ -139,6 +273,27 @@ void spoopy_api_refresh_screens(void) {
 	SDL_UnlockMutex(app.display_mutex);
 }
 
+void spoopy_api_video_update_mode(uint32_t window_index) {
+	(void)window_index;
+
+	// TODO (Events): Implement vsync spoopy event for users
+	// spoopy_update_event_vsync();
+
+	int width;
+	SDL_GetWindowSize(app.primary_window, &width, NULL);
+
+	video_update_scaling_factor(width);
+	// TODO (Viewport): Have a `_window_update_viewport` function
+}
+
+bool spoopy_api_window_is_fullscreen(void) {
+	return SDL_GetWindowFlags(app.primary_window) & SDL_WINDOW_FULLSCREEN;
+}
+
+bool spoopy_api_window_is_resizable(void) {
+	return SDL_GetWindowFlags(app.primary_window) & SDL_WINDOW_RESIZABLE;
+}
+
 void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	if(app.initialized) {
 		SPOOPY_LOG_WARN("`spoopy_api_video_init()` has already been called!");
@@ -150,9 +305,14 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	const char *driver = SDL_GetCurrentVideoDriver();
 	SPOOPY_LOG_INFO("Using driver '%s'", driver);
 
+	video_query_capability = video_query_capability_generic;
+
+
 	app.initialized = true;
-	app.aspect_ratio = params->aspect_axis;
 	app.display_mutex = SDL_CreateMutex();
+	app.fs_modes = spoopy_vec2_vec_int_init(16);
+
+	app.scaling_factor = 0;
 
 	internal_init();
 
@@ -174,6 +334,7 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	// TODO (Set Mode): Include `set_mode` API function here
 }
 
+// TODO (Framework):
 // This allows us to create our own file loading system even for other platforms later on.
 // I mean, we could stretch the meaning of "Spoopy Renderer" to say it includes image loading since
 // textures are a big part of rendering, which requires image loading
@@ -192,40 +353,24 @@ void spoopy_api_video_shutdown(void) {
 		return;
 	}
 
-	if(_backend_funcs.shutdown) {
-		_backend_funcs.shutdown();
-	}
+	_backend_funcs.shutdown();
 
 #if defined(__APPLE__)
-	if(app.primary_view) {
-		SDL_Metal_DestroyView(app.primary_view);
-		app.primary_view = NULL;
-	}
+	SDL_Metal_DestroyView(app.primary_view);
 #endif
 
-	if(app.primary_window) {
-		SDL_DestroyWindow(app.primary_window);
-		app.primary_window = NULL;
-	}
+	SDL_DestroyWindow(app.primary_window);
 
-	if(app.display_mutex) {
-		SDL_DestroyMutex(app.display_mutex);
-		app.display_mutex = NULL;
-	}
+	SDL_LockMutex(app.display_mutex);
+	SDL_free(app.cached_displays);
+	app.cached_display_count = 0;
+	SDL_UnlockMutex(app.display_mutex);
 
-	if(app.cached_displays) {
-		SDL_free(app.cached_displays);
-		app.cached_displays = NULL;
-		app.cached_display_count = 0;
-	}
-
-	if(app.graphics) {
-		spoopy_heap_free(app.graphics);
-		app.graphics = NULL;
-	}
-
+	spoopy_vec2_vec_int_destroy(app.fs_modes);
+	SDL_DestroyMutex(app.display_mutex);
+	spoopy_heap_free(app.graphics);
 	SDL_SetAtomicInt(&app.should_quit, 0);
-	app.aspect_ratio = SPOOPY_ASPECT_AXIS_NONE;
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	app.initialized = false;
 }
 
@@ -266,7 +411,8 @@ int32_t spoopy_api_get_screen_from_rect(const spoopy_rec_int_t* rect) {
 
 const char* spoopy_api_get_screen_name(uint32_t screen_index) {
 	SDL_LockMutex(app.display_mutex);
-	const char* name = SDL_GetDisplayName(app.cached_displays[screen_index]);
+	SDL_DisplayID display = get_cached_display_safe(screen_index);
+	const char* name = SDL_GetDisplayName(display);
 
 	if(name == NULL) {
 		SPOOPY_LOG_WARN("SDL_GetDisplayName() - WARN: %s\n", SDL_GetError());
@@ -309,18 +455,17 @@ spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t screen_index) {
 		screen_index = SPOOPY_PRIMARY_SCREEN_INDEX;
 	}
 
-	if(screen_index >= app.cached_display_count) {
+	SDL_DisplayID display = get_cached_display_safe(screen_index);
+	if(display == 0) {
 		goto got_usable_rect;
 	}
-
-	SDL_DisplayID display = app.cached_displays[screen_index];
 	SDL_Rect sdl_rec2 = { 0 };
 
 	if(!SDL_GetDisplayUsableBounds(display, &sdl_rec2)) {
 		goto got_usable_rect;
 	}
 
-	spoopy_vec2_int_t pos = { .x = sdl_rec2.x, .y = sdl_rec2.y };
+	spoopy_vec2_int_t pos = {  .x = sdl_rec2.x, .y = sdl_rec2.y };
 	spoopy_vec2_int_t size = { .x = sdl_rec2.w, .y = sdl_rec2.h };
 	rec2 = (spoopy_rec_int_t){ .point = pos, .size = size };
 
@@ -329,14 +474,10 @@ got_usable_rect:
 	return rec2;
 }
 
-spoopy_renderer_t spoopy_api_get_renderer(void) {
+spoopy_renderer_t spoopy_api_window_get_renderer(void) {
 	return spoopy_graphics_get_renderer(app.graphics);
 }
 
 void spoopy_api_clear(spoopy_buffer_kind_t flags, const spoopy_color_t* color_val, float depth_val) {
 	_backend_funcs.clear(app.graphics, flags, color_val, depth_val);
-}
-
-void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
-	_backend_funcs.texture_create(tex, p);
 }

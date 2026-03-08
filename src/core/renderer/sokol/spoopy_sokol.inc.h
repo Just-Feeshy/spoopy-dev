@@ -11,7 +11,7 @@ const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 static_assert(sizeof(spoopy_color_t) >= sizeof(sg_color), "spoopy_color_t must hold sg_color");
 static_assert(__alignof(spoopy_color_t) >= __alignof(sg_color), "spoopy_color_t alignment must satisfy sg_color");
 
-// Valid
+// TODO (Mutli-Window): Have this be per window instead of a crappy static variable
 sg_swapchain spoopy_swapchain = {
 	.width = 0,
 	.height = 0,

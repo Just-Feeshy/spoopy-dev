@@ -54,6 +54,10 @@ void spoopy_api_swap_buffers(void) {
 	_backend_funcs.swap_buffers();
 }
 
+void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
+	_backend_funcs.texture_create(tex, p);
+}
+
 size_t spoopy_api_texture_size(void) {
 	return _backend_funcs.texture_size();
 }
