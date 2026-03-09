@@ -262,10 +262,12 @@ void spoopy_api_refresh_screens(void) {
 	SDL_LockMutex(app.display_mutex);
 	SDL_free(app.cached_displays);
 
-	int screen_count = app.cached_display_count;
+	int screen_count = 0;
 	if(!(app.cached_displays = SDL_GetDisplays(&screen_count))) {
 		SPOOPY_LOG_ERROR("SDL_InitSubSystem() - ERROR: %s\n", SDL_GetError());
 		app.cached_display_count = 0;
+	} else {
+		app.cached_display_count = screen_count;
 	}
 
 	SDL_UnlockMutex(app.display_mutex);
