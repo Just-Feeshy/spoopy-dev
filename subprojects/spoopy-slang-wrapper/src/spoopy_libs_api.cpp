@@ -965,8 +965,8 @@ void spoopy_shader_cleanup(void) {
 	global_context.global_session = nullptr;
 }
 
-bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
-	return resolve_supported_target(&info, transpile_opts, NULL);
+bool spoopy_api_shader_supported(const spoopy_shader_source_t* info, spoopy_transpile_options_t* transpile_opts) {
+	return resolve_supported_target(info, transpile_opts, NULL);
 }
 
 bool spoopy_api_shader_transpile(

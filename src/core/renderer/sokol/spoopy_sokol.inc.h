@@ -175,10 +175,12 @@ static inline sg_pixel_format spoopy_sokol_pixel_format(spoopy_pixel_format_t fm
 }
 
 static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
-	if(!shader || !info) {
+	if(SPOOPY_UNLIKELY(!spoopy_api_shader_supported(info, NULL))) {
 		SPOOPY_LOG_ERROR("Shading language not supported!");
 		return;
 	}
+
+	// spoopy_shader_reflection_t reflection = info->reflection;
 
 	*shader = (spoopy_shader_object_t){0};
 	shader->stage = info->stage;

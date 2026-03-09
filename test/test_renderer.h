@@ -8,6 +8,44 @@
 
 static EventHandler* handler_ptr = NULL;
 
+SPOOPY_ATTR_UNUSED static const char* test_renderer_name(spoopy_renderer_t renderer) {
+	switch(renderer) {
+		case SPOOPY_RENDERER_API_METAL: return "Metal";
+		case SPOOPY_RENDERER_API_D3D11: return "Direct3D";
+		case SPOOPY_RENDERER_API_WGPU:  return "WGPU";
+		case SPOOPY_RENDERER_API_UNSURE: return "Unknown";
+		default: return "Unknown";
+	}
+}
+
+SPOOPY_ATTR_UNUSED static void test_log_shader_support_failure(
+	const spoopy_shader_source_t* source,
+	const spoopy_transpile_options_t* transpile_opts
+) {
+	if(!source || !transpile_opts) {
+		SPOOPY_LOG_ERROR("Shader support check failed with invalid parameters.");
+		return;
+	}
+
+	if(transpile_opts->compile.renderer != SPOOPY_RENDERER_API_UNSURE) {
+		SPOOPY_LOG_ERROR(
+			"%s renderer is available, but Slang has no compatible compile target/profile.",
+			test_renderer_name(transpile_opts->compile.renderer)
+		);
+		return;
+	}
+
+	if(source->target == SPOOPY_RENDERER_API_UNSURE) {
+		SPOOPY_LOG_ERROR("No renderer selected for shader target.");
+		return;
+	}
+
+	SPOOPY_LOG_ERROR(
+		"%s renderer is not supported on this platform.",
+		test_renderer_name(source->target)
+	);
+}
+
 SPOOPY_ATTR_UNUSED static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
@@ -41,24 +79,8 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
 		.compile.optimization_level = SPOOPY_OPTIMIZATION_LEVEL_NONE,
     };
 
-    if(!spoopy_api_shader_supported(&transpile_opts, source)) {
-        switch(source.target) {
-            case SPOOPY_RENDERER_API_METAL:
-                SPOOPY_LOG_ERROR("Metal shaders are not supported on this platform.");
-                break;
-            case SPOOPY_RENDERER_API_D3D11:
-                SPOOPY_LOG_ERROR("Direct3D shaders are not supported on this platform.");
-                break;
-            case SPOOPY_RENDERER_API_WGPU:
-                SPOOPY_LOG_ERROR("WGPU shaders are not supported on this platform.");
-                break;
-            case SPOOPY_RENDERER_API_UNSURE:
-                SPOOPY_LOG_ERROR("No renderer selected for shader target.");
-                break;
-            default:
-                SPOOPY_LOG_ERROR("Shader target not supported: %u", (unsigned)source.target);
-        }
-
+    if(!spoopy_api_shader_supported(&source, &transpile_opts)) {
+		test_log_shader_support_failure(&source, &transpile_opts);
         return NULL;
     }
 
