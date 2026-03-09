@@ -79,6 +79,7 @@ static spoopy_video_cap_state_t video_query_capability_generic(spoopy_video_cap_
 }
 
 static void internal_init(void) {
+	spoopy_global_context_init();
 	_backend_funcs.init();
 
 	// TODO (States): Have `draw` state logic be initialized here
