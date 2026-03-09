@@ -241,6 +241,10 @@ static bool resolve_supported_target(
 	spoopy_transpile_options_t* transpile_opts,
 	target_profile* out_profile
 ) {
+	if(!spoopy_global_context_init()) {
+		return false;
+	}
+
 	target_profile profile = pick_target_profile(global_context.global_session.get(), source->target);
 	if(profile.target == SLANG_TARGET_UNKNOWN) {
 		if(transpile_opts) {
