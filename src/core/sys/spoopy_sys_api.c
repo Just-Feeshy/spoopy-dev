@@ -356,6 +356,7 @@ void spoopy_api_video_shutdown(void) {
 	}
 
 	_backend_funcs.shutdown();
+	spoopy_shader_cleanup();
 
 #if defined(__APPLE__)
 	SDL_Metal_DestroyView(app.primary_view);

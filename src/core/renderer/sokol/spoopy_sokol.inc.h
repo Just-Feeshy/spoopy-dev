@@ -180,7 +180,11 @@ static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shad
 		return;
 	}
 
-	// spoopy_shader_reflection_t reflection = info->reflection;
+	spoopy_shader_reflection_t* reflection = info->reflection;
+	if(!reflection) {
+		SPOOPY_LOG_ERROR("Shader has no reflection data!");
+		return;
+	}
 
 	*shader = (spoopy_shader_object_t){0};
 	shader->stage = info->stage;
