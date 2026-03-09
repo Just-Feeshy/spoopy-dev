@@ -241,14 +241,6 @@ static bool resolve_supported_target(
 	spoopy_transpile_options_t* transpile_opts,
 	target_profile* out_profile
 ) {
-	if(!source) {
-		return false;
-	}
-
-	if(!spoopy_global_context_init()) {
-		return false;
-	}
-
 	target_profile profile = pick_target_profile(global_context.global_session.get(), source->target);
 	if(profile.target == SLANG_TARGET_UNKNOWN) {
 		if(transpile_opts) {
@@ -256,6 +248,7 @@ static bool resolve_supported_target(
 			transpile_opts->compile.target = SLANG_TARGET_UNKNOWN;
 			transpile_opts->compile.profile = SLANG_PROFILE_UNKNOWN;
 		}
+
 		return false;
 	}
 
@@ -265,6 +258,7 @@ static bool resolve_supported_target(
 			transpile_opts->compile.target = profile.target;
 			transpile_opts->compile.profile = SLANG_PROFILE_UNKNOWN;
 		}
+
 		return false;
 	}
 
