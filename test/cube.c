@@ -27,11 +27,8 @@ int main(int argc, char** argv) {
 			float3 v_fragPos : TEXCOORD2;
 		};
 
-		cbuffer Globals
-		{
-			float4x4 u_modelViewProjection;
-			float4x4 u_projectionMatrix;
-		};
+		uniform float4x4 u_modelViewProjection;
+		uniform float4x4 u_projectionMatrix;
 
 		[shader("vertex")]
 		VertexOutput vertexMain(VertexInput input)
@@ -67,10 +64,8 @@ int main(int argc, char** argv) {
 		texture2D tex0;
 		sampler samp0;
 
-		cbuffer Light {
-			float4 u_lightPos;
-			float4 u_viewPos;
-		};
+		uniform float4 u_lightPos;
+		uniform float4 u_viewPos;
 
 		[shader("fragment")]
 		float4 fragmentMain(VertexOutput input) : SV_Target {

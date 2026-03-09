@@ -5,6 +5,7 @@
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
 #include <memory/spoopy_memory.h>
+#include <utils/assert.h>
 
 #include "../spoopy_core.inc"
 

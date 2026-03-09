@@ -1,3 +1,4 @@
+#define SPOOPY_BUILD_DEBUG
 #include <spoopy_api.h>
 
 #include "test_renderer.h"
@@ -61,30 +62,33 @@ int main(int argc, char** argv) {
 	spoopy_api_shader_destroy(frag_obj, true);
 
 
-	spoopy_mesh_t mesh = {
-		.vertex_buffers = NULL,
-		.index_buffer = NULL,
-		.index_count = 3
-	};
-
 	float vertex_data[] = {
 		-0.75f, -0.75f, 0.0f,
 		 0.75f, -0.75f, 0.0f,
 		 0.0f,  0.75f, 0.0f
 	};
 
-	size_t vertex_data_size = sizeof(vertex_data);
-	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
-	assert(spoopy_api_vertex_buffer_create(vbuf, vertex_data_size, 3, vertex_data, 0));
-
 	uint16_t index_data[] = { 0, 1, 2 };
-	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
-	assert(spoopy_api_index_buffer_create(ibuf, 3, index_data));
 
-	mesh.vertex_buffers = vbuf;
-	mesh.index_buffer = ibuf;
-	mesh.index_count = 3;
-	mesh.vertex_count = 1;
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
+	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+
+	if(!spoopy_api_vertex_buffer_create(vbuf, sizeof(vertex_data), 3, vertex_data, 0)) {
+		SPOOPY_LOG_ERROR("Failed to create vertex buffer");
+		return 1;
+	}
+
+	if(!spoopy_api_index_buffer_create(ibuf, 3, index_data)) {
+		SPOOPY_LOG_ERROR("Failed to create index buffer");
+		return 1;
+	}
+
+	spoopy_mesh_t mesh = {
+		.vertex_buffers = vbuf,
+		.index_buffer = ibuf,
+		.index_count = 3,
+		.vertex_count = 1
+	};
 
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);

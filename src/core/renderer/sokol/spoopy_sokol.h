@@ -97,8 +97,8 @@ struct spoopy_pipeline {
 };
 
 struct spoopy_shader_object {
-	spoopy_shader_stage_t stage;
 	sg_shader_function func;
+	spoopy_shader_stage_t stage;
 	bool owns_source;
 };
 

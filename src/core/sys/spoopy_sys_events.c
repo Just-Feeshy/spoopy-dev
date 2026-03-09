@@ -1,6 +1,10 @@
 #include <spoopy_api.h>
 #include <SDL3/SDL.h>
 
+#if SPOOPY_HAS_INCLUDE("spoopy_system_info.h")
+#include "spoopy_system_info.h"
+#endif
+
 
 // In the future, I'm probably going to make this multithreaded
 // but for now, this is fine
@@ -109,15 +113,21 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 
 	switch(event->type) {
 		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+#ifdef SPOOPY_BUILD_DEBUG
 			SPOOPY_LOG_INFO("Window pixel size changed: %ux%u", event->window.data1, event->window.data2);
-			// TODO (All Tests): spoopy_video_update_mode(0, (uint32_t)event->window.data1, (uint32_t)event->window.data2);
+#endif
 
+			spoopy_api_video_update_mode(0);
 			break;
 		case SDL_EVENT_DISPLAY_ADDED:
 		case SDL_EVENT_DISPLAY_REMOVED:
 			spoopy_api_refresh_screens();
 			break;
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			// TODO (Events): User supported focus event is required
+			break;
 		default:
+			// TODO (Events): This is where the spoopy event system takes place
 			break;
 	}
 

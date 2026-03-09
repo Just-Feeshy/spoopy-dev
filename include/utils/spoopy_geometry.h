@@ -3,20 +3,8 @@
 #include "spoopy_misc_math.h"
 
 #include <spoopy.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-/*
- * ============================= Spoopy Core Types =============================
- * All core types used by the Spoopy Environment and Renderer API are
- * defined in this header, it's more or less a nice one stop shop for
- * all the basic structures and types used throughout the literal entire
- * codebase
- * =============================================================================
- */
+#include <memory/spoopy_memory.h>
+#include <memory/spoopy_vector.h>
 
 #define SPOOPY_VEC_AND_REC_TYPES(type) \
 	typedef union spoopy_vec2_##type { \
@@ -48,29 +36,45 @@ extern "C" {
 		spoopy_vec2_##type##_t size; \
 	} spoopy_rec_##type##_t;
 
+// Wrapper macro that uses the generic SPOOPY_VECTOR and adds geometry-specific functions
 #define SPOOPY_VEC_FUNCTIONS(type, num) \
+SPOOPY_VECTOR(spoopy_vec##num##_vec_##type, spoopy_vec##num##_##type##_t) \
+static inline void spoopy_vec##num##_vec_##type##_add_if_bounded( \
+		spoopy_vec##num##_vec_##type##_t* vector, \
+		spoopy_vec##num##_##type##_t value, \
+		spoopy_vec##num##_##type##_t min, \
+		spoopy_vec##num##_##type##_t max) { \
+	if(!vector) return; \
+	bool bound_check = false; \
+	for(uint8_t i=0; i<(num); ++i) { \
+		bound_check |= ((value.data[i] > max.data[i] && max.data[i] > 0) \
+                    ||  (value.data[i] < min.data[i])); \
+		if(bound_check) return; \
+	} \
+	spoopy_vec##num##_vec_##type##_add(vector, value); \
+} \
 static inline void spoopy_vec##num##_##type##_mul(spoopy_vec##num##_##type##_t* vec, type v) { \
-    for(int i=0; i<(num); i++) { \
+    for(uint8_t i=0; i<(num); ++i) { \
         vec->data[i] *= v; \
     } \
 } \
 static inline void spoopy_vec##num##_##type##_div(spoopy_vec##num##_##type##_t* vec, type v) { \
-    for(int i=0; i<(num); i++) { \
+    for(uint8_t i=0; i<(num); ++i) { \
         vec->data[i] /= v; \
     } \
 } \
 static inline void spoopy_vec##num##_##type##_sub(spoopy_vec##num##_##type##_t* vec, spoopy_vec##num##_##type##_t sub_vec) { \
-	for(int i=0; i<(num); i++) { \
+	for(uint8_t i=0; i<(num); ++i) { \
 		vec->data[i] -= sub_vec.data[i]; \
 	} \
 } \
 static inline void spoopy_vec##num##_##type##_add(spoopy_vec##num##_##type##_t* vec, spoopy_vec##num##_##type##_t add_vec) { \
-	for(int i=0; i<(num); i++) { \
+	for(uint8_t i=0; i<(num); ++i) { \
 		vec->data[i] += add_vec.data[i]; \
 	} \
 } \
 static inline void spoopy_vec##num##_##type##_clamp(spoopy_vec##num##_##type##_t* v, spoopy_vec##num##_##type##_t lo, spoopy_vec##num##_##type##_t hi) { \
-	for(int i=0; i<(num); i++) { \
+	for(uint8_t i=0; i<(num); ++i) { \
 		v->data[i] = spoopy_clamp(v->data[i], lo.data[i], hi.data[i]); \
 	} \
 }
@@ -82,6 +86,10 @@ static inline bool spoopy_rec_##type##_equal(spoopy_rec_##type##_t rec1, spoopy_
 		&& rec1.size.w  == rec2.size.w  \
 		&& rec1.size.h  == rec2.size.h; \
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 SPOOPY_VEC_AND_REC_TYPES(float)
 SPOOPY_VEC_AND_REC_TYPES(int)

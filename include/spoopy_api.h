@@ -6,11 +6,11 @@
 #include <spoopy.h>
 #include <utils/spoopy_misc_math.h>
 #include <memory/spoopy_memory.h>
+#include <memory/spoopy_vector.h>
 #include <format/spoopy_fileformats.h>
 #include <spoopy_shader.h>
 #include <spoopy_thread.h>
 #include <spoopy_log.h>
-#include <spoopy_video.h>
 #include <spoopy_vertex_attr.h>
 #include <spoopy_events.h>
 #include <spoopy_color.h>
@@ -45,6 +45,7 @@ SPOOPY_FUNC_CORE void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const 
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE size_t spoopy_api_buffer_size(spoopy_buffer_type_t type);
 SPOOPY_FUNC_CORE void spoopy_api_video_init(const spoopy_video_init_params_t* params);
+SPOOPY_FUNC_CORE void spoopy_api_video_update_mode(uint32_t window_index);
 SPOOPY_FUNC_CORE void spoopy_api_video_shutdown(void);
 
 SPOOPY_FUNC_CORE int32_t spoopy_api_get_screen_count(void);
@@ -55,8 +56,12 @@ SPOOPY_FUNC_CORE spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t scre
 SPOOPY_FUNC_CORE void spoopy_api_refresh_screens(void);
 
 // TODO (Multi-Window): Have a parameter `window_index` to get it for each window
-SPOOPY_FUNC_CORE spoopy_renderer_t spoopy_api_get_renderer(void);
+SPOOPY_FUNC_CORE spoopy_renderer_t spoopy_api_window_get_renderer(void);
 
+// TODO (Multi-Window): Have a parameter `window_index` to get it for each window
+SPOOPY_FUNC_CORE bool spoopy_api_window_is_fullscreen(void);
+SPOOPY_FUNC_CORE bool spoopy_api_window_is_resizable(void);
+// SPOOPY_FUNC_CORE void spoopy_api_window_get_viewport(void);
 // SPOOPY_FUNC_CORE spoopy_vec2_int_t spoopy_api_window_get_framebuffer_size(uint32_t screen_index);
 // SPOOPY_FUNC_CORE bool spoopy_api_window_fullscreen_toggle(spoopy_window_t window);
 // SPOOPY_FUNC_CORE void spoopy_api_window_set_fullscreen(spoopy_window_t window, bool fullscreen);
@@ -86,6 +91,8 @@ SPOOPY_FUNC_CORE void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, 
 SPOOPY_FUNC_CORE bool spoopy_api_image_load_from_file(const char* path, spoopy_image_file_format_t file_format, spoopy_image_t* dst);
 
 SPOOPY_FUNC_CORE bool spoopy_api_should_quit(void);
+SPOOPY_FUNC_CORE bool spoopy_api_get_config_vsync(void);
+SPOOPY_FUNC_CORE void spoopy_api_request_config_vsync(bool enabled);
 SPOOPY_FUNC_CORE void spoopy_api_request_quit(void);
 
 SPOOPY_FUNC_CORE bool spoopy_api_shader_transpile(

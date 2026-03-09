@@ -8,7 +8,7 @@
 
 static EventHandler* handler_ptr = NULL;
 
-static void test_init(void) {
+SPOOPY_ATTR_UNUSED static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
 	spoopy_memory_init_hooks();
@@ -33,7 +33,7 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
         .stage = stage,
         .entry_point = (stage == SPOOPY_STAGE_VERTEX) ? "vertexMain" : "fragmentMain",
         .module_name = "shader",
-		.target = spoopy_api_get_renderer(),
+		.target = spoopy_api_window_get_renderer(),
     };
 
     spoopy_transpile_options_t transpile_opts = {

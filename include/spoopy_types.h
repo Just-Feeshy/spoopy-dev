@@ -7,6 +7,15 @@
 #include <spoopy_image.h>
 
 
+/*
+ * ============================= Spoopy Core Types =============================
+ * All core types used by the Spoopy Environment and Renderer API are
+ * defined in this header, it's more or less a nice one stop shop for
+ * all the basic structures and types used throughout the entire codebase
+ * =============================================================================
+ */
+
+
 /** Macro Definitions **/
 
 #ifdef __cplusplus
@@ -22,8 +31,10 @@ typedef struct spoopy_index_buffer spoopy_index_buffer_t;
 typedef struct spoopy_mesh spoopy_mesh_t;
 typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
-typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
+typedef struct spoopy_uniform spoopy_uniform_t;
+
+typedef uint32_t spoopy_hash_t;
 
 typedef enum spoopy_buffer_type {
 	SPOOPY_BUFFER_TYPE_VERTEX,
@@ -41,10 +52,10 @@ typedef struct spoopy_file_read_callbacks {
 } spoopy_file_read_callbacks_t;
 
 struct spoopy_mesh {
-	uint32_t index_count;
-	uint16_t vertex_count;
 	spoopy_index_buffer_t* index_buffer;
 	spoopy_vertex_buffer_t* vertex_buffers;
+	uint32_t index_count;
+	uint16_t vertex_count;
 };
 
 struct spoopy_preset_vertex_model {
@@ -81,7 +92,6 @@ typedef struct spoopy_texture_params {
 	spoopy_pixel_format_t format;
 	spoopy_texture_class_t texture_class;
 	spoopy_shader_stage_t stage;
-	bool depth_texture;
 
 	struct {
 		spoopy_texture_filter_mode_t min;
@@ -92,6 +102,8 @@ typedef struct spoopy_texture_params {
 		spoopy_texture_wrap_mode_t u;
 		spoopy_texture_wrap_mode_t v;
 	} wrap;
+
+	bool depth_texture;
 } spoopy_texture_params_t;
 
 typedef enum spoopy_aspect_axis {
@@ -107,26 +119,32 @@ typedef enum spoopy_window_flags {
 	SPOOPY_WINDOW_FLAG_HIGHDPI = (1 << 3),
 } spoopy_window_flags_t;
 
+typedef enum spoopy_video_cap_state {
+	SPOOPY_VIDEO_CAP_STATE_NEVER_AVAILABLE,
+	SPOOPY_VIDEO_CAP_STATE_AVAILABLE,
+	SPOOPY_VIDEO_CAP_STATE_ALWAYS_ENABLED,
+	SPOOPY_VIDEO_CAP_STATE_UNAVAILABLE,
+} spoopy_video_cap_state_t;
+
+typedef enum spoopy_video_cap {
+	SPOOPY_VIDEO_CAP_FULLSCREEN,
+	SPOOPY_VIDEO_CAP_EXTERNAL_RESIZE,
+} spoopy_video_cap_t;
+
 typedef struct spoopy_video_init_params {
     const char* title;
     int width;
     int height;
 	spoopy_window_flags_t flags;
-	spoopy_aspect_axis_t aspect_axis;
 	spoopy_renderer_t renderer;
 } spoopy_video_init_params_t;
-
-typedef enum spoopy_vsync_mode {
-	SPOOPY_VSYNC_MODE_OFF,
-	SPOOPY_VSYNC_MODE_ON,
-	SPOOPY_VSYNC_MODE_ADAPTIVE,
-	SPOOPY_VSYNC_MODE_MAILBOX
-} spoopy_vsync_mode_t;
 
 typedef enum spoopy_window_id_state {
 	SPOOPY_WINDOW_ID_STATE_INVALID = -1,
 	SPOOPY_WINDOW_ID_STATE_MAIN = 0
 } spoopy_window_id_state_t;
+
+// TODO (Viewport): Implement `spoopy_content_scale_aspect`
 
 #ifdef __cplusplus
 }
