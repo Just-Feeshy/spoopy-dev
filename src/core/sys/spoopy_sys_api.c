@@ -284,6 +284,7 @@ void spoopy_api_video_update_mode(uint32_t window_index) {
 
 	video_update_scaling_factor(width);
 	// TODO (Viewport): Have a `_window_update_viewport` function
+	// TODO (Swapchain): Have `_backend_funcs.framebuffer_update_all` to update framebuffer + swapchain
 }
 
 bool spoopy_api_window_is_fullscreen(void) {

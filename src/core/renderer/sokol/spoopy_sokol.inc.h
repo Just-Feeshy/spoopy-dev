@@ -176,7 +176,7 @@ static inline sg_pixel_format spoopy_sokol_pixel_format(spoopy_pixel_format_t fm
 
 static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	if(!shader || !info) {
-		SPOOPY_LOG_ERROR("Invalid shader init params");
+		SPOOPY_LOG_ERROR("Shading language not supported!");
 		return;
 	}
 

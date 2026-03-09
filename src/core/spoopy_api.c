@@ -28,12 +28,6 @@ void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
 	}
 }
 
-bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
-	(void)transpile_opts;
-	spoopy_renderer_t want = spoopy_graphics_pick_renderer(info.target);
-	return spoopy_graphics_renderer_supported(want);
-}
-
 spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]) {
 	return _backend_funcs.pipeline_link(num_objs, objs);
 }

@@ -37,7 +37,8 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
     };
 
     spoopy_transpile_options_t transpile_opts = {
-        .filename = "<embedded>"
+        .filename = "<embedded>",
+		.compile.optimization_level = SPOOPY_OPTIMIZATION_LEVEL_NONE,
     };
 
     if(!spoopy_api_shader_supported(&transpile_opts, source)) {
@@ -76,6 +77,11 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
 	SPOOPY_LOG_SUCCESS("Shader transpiled successfully: %s", source.entry_point);
 	spoopy_shader_object_t* shader = spoopy_heap_alloc(spoopy_shader_object_size);
 	spoopy_api_shader_init(shader, &new_src);
+
+	if(!shader) {
+		SPOOPY_LOG_ERROR("Failed to compile shader!");
+		return NULL;
+	}
 
     SPOOPY_LOG_SUCCESS("Shader compiled and ready for use: %s", source.entry_point);
     return shader;

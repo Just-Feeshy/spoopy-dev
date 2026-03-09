@@ -13,6 +13,8 @@ typedef struct spoopy_uniform {
 	spoopy_hash_t hash;
 } spoopy_uniform_t;
 
+SPOOPY_VECTOR(spoopy_uniform_vec, spoopy_uniform_t)
+
 #ifdef __cplusplus
 }
 #endif

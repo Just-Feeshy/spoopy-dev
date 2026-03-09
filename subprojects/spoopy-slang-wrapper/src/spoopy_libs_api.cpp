@@ -28,6 +28,7 @@ spoopy_context_t global_context = { };
 namespace {
 
 struct target_profile {
+	spoopy_renderer_t renderer;
 	SlangCompileTarget target;
 	SlangProfileID profile;
 };
@@ -187,12 +188,14 @@ static void log_profile_candidates(
 }
 
 static target_profile pick_target_profile(slang::IGlobalSession* global_session, spoopy_renderer_t renderer_mask) {
-	target_profile out = { SLANG_TARGET_UNKNOWN, SLANG_PROFILE_UNKNOWN };
+	target_profile out = { SPOOPY_RENDERER_API_UNSURE, SLANG_TARGET_UNKNOWN, SLANG_PROFILE_UNKNOWN };
 
 	spoopy_renderer_t renderer = spoopy_graphics_pick_renderer(renderer_mask);
 	if(!spoopy_graphics_renderer_supported(renderer)) {
 		return out;
 	}
+
+	out.renderer = renderer;
 
 	switch(renderer) {
 		case SPOOPY_RENDERER_API_D3D11:
@@ -221,6 +224,62 @@ static target_profile pick_target_profile(slang::IGlobalSession* global_session,
 	}
 
 	return out;
+}
+
+static SlangOptimizationLevel map_optimization_level(spoopy_optimization_level_t level) {
+	switch(level) {
+		case SPOOPY_OPTIMIZATION_LEVEL_NONE:    return SLANG_OPTIMIZATION_LEVEL_NONE;
+		case SPOOPY_OPTIMIZATION_LEVEL_DEFAULT: return SLANG_OPTIMIZATION_LEVEL_DEFAULT;
+		case SPOOPY_OPTIMIZATION_LEVEL_HIGH:    return SLANG_OPTIMIZATION_LEVEL_HIGH;
+		case SPOOPY_OPTIMIZATION_LEVEL_MAXIMAL: return SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+		default:                                return SLANG_OPTIMIZATION_LEVEL_NONE;
+	}
+}
+
+static bool resolve_supported_target(
+	const spoopy_shader_source_t* source,
+	spoopy_transpile_options_t* transpile_opts,
+	target_profile* out_profile
+) {
+	if(!source) {
+		return false;
+	}
+
+	if(!spoopy_global_context_init()) {
+		return false;
+	}
+
+	target_profile profile = pick_target_profile(global_context.global_session.get(), source->target);
+	if(profile.target == SLANG_TARGET_UNKNOWN) {
+		if(transpile_opts) {
+			transpile_opts->compile.renderer = SPOOPY_RENDERER_API_UNSURE;
+			transpile_opts->compile.target = SLANG_TARGET_UNKNOWN;
+			transpile_opts->compile.profile = SLANG_PROFILE_UNKNOWN;
+		}
+		return false;
+	}
+
+	if(profile.profile == SLANG_PROFILE_UNKNOWN) {
+		if(transpile_opts) {
+			transpile_opts->compile.renderer = profile.renderer;
+			transpile_opts->compile.target = profile.target;
+			transpile_opts->compile.profile = SLANG_PROFILE_UNKNOWN;
+		}
+		return false;
+	}
+
+	if(transpile_opts) {
+		transpile_opts->compile.renderer = profile.renderer;
+		transpile_opts->compile.target = profile.target;
+		transpile_opts->compile.profile = profile.profile;
+		transpile_opts->stage = source->stage;
+	}
+
+	if(out_profile) {
+		*out_profile = profile;
+	}
+
+	return true;
 }
 
 static void configure_target_desc(slang::TargetDesc& target_desc, SlangCompileTarget target) {
@@ -912,6 +971,10 @@ void spoopy_shader_cleanup(void) {
 	global_context.global_session = nullptr;
 }
 
+bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
+	return resolve_supported_target(&info, transpile_opts, NULL);
+}
+
 bool spoopy_api_shader_transpile(
 	spoopy_shader_source_t* source,
 	spoopy_shader_source_t* target,
@@ -922,12 +985,8 @@ bool spoopy_api_shader_transpile(
 		return false;
 	}
 
-	if(!spoopy_global_context_init()) {
-		return false;
-	}
-
-	target_profile profile = pick_target_profile(global_context.global_session.get(), source->target);
-	if(profile.target == SLANG_TARGET_UNKNOWN) {
+	target_profile profile = { SPOOPY_RENDERER_API_UNSURE, SLANG_TARGET_UNKNOWN, SLANG_PROFILE_UNKNOWN };
+	if(!resolve_supported_target(source, transpile_opts, &profile)) {
 		SPOOPY_LOG_ERROR("Unsupported renderer target: %u", (unsigned)source->target);
 		return false;
 	}
@@ -938,6 +997,16 @@ bool spoopy_api_shader_transpile(
 	configure_target_desc(target_desc, profile.target);
 
 	tinystl::vector<slang::CompilerOptionEntry> compiler_options;
+	spoopy_optimization_level_t optimization_level = SPOOPY_OPTIMIZATION_LEVEL_NONE;
+	if(transpile_opts) {
+		optimization_level = transpile_opts->compile.optimization_level;
+	}
+
+	add_int_compiler_option(
+		compiler_options,
+		slang::CompilerOptionName::Optimization,
+		(int32_t)map_optimization_level(optimization_level)
+	);
 	add_int_compiler_option(compiler_options, slang::CompilerOptionName::NoMangle, 1);
 
 	if(profile.target != SLANG_METAL) {

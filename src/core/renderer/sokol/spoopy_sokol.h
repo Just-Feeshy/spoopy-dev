@@ -6,6 +6,7 @@
 #include <spoopy_graphics.h>
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
+#include <spoopy_uniform.h>
 
 #if defined(SPOOPY_SOKOL_IMPLEMENTATION)
 #define SOKOL_IMPL
@@ -99,6 +100,7 @@ struct spoopy_pipeline {
 struct spoopy_shader_object {
 	sg_shader_function func;
 	spoopy_shader_stage_t stage;
+	spoopy_uniform_vec_t uniforms;
 	bool owns_source;
 };
 

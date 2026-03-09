@@ -3,6 +3,7 @@
 #include <spoopy.h>
 #include <spoopy_color.h>
 #include <utils/spoopy_geometry.h>
+#include <memory/spoopy_vector.h>
 
 #ifdef __cplusplus
 extern "C" {
