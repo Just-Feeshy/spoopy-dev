@@ -31,8 +31,10 @@ typedef struct spoopy_index_buffer spoopy_index_buffer_t;
 typedef struct spoopy_mesh spoopy_mesh_t;
 typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
-typedef struct spoopy_uniform spoopy_uniform_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
+typedef struct spoopy_uniform spoopy_uniform_t;
+
+typedef uint32_t spoopy_hash_t;
 
 typedef enum spoopy_buffer_type {
 	SPOOPY_BUFFER_TYPE_VERTEX,

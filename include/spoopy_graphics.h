@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef enum {
+typedef enum spoopy_renderer {
     SPOOPY_RENDERER_API_UNSURE = 0u,
     SPOOPY_RENDERER_API_METAL = 1u << 0,
     SPOOPY_RENDERER_API_D3D11 = 1u << 1,

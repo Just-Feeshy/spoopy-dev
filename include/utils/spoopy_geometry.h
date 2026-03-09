@@ -4,10 +4,7 @@
 
 #include <spoopy.h>
 #include <memory/spoopy_memory.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <memory/spoopy_vector.h>
 
 #define SPOOPY_VEC_AND_REC_TYPES(type) \
 	typedef union spoopy_vec2_##type { \
@@ -39,81 +36,15 @@ extern "C" {
 		spoopy_vec2_##type##_t size; \
 	} spoopy_rec_##type##_t;
 
+// Wrapper macro that uses the generic SPOOPY_VECTOR and adds geometry-specific functions
 #define SPOOPY_VEC_FUNCTIONS(type, num) \
-typedef struct spoopy_vec##num##_vec_##type { \
-	size_t size; \
-	size_t capacity; \
-	spoopy_vec##num##_##type##_t vecs[]; \
-} spoopy_vec##num##_vec_##type##_t; \
-static inline spoopy_vec##num##_vec_##type##_t* spoopy_vec##num##_vec_##type##_init(size_t pool_size) { \
-	const size_t real_pool_size = sizeof(spoopy_vec##num##_##type##_t) * pool_size; \
-	spoopy_vec##num##_vec_##type##_t* vector = SPOOPY_FLEX_ALLOC( \
-		spoopy_vec##num##_vec_##type##_t, \
-		real_pool_size, \
-		spoopy_heap \
-	); \
-	vector->capacity = 0; \
-	vector->size = pool_size; \
-	memset(vector->vecs, 0, real_pool_size); \
-	return vector; \
-} \
-static inline void spoopy_vec##num##_vec_##type##_destroy(spoopy_vec##num##_vec_##type##_t* vector) { \
-	if(vector) { \
-		spoopy_heap_free(vector); \
-	} \
-} \
-static inline spoopy_vec##num##_vec_##type##_t* spoopy_vec##num##_vec_##type##_resize(spoopy_vec##num##_vec_##type##_t* vector, size_t new_size) { \
-	const size_t real_new_size = sizeof(spoopy_vec##num##_##type##_t) * new_size; \
-	spoopy_vec##num##_vec_##type##_t* new_vector = spoopy_heap_realloc( \
-		vector, \
-		sizeof(spoopy_vec##num##_vec_##type##_t) + real_new_size \
-	); \
-	if(new_vector) { \
-		if(new_size > new_vector->size) { \
-			const size_t old_size = sizeof(spoopy_vec##num##_##type##_t) * new_vector->size; \
-			memset((uint8_t*)new_vector->vecs + old_size, 0, real_new_size - old_size); \
-		} \
-		new_vector->size = new_size; \
-	} \
-	return new_vector; \
-} \
-static inline void spoopy_vec##num##_vec_##type##_compact(spoopy_vec##num##_vec_##type##_t** vector) { \
-	if(!vector || !*vector) return; \
-	if((*vector)->capacity >= (*vector)->size) return; \
-	spoopy_vec##num##_vec_##type##_t* compacted = spoopy_vec##num##_vec_##type##_resize(*vector, (*vector)->capacity); \
-	if(compacted) { \
-		*vector = compacted; \
-	} \
-} \
-static inline void spoopy_vec##num##_vec_##type##_qsort( \
-		spoopy_vec##num##_vec_##type##_t* vector, \
-		int (*compar)(const void*, const void*)) { \
-	if(!vector || !compar) return; \
-	qsort(vector->vecs, vector->capacity, sizeof(spoopy_vec##num##_##type##_t), compar); \
-} \
-static inline void spoopy_vec##num##_vec_##type##_add( \
-		spoopy_vec##num##_vec_##type##_t** vector, \
-		spoopy_vec##num##_##type##_t value) { \
-	for(size_t i=0; i<(*vector)->capacity; ++i) { \
-		if(memcmp((*vector)->vecs[i].data, value.data, (num) * sizeof(type)) == 0) { \
-			return; \
-		} \
-	} \
-	if((*vector)->capacity >= (*vector)->size) { \
-		const size_t new_size = 8; \
-		spoopy_vec##num##_vec_##type##_t* resized = spoopy_vec##num##_vec_##type##_resize(*vector, new_size); \
-		if(!resized) return; \
-		*vector = resized; \
-	} \
-	(*vector)->vecs[(*vector)->capacity] = value; \
-	(*vector)->capacity++; \
-} \
+SPOOPY_VECTOR(spoopy_vec##num##_vec_##type, spoopy_vec##num##_##type##_t) \
 static inline void spoopy_vec##num##_vec_##type##_add_if_bounded( \
-		spoopy_vec##num##_vec_##type##_t** vector, \
+		spoopy_vec##num##_vec_##type##_t* vector, \
 		spoopy_vec##num##_##type##_t value, \
 		spoopy_vec##num##_##type##_t min, \
 		spoopy_vec##num##_##type##_t max) { \
-	if(!vector || !*vector) return; \
+	if(!vector) return; \
 	bool bound_check = false; \
 	for(uint8_t i=0; i<(num); ++i) { \
 		bound_check |= ((value.data[i] > max.data[i] && max.data[i] > 0) \
@@ -155,6 +86,10 @@ static inline bool spoopy_rec_##type##_equal(spoopy_rec_##type##_t rec1, spoopy_
 		&& rec1.size.w  == rec2.size.w  \
 		&& rec1.size.h  == rec2.size.h; \
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 SPOOPY_VEC_AND_REC_TYPES(float)
 SPOOPY_VEC_AND_REC_TYPES(int)

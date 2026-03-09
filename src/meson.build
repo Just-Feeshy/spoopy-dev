@@ -156,9 +156,6 @@ endif
 
 spoopy_core_src = []
 
-# Add build directory for generated headers (spoopy_system_info.h)
-spoopy_includes += include_directories(meson.current_build_dir())
-
 # subdir('renderer')
 subdir('core')
 # subdir('visuals')

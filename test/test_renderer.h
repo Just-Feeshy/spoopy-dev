@@ -8,7 +8,7 @@
 
 static EventHandler* handler_ptr = NULL;
 
-static void test_init(void) {
+SPOOPY_ATTR_UNUSED static void test_init(void) {
     SPOOPY_LOG_INFO("Test Renderer Initialized");
 
 	spoopy_memory_init_hooks();

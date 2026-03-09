@@ -6,9 +6,11 @@
 #if SPOOPY_HAS_INCLUDE("spoopy_system_info.h")
 #include "spoopy_system_info.h"
 #endif
+
 static struct {
+	spoopy_vec2_vec_int_t fs_modes;
+
 	// Pointers (Assuming 8 bytes)
-	spoopy_vec2_vec_int_t* fs_modes;
 	SDL_Mutex* display_mutex;
 	SDL_DisplayID* cached_displays;
 	SDL_Window* primary_window; // TODO (Multi-Window): Keep this
@@ -48,7 +50,7 @@ SPOOPY_ATTR_UNUSED static inline spoopy_vec2_int_t coords_pixels_to_screen(spoop
 	return screen_ofs;
 }
 
-static void video_add_mode_dpi_aware(spoopy_vec2_vec_int_t** vec_vec, spoopy_vec2_int_t screen, spoopy_vec2_int_t min_screen, spoopy_vec2_int_t max_screen) {
+static void video_add_mode_dpi_aware(spoopy_vec2_vec_int_t* vec_vec, spoopy_vec2_int_t screen, spoopy_vec2_int_t min_screen, spoopy_vec2_int_t max_screen) {
 	spoopy_vec2_int_t pix_screen = coords_pixels_to_screen(screen);
 
 	// The explaination provided makes sense:
@@ -97,10 +99,6 @@ static spoopy_vec2_int_t video_get_screen_framebuffer_size(void) {
 	return size;
 }
 
-static void video_set_viewport(void) {
-	spoopy_rec_int_t vp;
-}
-
 // TODO (Mutli-Window): We need a window index..
 // TODO (Events): Have a update mode lists event for Spoopy
 static void video_update_mode_lists(void) {
@@ -108,7 +106,7 @@ static void video_update_mode_lists(void) {
 
 	SDL_LockMutex(app.display_mutex);
 
-	spoopy_vec2_vec_int_resize(app.fs_modes, 16);
+	spoopy_vec2_vec_int_resize(&app.fs_modes, 16);
 
 	spoopy_vec2_int_t screenspace_min_size = (spoopy_vec2_int_t) { 0 };
 	SDL_GetWindowMinimumSize(app.primary_window, &screenspace_min_size.x, &screenspace_min_size.y);
@@ -154,7 +152,7 @@ static void video_update_mode_lists(void) {
 	}
 
 	spoopy_vec2_vec_int_compact(&app.fs_modes);
-	spoopy_vec2_vec_int_qsort(app.fs_modes, video_compare_vec2);
+	spoopy_vec2_vec_int_qsort(&app.fs_modes, video_compare_vec2);
 
 	if(!fullscreen_available) {
 		SPOOPY_LOG_WARN("No available fullscreen modes");
@@ -310,7 +308,7 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 
 	app.initialized = true;
 	app.display_mutex = SDL_CreateMutex();
-	app.fs_modes = spoopy_vec2_vec_int_init(16);
+	spoopy_vec2_vec_int_init(&app.fs_modes, 16);
 
 	app.scaling_factor = 0;
 
@@ -366,7 +364,7 @@ void spoopy_api_video_shutdown(void) {
 	app.cached_display_count = 0;
 	SDL_UnlockMutex(app.display_mutex);
 
-	spoopy_vec2_vec_int_destroy(app.fs_modes);
+	spoopy_vec2_vec_int_destroy(&app.fs_modes);
 	SDL_DestroyMutex(app.display_mutex);
 	spoopy_heap_free(app.graphics);
 	SDL_SetAtomicInt(&app.should_quit, 0);

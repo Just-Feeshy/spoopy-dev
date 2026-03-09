@@ -6,6 +6,7 @@
 #include <spoopy.h>
 #include <utils/spoopy_misc_math.h>
 #include <memory/spoopy_memory.h>
+#include <memory/spoopy_vector.h>
 #include <format/spoopy_fileformats.h>
 #include <spoopy_shader.h>
 #include <spoopy_thread.h>

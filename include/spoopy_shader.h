@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spoopy.h>
 #include <spoopy_graphics.h>
 
 #ifdef __cplusplus
