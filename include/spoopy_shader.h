@@ -9,6 +9,7 @@ extern "C" {
 
 typedef struct spoopy_shader_lang spoopy_shader_lang_t;
 typedef struct spoopy_shader_object spoopy_shader_object_t;
+typedef struct spoopy_shader_reflection spoopy_shader_reflection_t;
 typedef struct spoopy_context spoopy_context_t;
 
 typedef enum spoopy_optimization_level {
@@ -40,9 +41,10 @@ typedef struct spoopy_transpile_options {
 
 typedef struct spoopy_shader_source {
     const char* content;
-	size_t content_size;
+	const spoopy_shader_reflection_t* reflection;
     const char* entry_point;
     const char* module_name; // Optional, can be NULL
+	size_t content_size;
 	spoopy_shader_stage_t stage;
 	spoopy_renderer_t target;
 } spoopy_shader_source_t;

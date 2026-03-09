@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+
 typedef struct spoopy_uniform {
 	const char* name;
 	spoopy_hash_t hash;
