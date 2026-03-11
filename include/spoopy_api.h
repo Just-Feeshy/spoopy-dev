@@ -9,6 +9,7 @@
 #include <memory/spoopy_arena.h>
 #include <memory/spoopy_vector.h>
 #include <format/spoopy_fileformats.h>
+#include <scene/3d/spoopy_camera_3d.h>
 #include <spoopy_shader.h>
 #include <spoopy_thread.h>
 #include <spoopy_log.h>

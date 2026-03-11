@@ -4,83 +4,87 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+typedef struct vertex_3d {
+	float pos[3];
+	float uv[2];
+	float normal[3];
+} vertex_3d_t;
+
 int main(int argc, char** argv) {
 	test_init();
 
-	const char* shader_vert = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
+	const char* shader_vert =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"struct VertexInput\n"
+		"{\n"
+		"	float3 a_pos : POSITION;\n"
+		"	float2 a_uv : TEXCOORD0;\n"
+		"	float3 a_normal : NORMAL;\n"
+		"};\n"
+		"\n"
+		"struct VertexOutput\n"
+		"{\n"
+		"	float4 v_position : SV_POSITION;\n"
+		"	float2 v_uv : TEXCOORD0;\n"
+		"	float3 v_normal : TEXCOORD1;\n"
+		"	float3 v_fragPos : TEXCOORD2;\n"
+		"};\n"
+		"\n"
+		"uniform float4x4 u_modelViewProjection;\n"
+		"uniform float4x4 u_projectionMatrix;\n"
+		"\n"
+		"[shader(\"vertex\")]\n"
+		"VertexOutput vertexMain(VertexInput input)\n"
+		"{\n"
+		"	VertexOutput output;\n"
+		"\n"
+		"	float4 posMV = mul(u_modelViewProjection, float4(input.a_pos, 1.0));\n"
+		"	output.v_position = mul(u_projectionMatrix, posMV);\n"
+		"\n"
+		"	output.v_fragPos = posMV.xyz;\n"
+		"	output.v_uv = input.a_uv;\n"
+		"\n"
+		"	float3x3 mv3 = (float3x3)u_modelViewProjection;\n"
+		"	float3x3 normalMatrix = transpose(inverse(mv3));\n"
+		"	output.v_normal = mul(normalMatrix, input.a_normal);\n"
+		"\n"
+		"	return output;\n"
+		"}\n";
 
-		struct VertexInput
-		{
-			float3 a_pos : POSITION;
-			float2 a_uv : TEXCOORD0;
-			float3 a_normal : NORMAL;
-		};
-
-		struct VertexOutput
-		{
-			float4 v_position : SV_POSITION;
-			float2 v_uv : TEXCOORD0;
-			float3 v_normal : TEXCOORD1;
-			float3 v_fragPos : TEXCOORD2;
-		};
-
-		uniform float4x4 u_modelViewProjection;
-		uniform float4x4 u_projectionMatrix;
-
-		[shader("vertex")]
-		VertexOutput vertexMain(VertexInput input)
-		{
-			VertexOutput output;
-
-			float4 posMV = mul(u_modelViewProjection, float4(input.a_pos, 1.0));
-			output.v_position = mul(u_projectionMatrix, posMV);
-
-			output.v_fragPos = posMV.xyz;
-			output.v_uv = input.a_uv;
-
-			float3x3 mv3 = (float3x3)u_modelViewProjection;
-			float3x3 normalMatrix = transpose(inverse(mv3));
-			output.v_normal = mul(normalMatrix, input.a_normal);
-
-			return output;
-		}
-	)";
-
-	const char* shader_frag = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
-
-		struct VertexOutput {
-			float4 v_position : SV_POSITION;
-			float2 v_uv : TEXCOORD0;
-			float3 v_normal : TEXCOORD1;
-			float3 v_fragPos : TEXCOORD2;
-		};
-
-		texture2D tex0;
-		sampler samp0;
-
-		uniform float4 u_lightPos;
-		uniform float4 u_viewPos;
-
-		[shader("fragment")]
-		float4 fragmentMain(VertexOutput input) : SV_Target {
-			float3 tex = tex0.Sample(samp0, input.v_uv).xyz;
-			float3 obj_color = (0.5 + 0.5 * float3(input.v_uv, 0.0)) * tex;
-
-			float3 norm = normalize(input.v_normal);
-			float3 lightDir = normalize(u_lightPos.xyz - input.v_fragPos);
-
-			float ndotl = max(dot(norm, lightDir), 0.0);
-			float3 diffuse = (0.1 + ndotl * u_lightPos.xyz) * obj_color;
-
-			return float4(diffuse, 1.0);
-		}
-)";
+	const char* shader_frag =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"struct VertexOutput {\n"
+		"	float4 v_position : SV_POSITION;\n"
+		"	float2 v_uv : TEXCOORD0;\n"
+		"	float3 v_normal : TEXCOORD1;\n"
+		"	float3 v_fragPos : TEXCOORD2;\n"
+		"};\n"
+		"\n"
+		"texture2D tex0;\n"
+		"sampler samp0;\n"
+		"\n"
+		"uniform float4 u_lightPos;\n"
+		"uniform float4 u_viewPos;\n"
+		"\n"
+		"[shader(\"fragment\")]\n"
+		"float4 fragmentMain(VertexOutput input) : SV_Target {\n"
+		"	float3 tex = tex0.Sample(samp0, input.v_uv).xyz;\n"
+		"	float3 obj_color = (0.5 + 0.5 * float3(input.v_uv, 0.0)) * tex;\n"
+		"\n"
+		"	float3 norm = normalize(input.v_normal);\n"
+		"	float3 lightDir = normalize(u_lightPos.xyz - input.v_fragPos);\n"
+		"\n"
+		"	float ndotl = max(dot(norm, lightDir), 0.0);\n"
+		"	float3 diffuse = (0.1 + ndotl * u_lightPos.xyz) * obj_color;\n"
+		"\n"
+		"	return float4(diffuse, 1.0);\n"
+		"}\n";
 
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
@@ -94,7 +98,8 @@ int main(int argc, char** argv) {
 
 	spoopy_api_pipeline_compile(pipeline, 3, vertex_spec, 0);
 
-	spoopy_vertex_buffer_t vbuf = {0};
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
+	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
 
 	spoopy_mesh_t mesh = {
 		.vertex_buffers = NULL,
@@ -103,7 +108,7 @@ int main(int argc, char** argv) {
 	};
 
 	{
-		vertex3d_t vertices[] = {
+		vertex_3d_t vertices[] = {
 			{ { -1.f,-1.f, 1.f }, { 0.f,0.f }, { 0.f, 0.f, 1.f } },
 			{ {  1.f,-1.f, 1.f }, { 1.f,0.f }, { 0.f, 0.f, 1.f } },
 			{ {  1.f, 1.f, 1.f }, { 1.f,1.f }, { 0.f, 0.f, 1.f } },
@@ -145,11 +150,10 @@ int main(int argc, char** argv) {
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
-		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0);
-		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+		spoopy_api_vertex_buffer_create(vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0);
 		spoopy_api_index_buffer_create(ibuf, ARRAY_SIZE(indices), indices);
 
-		mesh.vertex_buffers = &vbuf;
+		mesh.vertex_buffers = vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = (uint32_t)ARRAY_SIZE(indices);
 		mesh.vertex_count = 1;
