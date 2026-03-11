@@ -30,11 +30,18 @@ typedef struct spoopy_shader_macro {
     const char* value;
 } spoopy_shader_macro_t;
 
+typedef struct spoopy_shader_compile_options {
+	spoopy_renderer_t renderer;
+	spoopy_optimization_level_t optimization_level;
+	uint32_t target;
+	uint32_t profile;
+} spoopy_shader_compile_options_t;
+
 typedef struct spoopy_transpile_options {
     spoopy_shader_macro_t* macros;
 	size_t macro_count;
     const char* filename;
-    // spoopy_optimization_level_t optimization_level;
+	spoopy_shader_compile_options_t compile;
     spoopy_shader_stage_t stage;
 	uint8_t flags;
 } spoopy_transpile_options_t;
@@ -54,6 +61,7 @@ extern const size_t spoopy_shader_object_size;
 
 bool spoopy_global_context_init(void);
 void spoopy_shader_cleanup(void);
+void spoopy_shader_source_cleanup(spoopy_shader_source_t* source);
 
 #ifdef __cplusplus
 }

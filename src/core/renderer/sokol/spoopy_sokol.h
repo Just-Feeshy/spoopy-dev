@@ -6,6 +6,8 @@
 #include <spoopy_graphics.h>
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
+#include <memory/spoopy_arena.h>
+#include <spoopy_uniform.h>
 
 #if defined(SPOOPY_SOKOL_IMPLEMENTATION)
 #define SOKOL_IMPL
@@ -15,15 +17,12 @@
 
 #define SOKOL_DEBUG
 
-#if (defined(SPOOPY_RENDERER_METAL) + defined(SPOOPY_RENDERER_D3D11) + defined(SPOOPY_RENDERER_WGPU)) == 0
+#if (defined(SPOOPY_RENDERER_METAL) + defined(SPOOPY_RENDERER_WGPU)) == 0
 #error "No SPOOPY_RENDERER_* backend defined for Sokol."
 #endif
 
 #if defined(SPOOPY_RENDERER_METAL)
 #define SOKOL_METAL
-#endif
-#if defined(SPOOPY_RENDERER_D3D11)
-#define SOKOL_D3D11
 #endif
 #if defined(SPOOPY_RENDERER_WGPU)
 #define SOKOL_WGPU
@@ -91,15 +90,31 @@ struct spoopy_index_buffer {
 };
 
 struct spoopy_pipeline {
+	struct {
+		spoopy_shader_object_t *vertex;
+		spoopy_shader_object_t *fragment;
+	} stages;
+
+	spoopy_mem_arena_t arena;
+	spoopy_uniform_ht_t uniforms;
 	sg_shader shader;
 	sg_pipeline pipeline;
 	sg_bindings bindings;
 };
 
 struct spoopy_shader_object {
+	spoopy_mem_arena_t arena;
 	sg_shader_function func;
+
+	struct {
+		uint8_t* data;
+		uint16_t size;
+		uint16_t binding;
+		uint8_t slot;
+	} uniform_buffer;
+
 	spoopy_shader_stage_t stage;
-	bool owns_source;
+	spoopy_uniform_vec_t uniforms;
 };
 
 struct spoopy_texture {

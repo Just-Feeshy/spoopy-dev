@@ -93,8 +93,6 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 3, vertex_spec, 0);
-	spoopy_api_shader_destroy(vert_obj);
-	spoopy_api_shader_destroy(frag_obj);
 
 	spoopy_vertex_buffer_t vbuf = {0};
 
@@ -147,7 +145,7 @@ int main(int argc, char** argv) {
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
-		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0, pipeline);
+		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0);
 		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
 		spoopy_api_index_buffer_create(ibuf, ARRAY_SIZE(indices), indices);
 
@@ -157,7 +155,6 @@ int main(int argc, char** argv) {
 		mesh.vertex_count = 1;
 	}
 
-	uint32_t u_tex = spoopy_api_get_bind_slot("tex0");
 	spoopy_uniform_t* u_lightPos = spoopy_api_shader_uniform(pipeline, "u_lightPos");
 	spoopy_uniform_t* u_viewPos = spoopy_api_shader_uniform(pipeline, "u_viewPos");
 

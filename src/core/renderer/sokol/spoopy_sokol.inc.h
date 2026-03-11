@@ -1,5 +1,6 @@
 #include <spoopy_api.h>
 #include <spoopy_backend.h>
+#include <spoopy_reflect.h>
 #include <spoopy_image.h>
 #include <utils/assert.h>
 
@@ -174,33 +175,400 @@ static inline sg_pixel_format spoopy_sokol_pixel_format(spoopy_pixel_format_t fm
 	return SG_PIXELFORMAT_NONE;
 }
 
-static void spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
-	if(!shader || !info) {
-		SPOOPY_LOG_ERROR("Invalid shader init params");
+static inline bool spoopy_sokol_uniform_is_sampler(spoopy_uniform_type_t type) {
+	return type == SPOOPY_UNIFORM_SAMPLER_2D || type == SPOOPY_UNIFORM_SAMPLER_CUBE;
+}
+
+static inline size_t spoopy_sokol_base_type_size(spoopy_shader_base_type_t base_type) {
+	switch(base_type) {
+		case SPOOPY_SHADER_BASE_TYPE_BOOLEAN:
+		case SPOOPY_SHADER_BASE_TYPE_INT32:
+		case SPOOPY_SHADER_BASE_TYPE_UINT32:
+		case SPOOPY_SHADER_BASE_TYPE_FP32:
+			return 4;
+		case SPOOPY_SHADER_BASE_TYPE_INT16:
+		case SPOOPY_SHADER_BASE_TYPE_UINT16:
+		case SPOOPY_SHADER_BASE_TYPE_FP16:
+			return 2;
+		case SPOOPY_SHADER_BASE_TYPE_INT8:
+		case SPOOPY_SHADER_BASE_TYPE_UINT8:
+			return 1;
+		case SPOOPY_SHADER_BASE_TYPE_INT64:
+		case SPOOPY_SHADER_BASE_TYPE_UINT64:
+		case SPOOPY_SHADER_BASE_TYPE_FP64:
+			return 8;
+		default:
+			return 0;
+	}
+}
+
+static inline spoopy_uniform_type_t spoopy_sokol_uniform_type_from_data_type(const spoopy_data_type_t* type) {
+	if(!type) {
+		return SPOOPY_UNIFORM_UNKNOWN;
+	}
+
+	if(type->matrix_columns == 3 && type->vector_size == 3) {
+		return SPOOPY_UNIFORM_MAT3;
+	}
+
+	if(type->matrix_columns == 4 && type->vector_size == 4) {
+		return SPOOPY_UNIFORM_MAT4;
+	}
+
+	const bool is_float =
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_FP16 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_FP32 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_FP64;
+	const bool is_int =
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_BOOLEAN ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_INT8 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_UINT8 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_INT16 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_UINT16 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_INT32 ||
+		type->base_type == SPOOPY_SHADER_BASE_TYPE_UINT32;
+
+	if(is_float) {
+		switch(type->vector_size) {
+			case 1: return SPOOPY_UNIFORM_FLOAT;
+			case 2: return SPOOPY_UNIFORM_VEC2;
+			case 3: return SPOOPY_UNIFORM_VEC3;
+			case 4: return SPOOPY_UNIFORM_VEC4;
+			default: return SPOOPY_UNIFORM_UNKNOWN;
+		}
+	}
+
+	if(is_int) {
+		switch(type->vector_size) {
+			case 1: return SPOOPY_UNIFORM_INT;
+			case 2: return SPOOPY_UNIFORM_IVEC2;
+			case 3: return SPOOPY_UNIFORM_IVEC3;
+			case 4: return SPOOPY_UNIFORM_IVEC4;
+			default: return SPOOPY_UNIFORM_UNKNOWN;
+		}
+	}
+
+	return SPOOPY_UNIFORM_UNKNOWN;
+}
+
+static inline spoopy_uniform_type_t spoopy_sokol_uniform_type_from_sampler_type(const ShaderSamplerType* type) {
+	if(!type) {
+		return SPOOPY_UNIFORM_UNKNOWN;
+	}
+
+	if(type->flags & (SHADER_SAMPLER_DEPTH | SHADER_SAMPLER_ARRAYED | SHADER_SAMPLER_MULTISAMPLED)) {
+		return SPOOPY_UNIFORM_UNKNOWN;
+	}
+
+	switch(type->dim) {
+		case SPOOPY_SHADER_SAMPLER_DIM_2D:
+			return SPOOPY_UNIFORM_SAMPLER_2D;
+		case SPOOPY_SHADER_SAMPLER_DIM_CUBE:
+			return SPOOPY_UNIFORM_SAMPLER_CUBE;
+		default:
+			return SPOOPY_UNIFORM_UNKNOWN;
+	}
+}
+
+static inline sg_image_type spoopy_sokol_image_type_from_sampler_type(const ShaderSamplerType* type) {
+	if(type && type->dim == SPOOPY_SHADER_SAMPLER_DIM_CUBE) {
+		return SG_IMAGETYPE_CUBE;
+	}
+
+	return SG_IMAGETYPE_2D;
+}
+
+static inline sg_image_sample_type spoopy_sokol_sample_type_from_sampler_type(const ShaderSamplerType* type) {
+	if(type && (type->flags & SHADER_SAMPLER_DEPTH)) {
+		return SG_IMAGESAMPLETYPE_DEPTH;
+	}
+
+	return SG_IMAGESAMPLETYPE_FLOAT;
+}
+
+static inline sg_sampler_type spoopy_sokol_sampler_type_from_sampler_type(const ShaderSamplerType* type) {
+	if(type && (type->flags & SHADER_SAMPLER_DEPTH)) {
+		return SG_SAMPLERTYPE_COMPARISON;
+	}
+
+	return SG_SAMPLERTYPE_FILTERING;
+}
+
+static inline bool spoopy_sokol_bindslot_set_texture_view(sg_shader_texture_view* view, uint16_t binding) {
+#if defined(SPOOPY_RENDERER_METAL)
+	view->msl_texture_n = (uint8_t)binding;
+	return true;
+#elif defined(SPOOPY_RENDERER_WGPU)
+	view->wgsl_group1_binding_n = (uint8_t)binding;
+	return true;
+#else
+	(void)view;
+	(void)binding;
+	SPOOPY_LOG_ERROR("Reflection-driven texture bindings are only implemented for Metal and WGPU.");
+	return false;
+#endif
+}
+
+static inline bool spoopy_sokol_bindslot_set_sampler(sg_shader_sampler* sampler, uint16_t binding) {
+#if defined(SPOOPY_RENDERER_METAL)
+	sampler->msl_sampler_n = (uint8_t)binding;
+	return true;
+#elif defined(SPOOPY_RENDERER_WGPU)
+	sampler->wgsl_group1_binding_n = (uint8_t)binding;
+	return true;
+#else
+	(void)sampler;
+	(void)binding;
+	SPOOPY_LOG_ERROR("Reflection-driven sampler bindings are only implemented for Metal and WGPU.");
+	return false;
+#endif
+}
+
+static inline bool spoopy_sokol_bindslot_set_uniform_block(sg_shader_uniform_block* block, uint16_t binding) {
+#if defined(SPOOPY_RENDERER_METAL)
+	block->msl_buffer_n = (uint8_t)binding;
+	return true;
+#elif defined(SPOOPY_RENDERER_WGPU)
+	block->wgsl_group0_binding_n = (uint8_t)binding;
+	return true;
+#else
+	(void)block;
+	(void)binding;
+	SPOOPY_LOG_ERROR("Reflection-driven uniform bindings are only implemented for Metal and WGPU.");
+	return false;
+#endif
+}
+
+static inline bool spoopy_sokol_texture_set_binding_indices(spoopy_texture_t* tex, uint16_t view_binding, uint16_t sampler_binding) {
+	if(!tex) {
+		return false;
+	}
+
+	return spoopy_sokol_bindslot_set_texture_view(&tex->texture_view, view_binding) &&
+		spoopy_sokol_bindslot_set_sampler(&tex->sampler, sampler_binding);
+}
+
+static bool spoopy_shader_object_init_uniforms(spoopy_shader_object_t* shader, const spoopy_shader_reflection_t* reflection) {
+	size_t uniform_count = 0;
+	spoopy_uniform_t* texture_uniforms[reflection ? reflection->num_samplers : 1];
+	uint16_t sampler_bindings[reflection ? reflection->num_samplers : 1];
+	uint16_t texture_count = 0;
+	uint16_t sampler_count = 0;
+	const spoopy_shader_block_t* selected_block = NULL;
+
+	if(!reflection) {
+		return false;
+	}
+
+	for(uint16_t i = 0; i < reflection->num_uniform_buffers; ++i) {
+		selected_block = &reflection->uniform_buffers[i];
+		uniform_count += selected_block->num_fields;
+		break;
+	}
+
+	for(uint16_t i = 0; i < reflection->num_samplers; ++i) {
+		if(spoopy_sokol_uniform_type_from_sampler_type(&reflection->samplers[i].type) != SPOOPY_UNIFORM_UNKNOWN) {
+			++uniform_count;
+		}
+	}
+
+	spoopy_uniform_vec_init(&shader->uniforms, uniform_count ? uniform_count : 1);
+
+	if(selected_block) {
+		const spoopy_shader_block_t* block = selected_block;
+
+		shader->uniform_buffer.data = spoopy_heap_alloc(block->size ? block->size : 1);
+		if(!shader->uniform_buffer.data) {
+			SPOOPY_LOG_ERROR("Failed to allocate uniform buffer of %u bytes", block->size);
+			return false;
+		}
+
+		memset(shader->uniform_buffer.data, 0, block->size);
+		shader->uniform_buffer.size = block->size;
+		shader->uniform_buffer.binding = block->binding;
+		shader->uniform_buffer.slot = (shader->stage == SPOOPY_STAGE_VERTEX) ? 0 : 1;
+
+		for(uint16_t j = 0; j < block->num_fields; ++j) {
+			const spoopy_shader_struct_field_t* field = &block->fields[j];
+			const spoopy_uniform_type_t uniform_type = spoopy_sokol_uniform_type_from_data_type(&field->type);
+
+			if(uniform_type == SPOOPY_UNIFORM_UNKNOWN || !field->name) {
+				continue;
+			}
+
+			spoopy_uniform_vec_add(&shader->uniforms, ((spoopy_uniform_t) {
+				.name = spoopy_arena_strdup(&shader->arena, field->name),
+				.hash = 0,
+				.type = uniform_type,
+				.buffer_backed = {
+					.data = shader->uniform_buffer.data,
+					.offset = field->offset,
+					.data_type = field->type,
+				},
+			}));
+		}
+	}
+
+	for(uint16_t i = 1; i < reflection->num_uniform_buffers; ++i) {
+		const spoopy_shader_block_t* block = &reflection->uniform_buffers[i];
+		SPOOPY_LOG_WARN("Ignoring extra uniform block '%s' on stage %d",
+			block->name ? block->name : "(unnamed)",
+			shader->stage);
+	}
+
+	for(uint16_t i = 0; i < reflection->num_samplers; ++i) {
+		const spoopy_shader_sampler_t* sampler = &reflection->samplers[i];
+		const spoopy_uniform_type_t uniform_type = spoopy_sokol_uniform_type_from_sampler_type(&sampler->type);
+
+		if(uniform_type != SPOOPY_UNIFORM_UNKNOWN) {
+			spoopy_uniform_vec_add(&shader->uniforms, ((spoopy_uniform_t) {
+				.name = spoopy_arena_strdup(&shader->arena, sampler->name),
+				.hash = 0,
+				.type = uniform_type,
+				.sampler = {
+					.binding = sampler->binding,
+					.paired_binding = UINT16_MAX,
+					.sampler_type = sampler->type,
+				},
+			}));
+
+			texture_uniforms[texture_count++] = &shader->uniforms.data[shader->uniforms.capacity - 1];
+			continue;
+		}
+
+		if(sampler->type.dim == SPOOPY_SHADER_SAMPLER_DIM_UNKNOWN && sampler_count < reflection->num_samplers) {
+			sampler_bindings[sampler_count++] = sampler->binding;
+		}
+	}
+
+	const uint16_t pair_count = texture_count < sampler_count ? texture_count : sampler_count;
+	for(uint16_t i = 0; i < pair_count; ++i) {
+		texture_uniforms[i]->sampler.paired_binding = sampler_bindings[i];
+	}
+
+	if(texture_count != sampler_count) {
+		SPOOPY_LOG_WARN("Stage %d has %u texture bindings and %u sampler bindings; pairing %u",
+			shader->stage,
+			texture_count,
+			sampler_count,
+			pair_count);
+	}
+
+	return true;
+}
+
+static void spoopy_sokol_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
+	if(!shader) {
+		SPOOPY_LOG_WARN("`shader` provided was (null)!");
 		return;
+	}
+
+	(void)must_free;
+	spoopy_uniform_vec_destroy(&shader->uniforms);
+
+	if(shader->uniform_buffer.data) {
+		spoopy_heap_free(shader->uniform_buffer.data);
+		shader->uniform_buffer.data = NULL;
+	}
+
+	if(shader->arena.pages.begin_page) {
+		spoopy_arena_deinit(&shader->arena);
+	}
+}
+
+static bool spoopy_sokol_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+	char* source_copy = NULL;
+	char* entry_copy = NULL;
+
+	if(SPOOPY_UNLIKELY(!spoopy_api_shader_supported(info, NULL))) {
+		SPOOPY_LOG_ERROR("Shading language not supported!");
+		return false;
+	}
+
+	const spoopy_shader_reflection_t* reflection = info->reflection;
+
+	if(!reflection) {
+		SPOOPY_LOG_ERROR("Shader has no reflection data!");
+		return false;
 	}
 
 	*shader = (spoopy_shader_object_t){0};
 	shader->stage = info->stage;
 
-	if(info->content) {
-		size_t src_len = info->content_size > 0 ? info->content_size : strlen(info->content);
-		char* copy = spoopy_heap_strndup(info->content, src_len);
-		if(!copy) {
-			SPOOPY_LOG_ERROR("Out of memory copying shader source");
-			return;
-		}
-
-		shader->func.source = copy;
-		shader->owns_source = true;
-	}
-	shader->func.entry = info->entry_point;
-
 	const spoopy_renderer_t renderer = spoopy_graphics_pick_renderer(info->target);
 	if(!spoopy_graphics_renderer_is_single(renderer)) {
 		SPOOPY_LOG_ERROR("Cannot support multiple renderers!");
+		return false;
+	}
+
+	size_t src_len = info->content_size > 0 ? info->content_size : strlen(info->content);
+	size_t entry_len = strlen(info->entry_point);
+	spoopy_arena_init(&shader->arena, (src_len + entry_len + 2));
+	if(info->content) {
+		source_copy = spoopy_arena_alloc(&shader->arena, src_len + 1);
+		if(!source_copy) {
+			SPOOPY_LOG_ERROR("Out of memory copying shader source");
+			goto fail;
+		}
+
+		memcpy(source_copy, info->content, src_len);
+		source_copy[src_len] = '\0';
+		shader->func.source = source_copy;
+	}
+
+	if(info->entry_point) {
+		entry_copy = spoopy_arena_alloc(&shader->arena, entry_len + 1);
+		if(!entry_copy) {
+			SPOOPY_LOG_ERROR("Out of memory copying shader entry point");
+			goto fail;
+		}
+
+		memcpy(entry_copy, info->entry_point, entry_len + 1);
+		shader->func.entry = entry_copy;
+	}
+
+	if(!spoopy_shader_object_init_uniforms(shader, reflection)) {
+		goto fail;
+	}
+
+	return true;
+
+fail:
+	spoopy_sokol_shader_destroy(shader, true);
+	*shader = (spoopy_shader_object_t){0};
+	return false;
+}
+
+static void spoopy_sokol_pipeline_free_allocations(spoopy_pipeline_t* pipeline) {
+	if(!pipeline) {
 		return;
 	}
+
+	if(pipeline->arena.pages.begin_page) {
+		spoopy_arena_deinit(&pipeline->arena);
+	}
+
+	*pipeline = (spoopy_pipeline_t){0};
+}
+
+static size_t spoopy_sokol_pipeline_arena_size(uint32_t num_objs, spoopy_shader_object_t* objs[], size_t total_uniforms) {
+	size_t size = spoopy_uniform_ht_capacity(total_uniforms) * sizeof(spoopy_uniform_ht_entry_t);
+
+	for(uint32_t i = 0; i < num_objs; ++i) {
+		const spoopy_shader_object_t* obj = objs[i];
+		if(!obj) {
+			continue;
+		}
+
+		for(size_t j = 0; j < obj->uniforms.capacity; ++j) {
+			const spoopy_uniform_t* uniform = &obj->uniforms.data[j];
+			if(uniform->name) {
+				size += strlen(uniform->name) + 1;
+			}
+		}
+	}
+
+	return spoopy_max(size, (size_t)256);
 }
 
 static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]) {
@@ -209,13 +577,29 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 		return NULL;
 	}
 
+	size_t total_uniforms = 0;
+	for(uint32_t i = 0; i < num_objs; ++i) {
+		if(objs[i]) {
+			total_uniforms += objs[i]->uniforms.capacity;
+		}
+	}
+
 	sg_shader_desc desc = {0};
 	bool has_vertex = false;
 	bool has_fragment = false;
-	bool has_fragment_texture_binding = false;
+	uint32_t num_pairs = 0;
+
+	spoopy_pipeline_t* pipeline = spoopy_heap_alloc(sizeof(*pipeline));
+	assert(pipeline);
+	*pipeline = (spoopy_pipeline_t){0};
+	spoopy_arena_init(&pipeline->arena, spoopy_sokol_pipeline_arena_size(num_objs, objs, total_uniforms));
+	if(!spoopy_uniform_ht_init(&pipeline->uniforms, &pipeline->arena, total_uniforms)) {
+		goto fail;
+	}
 
 	for(uint32_t i=0; i<num_objs; i++) {
 		spoopy_shader_object_t* obj = objs[i];
+		const sg_shader_stage stage = spoopy_stage_to_sg(obj ? obj->stage : SPOOPY_STAGE_INVALID);
 
 		if(!obj) {
 			continue;
@@ -223,6 +607,7 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 
 		switch(obj->stage) {
 			case SPOOPY_STAGE_VERTEX:
+				pipeline->stages.vertex = obj;
 				desc.vertex_func = obj->func;
 				has_vertex = true;
 				SPOOPY_LOG_INFO("Vertex shader entry: '%s', source len: %zu",
@@ -230,11 +615,8 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 					obj->func.source ? strlen(obj->func.source) : 0);
 				break;
 			case SPOOPY_STAGE_FRAGMENT:
+				pipeline->stages.fragment = obj;
 				desc.fragment_func = obj->func;
-				has_fragment_texture_binding =
-					obj->func.source != NULL &&
-					strstr(obj->func.source, "tex0") != NULL &&
-					strstr(obj->func.source, "samp0") != NULL;
 				has_fragment = true;
 				SPOOPY_LOG_INFO("Fragment shader entry: '%s', source len: %zu",
 					obj->func.entry ? obj->func.entry : "(null)",
@@ -244,54 +626,86 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 				SPOOPY_LOG_WARN("Unsupported shader stage: %d", obj->stage);
 				break;
 		}
+
+		if(obj->uniform_buffer.data && obj->uniform_buffer.size) {
+			sg_shader_uniform_block* block = &desc.uniform_blocks[obj->uniform_buffer.slot];
+			*block = (sg_shader_uniform_block) {
+				.stage = stage,
+				.size = obj->uniform_buffer.size,
+				.layout = SG_UNIFORMLAYOUT_NATIVE,
+			};
+
+			if(!spoopy_sokol_bindslot_set_uniform_block(block, obj->uniform_buffer.binding)) {
+				goto fail;
+			}
+		}
+
+		for(size_t j = 0; j < obj->uniforms.capacity; ++j) {
+			const spoopy_uniform_t* uniform = &obj->uniforms.data[j];
+
+			if(spoopy_sokol_uniform_is_sampler(uniform->type)) {
+				if(uniform->sampler.paired_binding == UINT16_MAX) {
+					SPOOPY_LOG_WARN("Texture uniform '%s' has no paired sampler binding", uniform->name);
+					continue;
+				}
+
+				if(uniform->sampler.binding >= SG_MAX_VIEW_BINDSLOTS ||
+				   uniform->sampler.paired_binding >= SG_MAX_SAMPLER_BINDSLOTS ||
+				   num_pairs >= SG_MAX_TEXTURE_SAMPLER_PAIRS) {
+					SPOOPY_LOG_ERROR("Sampler binding out of range for '%s'", uniform->name);
+					goto fail;
+				}
+
+				desc.views[uniform->sampler.binding].texture = (sg_shader_texture_view) {
+					.stage = stage,
+					.image_type = spoopy_sokol_image_type_from_sampler_type(&uniform->sampler.sampler_type),
+					.sample_type = spoopy_sokol_sample_type_from_sampler_type(&uniform->sampler.sampler_type),
+					.multisampled = (uniform->sampler.sampler_type.flags & SHADER_SAMPLER_MULTISAMPLED) != 0,
+				};
+				if(!spoopy_sokol_bindslot_set_texture_view(&desc.views[uniform->sampler.binding].texture, uniform->sampler.binding)) {
+					goto fail;
+				}
+
+				desc.samplers[uniform->sampler.paired_binding] = (sg_shader_sampler) {
+					.stage = stage,
+					.sampler_type = spoopy_sokol_sampler_type_from_sampler_type(&uniform->sampler.sampler_type),
+				};
+				if(!spoopy_sokol_bindslot_set_sampler(&desc.samplers[uniform->sampler.paired_binding], uniform->sampler.paired_binding)) {
+					goto fail;
+				}
+
+				desc.texture_sampler_pairs[num_pairs++] = (sg_shader_texture_sampler_pair) {
+					.stage = stage,
+					.view_slot = uniform->sampler.binding,
+					.sampler_slot = uniform->sampler.paired_binding,
+				};
+			}
+
+			if(!spoopy_uniform_ht_insert_copy(&pipeline->uniforms, &pipeline->arena, uniform, obj->uniform_buffer.data)) {
+				goto fail;
+			}
+		}
 	}
 
 	if(!has_vertex || !has_fragment) {
 		SPOOPY_LOG_ERROR("Pipeline link requires both vertex and fragment shaders");
-		return NULL;
+		goto fail;
 	}
-
-	if(has_fragment_texture_binding) {
-		desc.views[0].texture = (sg_shader_texture_view) {
-			.stage = SG_SHADERSTAGE_FRAGMENT,
-			.image_type = SG_IMAGETYPE_2D,
-			.sample_type = SG_IMAGESAMPLETYPE_FLOAT,
-			.multisampled = false,
-			.hlsl_register_t_n = 0,
-			.msl_texture_n = 0,
-			.wgsl_group1_binding_n = 0,
-			.spirv_set1_binding_n = 0,
-		};
-		desc.samplers[0] = (sg_shader_sampler) {
-			.stage = SG_SHADERSTAGE_FRAGMENT,
-			.sampler_type = SG_SAMPLERTYPE_FILTERING,
-			.hlsl_register_s_n = 0,
-			.msl_sampler_n = 0,
-			.wgsl_group1_binding_n = 1,
-			.spirv_set1_binding_n = 1,
-		};
-		desc.texture_sampler_pairs[0] = (sg_shader_texture_sampler_pair) {
-			.stage = SG_SHADERSTAGE_FRAGMENT,
-			.view_slot = 0,
-			.sampler_slot = 0,
-		};
-	}
-
-	spoopy_pipeline_t* pipeline = spoopy_heap_alloc(sizeof(*pipeline));
-	assert(pipeline);
-
-	*pipeline = (spoopy_pipeline_t){0};
 	pipeline->shader = sg_make_shader(&desc);
 
 	SPOOPY_LOG_INFO("Created shader with id=%u", pipeline->shader.id);
 
 	if(pipeline->shader.id == SG_INVALID_ID) {
 		SPOOPY_LOG_ERROR("Failed to create Sokol shader");
-		spoopy_heap_free(pipeline);
-		return NULL;
+		goto fail;
 	}
 
 	return pipeline;
+
+fail:
+	spoopy_sokol_pipeline_free_allocations(pipeline);
+	spoopy_heap_free(pipeline);
+	return NULL;
 }
 
 static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec_t* spec) {
@@ -348,17 +762,6 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 	}
 
 	pipeline->pipeline = sg_make_pipeline(&pdesc);
-}
-
-static void spoopy_sokol_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
-	if(!shader) {
-		SPOOPY_LOG_WARN("`shader` provided was (null)!");
-		return;
-	}
-
-	if(shader->owns_source && shader->func.source) {
-		spoopy_heap_free((void*)shader->func.source);
-	}
 }
 
 static size_t spoopy_sokol_buffer_size(spoopy_buffer_type_t type) {
@@ -531,6 +934,154 @@ static bool spoopy_sokol_index_buffer_create(spoopy_index_buffer_t* buffer, uint
 	return true;
 }
 
+static inline uint8_t* spoopy_sokol_uniform_dst(spoopy_uniform_t* uniform) {
+	if(!uniform || spoopy_sokol_uniform_is_sampler(uniform->type) || !uniform->buffer_backed.data) {
+		return NULL;
+	}
+
+	return uniform->buffer_backed.data + uniform->buffer_backed.offset;
+}
+
+static size_t spoopy_sokol_uniform_storage_size(const spoopy_data_type_t* type) {
+	const size_t scalar_size = spoopy_sokol_base_type_size(type ? type->base_type : SPOOPY_SHADER_BASE_TYPE_UNKNOWN);
+	const size_t vector_size = (type && type->vector_size) ? type->vector_size : 1;
+
+	if(!scalar_size || !type) {
+		return 0;
+	}
+
+	if(type->array_size > 1 && type->array_stride > 0) {
+		return (size_t)type->array_size * type->array_stride;
+	}
+
+	if(type->matrix_columns > 1) {
+		const size_t column_size = scalar_size * vector_size;
+		const size_t stride = type->matrix_stride ? type->matrix_stride : column_size;
+		return (size_t)type->matrix_columns * stride;
+	}
+
+	return scalar_size * vector_size;
+}
+
+static void spoopy_sokol_uniform_write_bytes(spoopy_uniform_t* uniform, const void* src, size_t src_size) {
+	uint8_t* dst = spoopy_sokol_uniform_dst(uniform);
+	if(!dst || !src) {
+		return;
+	}
+
+	const size_t storage_size = spoopy_sokol_uniform_storage_size(&uniform->buffer_backed.data_type);
+	const size_t copy_size = src_size < storage_size ? src_size : storage_size;
+	memcpy(dst, src, copy_size);
+}
+
+static void spoopy_sokol_uniform_write_matrix(spoopy_uniform_t* uniform, const float* values, uint16_t columns) {
+	uint8_t* dst = spoopy_sokol_uniform_dst(uniform);
+	if(!dst || !values) {
+		return;
+	}
+
+	const spoopy_data_type_t* type = &uniform->buffer_backed.data_type;
+	if(type->matrix_columns != columns || type->base_type != SPOOPY_SHADER_BASE_TYPE_FP32) {
+		return;
+	}
+
+	const size_t column_size = sizeof(float) * type->vector_size;
+	const size_t stride = type->matrix_stride ? type->matrix_stride : column_size;
+
+	for(uint16_t i = 0; i < columns; ++i) {
+		memcpy(dst + i * stride, values + i * type->vector_size, column_size);
+	}
+}
+
+static void spoopy_sokol_apply_uniform_buffers(spoopy_pipeline_t* pipeline) {
+	if(!pipeline) {
+		return;
+	}
+
+	// TODO (Uniform): Replace this Sokol uniform upload path with the backend-specific
+	// native upload path once the Metal/WGPU wrapper is in place.
+	if(pipeline->stages.vertex && pipeline->stages.vertex->uniform_buffer.data && pipeline->stages.vertex->uniform_buffer.size) {
+		sg_apply_uniforms(pipeline->stages.vertex->uniform_buffer.slot, &(sg_range) {
+			.ptr = pipeline->stages.vertex->uniform_buffer.data,
+			.size = pipeline->stages.vertex->uniform_buffer.size,
+		});
+	}
+
+	if(pipeline->stages.fragment && pipeline->stages.fragment->uniform_buffer.data && pipeline->stages.fragment->uniform_buffer.size) {
+		sg_apply_uniforms(pipeline->stages.fragment->uniform_buffer.slot, &(sg_range) {
+			.ptr = pipeline->stages.fragment->uniform_buffer.data,
+			.size = pipeline->stages.fragment->uniform_buffer.size,
+		});
+	}
+}
+
+static spoopy_uniform_t* spoopy_sokol_shader_uniform(spoopy_pipeline_t* pipeline, const char* name) {
+	return spoopy_uniform_ht_get(pipeline ? &pipeline->uniforms : NULL, name);
+}
+
+static void spoopy_sokol_uniform_set_int(spoopy_uniform_t* uniform, int value) {
+	spoopy_sokol_uniform_write_bytes(uniform, &value, sizeof(value));
+}
+
+static void spoopy_sokol_uniform_set_int2(spoopy_uniform_t* uniform, int v0, int v1) {
+	const int values[] = { v0, v1 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_int3(spoopy_uniform_t* uniform, int v0, int v1, int v2) {
+	const int values[] = { v0, v1, v2 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_int4(spoopy_uniform_t* uniform, int v0, int v1, int v2, int v3) {
+	const int values[] = { v0, v1, v2, v3 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_ints(spoopy_uniform_t* uniform, const int* values, int count) {
+	if(count > 0) {
+		spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(*values) * (size_t)count);
+	}
+}
+
+static void spoopy_sokol_uniform_set_float(spoopy_uniform_t* uniform, float value) {
+	spoopy_sokol_uniform_write_bytes(uniform, &value, sizeof(value));
+}
+
+static void spoopy_sokol_uniform_set_float2(spoopy_uniform_t* uniform, float v0, float v1) {
+	const float values[] = { v0, v1 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_float3(spoopy_uniform_t* uniform, float v0, float v1, float v2) {
+	const float values[] = { v0, v1, v2 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_float4(spoopy_uniform_t* uniform, float v0, float v1, float v2, float v3) {
+	const float values[] = { v0, v1, v2, v3 };
+	spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(values));
+}
+
+static void spoopy_sokol_uniform_set_floats(spoopy_uniform_t* uniform, const float* values, int count) {
+	if(count > 0) {
+		spoopy_sokol_uniform_write_bytes(uniform, values, sizeof(*values) * (size_t)count);
+	}
+}
+
+static void spoopy_sokol_uniform_set_bool(spoopy_uniform_t* uniform, bool value) {
+	const int32_t storage = value ? 1 : 0;
+	spoopy_sokol_uniform_write_bytes(uniform, &storage, sizeof(storage));
+}
+
+static void spoopy_sokol_uniform_set_matrix3(spoopy_uniform_t* uniform, const float* values) {
+	spoopy_sokol_uniform_write_matrix(uniform, values, 3);
+}
+
+static void spoopy_sokol_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* values) {
+	spoopy_sokol_uniform_write_matrix(uniform, values, 4);
+}
+
 static void spoopy_sokol_pipeline_bind(spoopy_pipeline_t* pipeline) {
 	sg_apply_pipeline(pipeline->pipeline);
 }
@@ -553,6 +1104,7 @@ static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t*
 	}
 
 	sg_apply_bindings(&pipeline->bindings);
+	spoopy_sokol_apply_uniform_buffers(pipeline);
 
 	if(mesh->index_buffer && mesh->index_count != 0) {
 		sg_draw(0, mesh->index_count, 1);
@@ -649,21 +1201,29 @@ static void spoopy_sokol_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, ui
 }
 
 uint8_t spoopy_sokol_pipeline_get_texture_unit(spoopy_pipeline_t* pipeline, const char* name) {
-	(void)pipeline;
-	(void)name;
-	return 0;
+	spoopy_uniform_t* uniform = spoopy_sokol_shader_uniform(pipeline, name);
+	if(!uniform || !spoopy_sokol_uniform_is_sampler(uniform->type)) {
+		return 0;
+	}
+
+	return (uint8_t)uniform->sampler.binding;
 }
 
-void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
-	const uint8_t tex_slot = spoopy_api_get_bind_slot(u_tex);
-	const uint8_t sampler_slot = spoopy_api_get_bind_slot(u_samp);
-
+void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_name, spoopy_texture_t* tex) {
 	if(!pipeline) {
 		SPOOPY_LOG_WARN("Texture bind request ignored: pipeline is NULL");
 		return;
 	}
 
-	if(tex_slot >= SG_MAX_VIEW_BINDSLOTS || sampler_slot >= SG_MAX_SAMPLER_BINDSLOTS) {
+	spoopy_uniform_t* uniform = spoopy_sokol_shader_uniform(pipeline, uniform_name);
+	if(!uniform || !spoopy_sokol_uniform_is_sampler(uniform->type)) {
+		SPOOPY_LOG_WARN("Texture bind request ignored: '%s' is not a sampler uniform", uniform_name ? uniform_name : "(null)");
+		return;
+	}
+
+	const uint16_t tex_slot = uniform->sampler.binding;
+	const uint16_t sampler_slot = uniform->sampler.paired_binding;
+	if(tex_slot >= SG_MAX_VIEW_BINDSLOTS || sampler_slot >= SG_MAX_SAMPLER_BINDSLOTS || sampler_slot == UINT16_MAX) {
 		SPOOPY_LOG_WARN("Texture bind request out of range: view=%u sampler=%u", tex_slot, sampler_slot);
 		return;
 	}
@@ -674,8 +1234,10 @@ void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, co
 		return;
 	}
 
-	tex->texture_view.msl_texture_n = tex_slot;
-	tex->sampler.msl_sampler_n = sampler_slot;
+	if(!spoopy_sokol_texture_set_binding_indices(tex, tex_slot, sampler_slot)) {
+		return;
+	}
+
 	pipeline->bindings.views[tex_slot] = tex->view;
 	pipeline->bindings.samplers[sampler_slot] = tex->sampler_state;
 }
@@ -718,4 +1280,18 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.texture_destroy = spoopy_sokol_texture_destroy,
 	.pipeline_get_texture_unit = spoopy_sokol_pipeline_get_texture_unit,
 	.texture_set = spoopy_sokol_texture_set,
+	.shader_uniform = spoopy_sokol_shader_uniform,
+	.uniform_set_int = spoopy_sokol_uniform_set_int,
+	.uniform_set_int2 = spoopy_sokol_uniform_set_int2,
+	.uniform_set_int3 = spoopy_sokol_uniform_set_int3,
+	.uniform_set_int4 = spoopy_sokol_uniform_set_int4,
+	.uniform_set_ints = spoopy_sokol_uniform_set_ints,
+	.uniform_set_float = spoopy_sokol_uniform_set_float,
+	.uniform_set_float2 = spoopy_sokol_uniform_set_float2,
+	.uniform_set_float3 = spoopy_sokol_uniform_set_float3,
+	.uniform_set_float4 = spoopy_sokol_uniform_set_float4,
+	.uniform_set_floats = spoopy_sokol_uniform_set_floats,
+	.uniform_set_bool = spoopy_sokol_uniform_set_bool,
+	.uniform_set_matrix3 = spoopy_sokol_uniform_set_matrix3,
+	.uniform_set_matrix4 = spoopy_sokol_uniform_set_matrix4,
 };

@@ -39,12 +39,10 @@ enum spoopy_memory_type {
 SPOOPY_FUNC_CORE void spoopy_memory_init_hooks(void);
 
 SPOOPY_FUNC_CORE void* spoopy_heap_alloc(size_t size)
-    SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1);
 
 SPOOPY_FUNC_CORE void* spoopy_aligned_alloc(size_t alignment, size_t size, void* user_data)
-    SPOOPY_ATTR(malloc)
     SPOOPY_ATTR_DEALLOC(spoopy_heap_free, 1)
     SPOOPY_ATTR_SIZE(1);
 

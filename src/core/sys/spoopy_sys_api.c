@@ -79,6 +79,7 @@ static spoopy_video_cap_state_t video_query_capability_generic(spoopy_video_cap_
 }
 
 static void internal_init(void) {
+	spoopy_global_context_init();
 	_backend_funcs.init();
 
 	// TODO (States): Have `draw` state logic be initialized here
@@ -196,7 +197,6 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, (flags & SPOOPY_WINDOW_FLAG_HIGHDPI) != 0);
 
 	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, false);
-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, false);
 
 	app.primary_window = SDL_CreateWindowWithProperties(props);
 	SDL_DestroyProperties(props);
@@ -284,6 +284,7 @@ void spoopy_api_video_update_mode(uint32_t window_index) {
 
 	video_update_scaling_factor(width);
 	// TODO (Viewport): Have a `_window_update_viewport` function
+	// TODO (Swapchain): Have `_backend_funcs.framebuffer_update_all` to update framebuffer + swapchain
 }
 
 bool spoopy_api_window_is_fullscreen(void) {
@@ -354,6 +355,7 @@ void spoopy_api_video_shutdown(void) {
 	}
 
 	_backend_funcs.shutdown();
+	spoopy_shader_cleanup();
 
 #if defined(__APPLE__)
 	SDL_Metal_DestroyView(app.primary_view);

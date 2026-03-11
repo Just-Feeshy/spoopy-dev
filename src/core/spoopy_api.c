@@ -16,7 +16,7 @@
 
 #define MAX_MIP_LEVELS 32
 
-void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+bool spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	return _backend_funcs.shader_init(shader, info);
 }
 
@@ -26,12 +26,6 @@ void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_free) {
 	if(must_free) {
 		spoopy_heap_free(shader);
 	}
-}
-
-bool spoopy_api_shader_supported(spoopy_transpile_options_t* transpile_opts, const spoopy_shader_source_t info) {
-	(void)transpile_opts;
-	spoopy_renderer_t want = spoopy_graphics_pick_renderer(info.target);
-	return spoopy_graphics_renderer_supported(want);
 }
 
 spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]) {
@@ -82,8 +76,8 @@ void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t la
 	_backend_funcs.texture_fill(tex, mipmap, layer, img);
 }
 
-void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
-	_backend_funcs.texture_set(pipeline, u_tex, u_samp, tex);
+void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_name, spoopy_texture_t* tex) {
+	_backend_funcs.texture_set(pipeline, uniform_name, tex);
 }
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {
