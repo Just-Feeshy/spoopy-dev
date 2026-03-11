@@ -197,7 +197,6 @@ static void new_primary_window_internal(uint32_t display, const char* title, uin
 	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, (flags & SPOOPY_WINDOW_FLAG_HIGHDPI) != 0);
 
 	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, false);
-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, false);
 
 	app.primary_window = SDL_CreateWindowWithProperties(props);
 	SDL_DestroyProperties(props);

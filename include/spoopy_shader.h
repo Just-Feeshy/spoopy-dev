@@ -61,6 +61,7 @@ extern const size_t spoopy_shader_object_size;
 
 bool spoopy_global_context_init(void);
 void spoopy_shader_cleanup(void);
+void spoopy_shader_source_cleanup(spoopy_shader_source_t* source);
 
 #ifdef __cplusplus
 }

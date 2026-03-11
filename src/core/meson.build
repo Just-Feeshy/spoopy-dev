@@ -3,6 +3,7 @@ spoopy_core_src += files(
     'spoopy_core_thread.c',
     'spoopy_graphics.c',
 	'spoopy_image.c',
+	'spoopy_uniform.c',
     'utils/spoopy_misc_math.c',
 	'format/spoopy_png.c',
 )

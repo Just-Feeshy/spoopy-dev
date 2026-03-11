@@ -11,7 +11,6 @@ static EventHandler* handler_ptr = NULL;
 SPOOPY_ATTR_UNUSED static const char* test_renderer_name(spoopy_renderer_t renderer) {
 	switch(renderer) {
 		case SPOOPY_RENDERER_API_METAL: return "Metal";
-		case SPOOPY_RENDERER_API_D3D11: return "Direct3D";
 		case SPOOPY_RENDERER_API_WGPU:  return "WGPU";
 		case SPOOPY_RENDERER_API_UNSURE: return "Unknown";
 		default: return "Unknown";
@@ -84,24 +83,37 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
         return NULL;
     }
 
-    spoopy_shader_source_t new_src;
+    spoopy_shader_source_t new_src = {0};
+	spoopy_mem_arena_t transpile_arena = {0};
+	spoopy_arena_init(&transpile_arena, source.content_size + (1 << 11));
     bool result = spoopy_api_shader_transpile(
         &source,
         &new_src,
-        &transpile_opts
+        &transpile_opts,
+		&transpile_arena
     );
 
     if(!result) {
         SPOOPY_LOG_ERROR("Failed to transpile shader: %s", source.entry_point);
+		spoopy_arena_deinit(&transpile_arena);
         return NULL;
     }
 
 	SPOOPY_LOG_SUCCESS("Shader transpiled successfully: %s", source.entry_point);
 	spoopy_shader_object_t* shader = spoopy_heap_alloc(spoopy_shader_object_size);
-	spoopy_api_shader_init(shader, &new_src);
 
 	if(!shader) {
 		SPOOPY_LOG_ERROR("Failed to compile shader!");
+		spoopy_arena_deinit(&transpile_arena);
+		return NULL;
+	}
+
+	bool init_ok = spoopy_api_shader_init(shader, &new_src);
+	spoopy_arena_deinit(&transpile_arena);
+
+	if(!init_ok) {
+		SPOOPY_LOG_ERROR("Failed to initialize shader object: %s", source.entry_point);
+		spoopy_api_shader_destroy(shader, true);
 		return NULL;
 	}
 

@@ -71,8 +71,6 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 3, vertex_spec, 0);
-	spoopy_api_shader_destroy(vert_obj, true);
-	spoopy_api_shader_destroy(frag_obj, true);
 
 	struct vertex2d vertices[] = {
 		{ {  1, -1, }, { 1, 0 }, { 1, 1, 1, 1 }, },
@@ -104,7 +102,7 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_texture_t* tex = test_renderer_load_texture("test/tung.png");
-	spoopy_api_texture_set(pipeline, "tex0", "samp0", tex);
+	spoopy_api_texture_set(pipeline, "tex0", tex);
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);
 		spoopy_api_clear(SPOOPY_BUFFER_ALL, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);

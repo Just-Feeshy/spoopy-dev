@@ -123,6 +123,14 @@ extern "C" {
 
 #endif
 
+#if defined(__cplusplus)
+#define SPOOPY_RESTRICT
+#elif defined(_MSC_VER)
+#define SPOOPY_RESTRICT __restrict
+#else
+#define SPOOPY_RESTRICT restrict
+#endif
+
 #define SPOOPY_UNUSED(x) (void)(x)
 
 #define SPOOPY_WEAK SPOOPY_ATTR_WEAK

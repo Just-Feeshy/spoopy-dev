@@ -3,6 +3,7 @@
 #include <slang.h>
 #include <slang-com-ptr.h>
 
+#include <memory/spoopy_arena.h>
 #include <memory/spoopy_memory.h>
 #include <spoopy_graphics.h>
 #include <spoopy_log.h>
@@ -17,8 +18,6 @@ using namespace slang;
 
 struct spoopy_context {
 	Slang::ComPtr<slang::IGlobalSession> global_session;
-	tinystl::unordered_map<tiny_string, uint8_t> bind_map;
-	tinystl::vector<void*> owned_allocations;
 };
 
 extern "C" {
@@ -81,43 +80,16 @@ static size_t shader_source_size(const spoopy_shader_source_t* source) {
 	return strlen(source->content);
 }
 
-static void free_tracked_allocations(void) {
-	for(size_t i = 0; i < global_context.owned_allocations.size(); ++i) {
-		spoopy_heap_free(global_context.owned_allocations[i]);
-	}
-
-	global_context.owned_allocations.clear();
-}
-
-static void* tracked_alloc(size_t size) {
-	void* ptr = spoopy_heap_alloc(size);
-
-	if(ptr) {
-		global_context.owned_allocations.push_back(ptr);
-	}
-
-	return ptr;
-}
-
-static char* tracked_strdup(const char* text) {
-	if(!text) {
+static void* arena_alloc(spoopy_mem_arena_t* arena, size_t size) {
+	if(!arena || size == 0) {
 		return NULL;
 	}
 
-	size_t len = strlen(text);
-	char* out = (char*)tracked_alloc(len + 1);
-
-	if(!out) {
-		return NULL;
-	}
-
-	memcpy(out, text, len);
-	out[len] = '\0';
-	return out;
+	return spoopy_arena_alloc(arena, size);
 }
 
-static char* tracked_memdup_string(const void* data, size_t size) {
-	char* out = (char*)tracked_alloc(size + 1);
+static char* arena_memdup_string(spoopy_mem_arena_t* arena, const void* data, size_t size) {
+	char* out = (char*)arena_alloc(arena, size + 1);
 
 	if(!out) {
 		return NULL;
@@ -198,11 +170,6 @@ static target_profile pick_target_profile(slang::IGlobalSession* global_session,
 	out.renderer = renderer;
 
 	switch(renderer) {
-		case SPOOPY_RENDERER_API_D3D11:
-			out.target = SLANG_DXBC;
-			out.profile = try_find_profile(global_session, { "sm_5_0", "sm_5_1" });
-			return out;
-
 		case SPOOPY_RENDERER_API_METAL:
 			out.target = SLANG_METAL;
 			out.profile = try_find_profile(global_session, {
@@ -285,37 +252,6 @@ static void configure_target_desc(slang::TargetDesc& target_desc, SlangCompileTa
 	}
 }
 
-static bool parse_trailing_slot(const char* name, uint8_t* slot) {
-	if(!name || !slot) {
-		return false;
-	}
-
-	size_t len = strlen(name);
-	size_t pos = len;
-	uint32_t multiplier = 1;
-	uint32_t value = 0;
-	bool has_digits = false;
-
-	while(pos > 0) {
-		char ch = name[pos - 1];
-		if(ch < '0' || ch > '9') {
-			break;
-		}
-
-		has_digits = true;
-		value += (uint32_t)(ch - '0') * multiplier;
-		multiplier *= 10;
-		--pos;
-	}
-
-	if(!has_digits || value > UINT8_MAX) {
-		return false;
-	}
-
-	*slot = (uint8_t)value;
-	return true;
-}
-
 static void add_int_compiler_option(
 	tinystl::vector<slang::CompilerOptionEntry>& options,
 	slang::CompilerOptionName name,
@@ -351,7 +287,7 @@ static char* build_source_with_macros(
 		}
 	}
 
-	char* text = (char*)tracked_alloc(macro_prefix_size + src_size + 1);
+	char* text = (char*)spoopy_heap_alloc(macro_prefix_size + src_size + 1);
 	if(!text) {
 		return NULL;
 	}
@@ -576,20 +512,6 @@ static slang::TypeLayoutReflection* get_recurse_layout(slang::TypeLayoutReflecti
 	return type_layout;
 }
 
-static void record_bind_slot(const char* name, unsigned binding) {
-	if(!is_valid_name(name)) {
-		return;
-	}
-
-	if(binding > UINT8_MAX) {
-		SPOOPY_LOG_WARN("Binding index for '%s' exceeds uint8_t range: %u", name, binding);
-		return;
-	}
-
-	global_context.bind_map[tiny_string(name)] = (uint8_t)binding;
-	SPOOPY_LOG_INFO("Uniform: %s at bind slot %u", name, binding);
-}
-
 static void collect_sampler_bindings_recursive(
 	slang::VariableLayoutReflection* var_layout,
 	tinystl::vector<reflection_sampler_tmp>& samplers
@@ -617,7 +539,6 @@ static void collect_sampler_bindings_recursive(
 		sampler.array_size = (uint16_t)clamp_u16(type_layout->getTotalArrayElementCount());
 
 		samplers.push_back(sampler);
-		record_bind_slot(name, sampler.binding);
 		return;
 	}
 
@@ -692,7 +613,7 @@ static void collect_uniform_blocks(
 			}
 
 			reflection_block_tmp block = { };
-			block.name = tiny_string(field->getName() ? field->getName() : "gl_DefaultUniformBlock");
+			block.name = tiny_string(field->getName() ? field->getName() : "SpoopyGlobalUniforms");
 			block.set = (uint16_t)clamp_u16(field->getBindingSpace());
 			block.binding = (uint16_t)clamp_u16(field->getBindingIndex());
 			block.size = (uint16_t)clamp_u16(block_layout->getSize(slang::ParameterCategory::Uniform));
@@ -725,7 +646,7 @@ static void collect_uniform_blocks(
 
 	if(loose_fields.size() > 0) {
 		reflection_block_tmp block = { };
-		block.name = tiny_string("gl_DefaultUniformBlock");
+		block.name = tiny_string("SpoopyGlobalUniforms");
 		block.set = (uint16_t)clamp_u16(globals_layout->getBindingSpace());
 		block.binding = (uint16_t)clamp_u16(globals_layout->getBindingIndex());
 		block.size = (uint16_t)clamp_u16(globals_type->getSize(slang::ParameterCategory::Uniform));
@@ -785,11 +706,12 @@ static void collect_input_fields_recursive(
 }
 
 static spoopy_shader_reflection_t* materialize_reflection(
+	spoopy_mem_arena_t* arena,
 	const tinystl::vector<reflection_block_tmp>& blocks,
 	const tinystl::vector<reflection_sampler_tmp>& samplers,
 	const tinystl::vector<reflection_input_tmp>& inputs
 ) {
-	spoopy_shader_reflection_t* reflection = (spoopy_shader_reflection_t*)tracked_alloc(sizeof(*reflection));
+	spoopy_shader_reflection_t* reflection = (spoopy_shader_reflection_t*)arena_alloc(arena, sizeof(*reflection));
 	if(!reflection) {
 		return NULL;
 	}
@@ -801,7 +723,8 @@ static spoopy_shader_reflection_t* materialize_reflection(
 	reflection->num_inputs = (uint16_t)clamp_u16(inputs.size());
 
 	if(reflection->num_uniform_buffers > 0) {
-		reflection->uniform_buffers = (spoopy_shader_block_t*)tracked_alloc(
+		reflection->uniform_buffers = (spoopy_shader_block_t*)arena_alloc(
+			arena,
 			sizeof(*reflection->uniform_buffers) * reflection->num_uniform_buffers
 		);
 		if(!reflection->uniform_buffers) {
@@ -814,14 +737,15 @@ static spoopy_shader_reflection_t* materialize_reflection(
 			const reflection_block_tmp& src = blocks[i];
 			spoopy_shader_block_t* dst = &reflection->uniform_buffers[i];
 
-			dst->name = tracked_strdup(src.name.c_str());
+			dst->name = spoopy_arena_strdup(arena, src.name.c_str());
 			dst->set = src.set;
 			dst->binding = src.binding;
 			dst->size = src.size;
 			dst->num_fields = (uint16_t)clamp_u16(src.fields.size());
 
 			if(dst->num_fields > 0) {
-				dst->fields = (spoopy_shader_struct_field_t*)tracked_alloc(
+				dst->fields = (spoopy_shader_struct_field_t*)arena_alloc(
+					arena,
 					sizeof(*dst->fields) * dst->num_fields
 				);
 				if(!dst->fields) {
@@ -831,7 +755,7 @@ static spoopy_shader_reflection_t* materialize_reflection(
 				memset(dst->fields, 0, sizeof(*dst->fields) * dst->num_fields);
 
 				for(uint16_t j = 0; j < dst->num_fields; ++j) {
-					dst->fields[j].name = tracked_strdup(src.fields[j].name.c_str());
+					dst->fields[j].name = spoopy_arena_strdup(arena, src.fields[j].name.c_str());
 					dst->fields[j].offset = src.fields[j].offset;
 					dst->fields[j].type = src.fields[j].type;
 				}
@@ -840,7 +764,8 @@ static spoopy_shader_reflection_t* materialize_reflection(
 	}
 
 	if(reflection->num_samplers > 0) {
-		reflection->samplers = (spoopy_shader_sampler_t*)tracked_alloc(
+		reflection->samplers = (spoopy_shader_sampler_t*)arena_alloc(
+			arena,
 			sizeof(*reflection->samplers) * reflection->num_samplers
 		);
 		if(!reflection->samplers) {
@@ -850,7 +775,7 @@ static spoopy_shader_reflection_t* materialize_reflection(
 		memset(reflection->samplers, 0, sizeof(*reflection->samplers) * reflection->num_samplers);
 
 		for(uint16_t i = 0; i < reflection->num_samplers; ++i) {
-			reflection->samplers[i].name = tracked_strdup(samplers[i].name.c_str());
+			reflection->samplers[i].name = spoopy_arena_strdup(arena, samplers[i].name.c_str());
 			reflection->samplers[i].type = samplers[i].type;
 			reflection->samplers[i].set = samplers[i].set;
 			reflection->samplers[i].binding = samplers[i].binding;
@@ -859,7 +784,8 @@ static spoopy_shader_reflection_t* materialize_reflection(
 	}
 
 	if(reflection->num_inputs > 0) {
-		reflection->inputs = (spoopy_shader_input_t*)tracked_alloc(
+		reflection->inputs = (spoopy_shader_input_t*)arena_alloc(
+			arena,
 			sizeof(*reflection->inputs) * reflection->num_inputs
 		);
 		if(!reflection->inputs) {
@@ -869,7 +795,7 @@ static spoopy_shader_reflection_t* materialize_reflection(
 		memset(reflection->inputs, 0, sizeof(*reflection->inputs) * reflection->num_inputs);
 
 		for(uint16_t i = 0; i < reflection->num_inputs; ++i) {
-			reflection->inputs[i].name = tracked_strdup(inputs[i].name.c_str());
+			reflection->inputs[i].name = spoopy_arena_strdup(arena, inputs[i].name.c_str());
 			reflection->inputs[i].location = inputs[i].location;
 			reflection->inputs[i].num_locations_consumed = inputs[i].num_locations_consumed;
 		}
@@ -878,7 +804,10 @@ static spoopy_shader_reflection_t* materialize_reflection(
 	return reflection;
 }
 
-static spoopy_shader_reflection_t* build_reflection(slang::IComponentType* linked_program) {
+static spoopy_shader_reflection_t* build_reflection(
+	spoopy_mem_arena_t* arena,
+	slang::IComponentType* linked_program
+) {
 	if(!linked_program) {
 		return NULL;
 	}
@@ -911,7 +840,7 @@ static spoopy_shader_reflection_t* build_reflection(slang::IComponentType* linke
 		}
 	}
 
-	return materialize_reflection(blocks, samplers, inputs);
+	return materialize_reflection(arena, blocks, samplers, inputs);
 }
 
 } // namespace
@@ -960,9 +889,15 @@ bool spoopy_global_context_init(void) {
 }
 
 void spoopy_shader_cleanup(void) {
-	free_tracked_allocations();
-	global_context.bind_map.clear();
 	global_context.global_session = nullptr;
+}
+
+void spoopy_shader_source_cleanup(spoopy_shader_source_t* source) {
+	if(!source) {
+		return;
+	}
+
+	memset(source, 0, sizeof(*source));
 }
 
 bool spoopy_api_shader_supported(const spoopy_shader_source_t* info, spoopy_transpile_options_t* transpile_opts) {
@@ -972,12 +907,31 @@ bool spoopy_api_shader_supported(const spoopy_shader_source_t* info, spoopy_tran
 bool spoopy_api_shader_transpile(
 	spoopy_shader_source_t* source,
 	spoopy_shader_source_t* target,
-	spoopy_transpile_options_t* transpile_opts
+	spoopy_transpile_options_t* transpile_opts,
+	spoopy_mem_arena_t* arena
 ) {
-	if(!source || !target || !source->content || !source->entry_point) {
+	char* module_source = NULL;
+	char* output_code = NULL;
+	const char* module_name = NULL;
+	const char* source_name = NULL;
+	slang::IComponentType* components[2] = { NULL, NULL };
+	Slang::ComPtr<ISession> session;
+	Slang::ComPtr<IBlob> module_diagnostics;
+	Slang::ComPtr<IModule> module;
+	Slang::ComPtr<IEntryPoint> entry_point;
+	Slang::ComPtr<IBlob> composite_diagnostics;
+	Slang::ComPtr<IComponentType> composed;
+	Slang::ComPtr<IBlob> link_diagnostics;
+	Slang::ComPtr<IComponentType> linked;
+	Slang::ComPtr<IBlob> code_diagnostics;
+	Slang::ComPtr<IBlob> code_blob;
+
+	if(!source || !target || !arena || !source->content || !source->entry_point) {
 		SPOOPY_LOG_ERROR("Invalid shader transpile parameters");
 		return false;
 	}
+
+	memset(target, 0, sizeof(*target));
 
 	target_profile profile = { SPOOPY_RENDERER_API_UNSURE, SLANG_TARGET_UNKNOWN, SLANG_PROFILE_UNKNOWN };
 	if(!resolve_supported_target(source, transpile_opts, &profile)) {
@@ -1017,52 +971,46 @@ bool spoopy_api_shader_transpile(
 	session_desc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
 	session_desc.allowGLSLSyntax = true;
 
-	Slang::ComPtr<ISession> session;
 	SlangResult result = global_context.global_session->createSession(session_desc, session.writeRef());
 	if(SLANG_FAILED(result) || !session) {
 		SPOOPY_LOG_ERROR("Failed to create Slang session: %d", result);
 		return false;
 	}
 
-	char* module_source = build_source_with_macros(source, transpile_opts);
+	module_source = build_source_with_macros(source, transpile_opts);
 	if(!module_source) {
 		SPOOPY_LOG_ERROR("Failed to allocate shader source buffer");
 		return false;
 	}
 
-	const char* module_name = source->module_name ? source->module_name : "shader";
-	const char* source_name = (transpile_opts && transpile_opts->filename) ? transpile_opts->filename : "<embedded>";
+	module_name = source->module_name ? source->module_name : "shader";
+	source_name = (transpile_opts && transpile_opts->filename) ? transpile_opts->filename : "<embedded>";
 
-	Slang::ComPtr<IBlob> module_diagnostics;
-	Slang::ComPtr<IModule> module(
-		session->loadModuleFromSourceString(
-			module_name,
-			source_name,
-			module_source,
-			module_diagnostics.writeRef()
-		)
+	module = session->loadModuleFromSourceString(
+		module_name,
+		source_name,
+		module_source,
+		module_diagnostics.writeRef()
 	);
 	log_diagnostics("Slang module diagnostics:\n", module_diagnostics.get());
 
 	if(!module) {
 		SPOOPY_LOG_ERROR("Failed to load Slang module '%s'", module_name);
-		return false;
+		goto fail;
 	}
 
-	Slang::ComPtr<IEntryPoint> entry_point;
+	spoopy_heap_free(module_source);
+	module_source = NULL;
+
 	result = module->findEntryPointByName(source->entry_point, entry_point.writeRef());
 	if(SLANG_FAILED(result) || !entry_point) {
 		SPOOPY_LOG_ERROR("Failed to find entry point '%s'", source->entry_point);
-		return false;
+		goto fail;
 	}
 
-	slang::IComponentType* components[] = {
-		module.get(),
-		entry_point.get(),
-	};
+	components[0] = module.get();
+	components[1] = entry_point.get();
 
-	Slang::ComPtr<IBlob> composite_diagnostics;
-	Slang::ComPtr<IComponentType> composed;
 	result = session->createCompositeComponentType(
 		components,
 		2,
@@ -1073,45 +1021,52 @@ bool spoopy_api_shader_transpile(
 
 	if(SLANG_FAILED(result) || !composed) {
 		SPOOPY_LOG_ERROR("Failed to compose Slang shader program");
-		return false;
+		goto fail;
 	}
 
-	Slang::ComPtr<IBlob> link_diagnostics;
-	Slang::ComPtr<IComponentType> linked;
 	result = composed->link(linked.writeRef(), link_diagnostics.writeRef());
 	log_diagnostics("Slang link diagnostics:\n", link_diagnostics.get());
 
 	if(SLANG_FAILED(result) || !linked) {
 		SPOOPY_LOG_ERROR("Failed to link Slang shader program");
-		return false;
+		goto fail;
 	}
 
-	Slang::ComPtr<IBlob> code_diagnostics;
-	Slang::ComPtr<IBlob> code_blob;
 	result = linked->getEntryPointCode(0, 0, code_blob.writeRef(), code_diagnostics.writeRef());
 	log_diagnostics("Slang codegen diagnostics:\n", code_diagnostics.get());
 
 	if(SLANG_FAILED(result) || !code_blob) {
 		SPOOPY_LOG_ERROR("Failed to generate shader code for '%s'", source->entry_point);
-		return false;
+		goto fail;
 	}
 
-	char* output_code = tracked_memdup_string(code_blob->getBufferPointer(), code_blob->getBufferSize());
+	output_code = arena_memdup_string(arena, code_blob->getBufferPointer(), code_blob->getBufferSize());
 	if(!output_code) {
 		SPOOPY_LOG_ERROR("Failed to allocate transpiled shader output");
-		return false;
+		goto fail;
 	}
 
-	memset(target, 0, sizeof(*target));
 	target->content = output_code;
 	target->content_size = code_blob->getBufferSize();
-	target->entry_point = source->entry_point;
-	target->module_name = source->module_name;
+	target->entry_point = spoopy_arena_strdup(arena, source->entry_point);
+	target->module_name = source->module_name ? spoopy_arena_strdup(arena, source->module_name) : NULL;
 	target->stage = source->stage;
 	target->target = source->target;
-	target->reflection = build_reflection(linked.get());
+	target->reflection = build_reflection(arena, linked.get());
+
+	if(!target->entry_point || !target->reflection) {
+		SPOOPY_LOG_ERROR("Failed to materialize transpiled shader metadata");
+		goto fail;
+	}
 
 	return true;
+
+fail:
+	if(module_source) {
+		spoopy_heap_free(module_source);
+	}
+	memset(target, 0, sizeof(*target));
+	return false;
 }
 
 void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name, const char* value) {
@@ -1135,25 +1090,6 @@ void spoopy_api_add_macro(spoopy_transpile_options_t* options, const char* name,
 	options->macros[options->macro_count].name = name;
 	options->macros[options->macro_count].value = value;
 	options->macro_count = new_count;
-}
-
-uint8_t spoopy_api_get_bind_slot(const char* name) {
-	if(!name) {
-		return UINT8_MAX;
-	}
-
-	tinystl::unordered_map<tiny_string, uint8_t>::iterator it = global_context.bind_map.find(tiny_string(name));
-	if(it != global_context.bind_map.end()) {
-		return it->second;
-	}
-
-	uint8_t parsed_slot = 0;
-	if(parse_trailing_slot(name, &parsed_slot)) {
-		return parsed_slot;
-	}
-
-	SPOOPY_LOG_WARN("spoopy_api_get_bind_slot: '%s' not found", name);
-	return UINT8_MAX;
 }
 
 } // extern "C"

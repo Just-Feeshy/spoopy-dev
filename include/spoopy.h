@@ -12,6 +12,10 @@
 #define SPOOPY_PRIMARY_SCREEN_INDEX 0u
 #endif
 
+#ifndef SPOOPY_ARENA_MIN_SIZE
+#define SPOOPY_ARENA_MIN_SIZE 4096
+#endif
+
 #ifdef __cplusplus
 #define SPOOPY_FLEX_ARR 1
 #else

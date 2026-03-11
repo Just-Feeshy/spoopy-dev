@@ -16,7 +16,7 @@
 
 #define MAX_MIP_LEVELS 32
 
-void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
+bool spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info) {
 	return _backend_funcs.shader_init(shader, info);
 }
 
@@ -76,8 +76,8 @@ void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t la
 	_backend_funcs.texture_fill(tex, mipmap, layer, img);
 }
 
-void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex) {
-	_backend_funcs.texture_set(pipeline, u_tex, u_samp, tex);
+void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_name, spoopy_texture_t* tex) {
+	_backend_funcs.texture_set(pipeline, uniform_name, tex);
 }
 
 void spoopy_api_texture_destroy(spoopy_texture_t* tex) {

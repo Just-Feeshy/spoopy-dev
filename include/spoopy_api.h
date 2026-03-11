@@ -6,6 +6,7 @@
 #include <spoopy.h>
 #include <utils/spoopy_misc_math.h>
 #include <memory/spoopy_memory.h>
+#include <memory/spoopy_arena.h>
 #include <memory/spoopy_vector.h>
 #include <format/spoopy_fileformats.h>
 #include <spoopy_shader.h>
@@ -23,10 +24,9 @@ extern "C" {
 #endif
 
 SPOOPY_FUNC_CORE spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_object_t* objs[]);
-SPOOPY_FUNC_CORE uint8_t spoopy_api_get_bind_slot(const char* name);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index);
 SPOOPY_FUNC_CORE void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline);
-SPOOPY_FUNC_CORE void spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
+SPOOPY_FUNC_CORE bool spoopy_api_shader_init(spoopy_shader_object_t* shader, spoopy_shader_source_t* info);
 SPOOPY_FUNC_CORE bool spoopy_api_vertex_buffer_create(spoopy_vertex_buffer_t* buffer, uint32_t capacity, uint32_t count, void* data, uint32_t stride);
 SPOOPY_FUNC_CORE bool spoopy_api_index_buffer_create(spoopy_index_buffer_t* buffer, uint32_t count, void* data);
 SPOOPY_FUNC_CORE void spoopy_api_shader_destroy(spoopy_shader_object_t* shader, bool must_destroy);
@@ -41,7 +41,7 @@ SPOOPY_FUNC_CORE size_t spoopy_api_texture_size(void);
 SPOOPY_FUNC_CORE void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p);
 SPOOPY_FUNC_CORE void spoopy_api_texture_get_size(const spoopy_texture_params_t params, uint32_t mipmap, uint32_t* width, uint32_t* height);
 SPOOPY_FUNC_CORE void spoopy_api_texture_fill(spoopy_texture_t* tex, uint32_t mipmap, uint32_t layer, const spoopy_image_t* img);
-SPOOPY_FUNC_CORE void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* u_tex, const char* u_samp, spoopy_texture_t* tex);
+SPOOPY_FUNC_CORE void spoopy_api_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_name, spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE void spoopy_api_texture_destroy(spoopy_texture_t* tex);
 SPOOPY_FUNC_CORE size_t spoopy_api_buffer_size(spoopy_buffer_type_t type);
 SPOOPY_FUNC_CORE void spoopy_api_video_init(const spoopy_video_init_params_t* params);
@@ -98,7 +98,8 @@ SPOOPY_FUNC_CORE void spoopy_api_request_quit(void);
 SPOOPY_FUNC_CORE bool spoopy_api_shader_transpile(
 	spoopy_shader_source_t* source,
 	spoopy_shader_source_t* target,
-	spoopy_transpile_options_t* transpile_opts
+	spoopy_transpile_options_t* transpile_opts,
+	spoopy_mem_arena_t* arena
 );
 
 #ifdef __cplusplus

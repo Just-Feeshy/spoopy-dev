@@ -58,8 +58,6 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 1, vertex_spec, 0);
-	spoopy_api_shader_destroy(vert_obj, true);
-	spoopy_api_shader_destroy(frag_obj, true);
 
 
 	float vertex_data[] = {
