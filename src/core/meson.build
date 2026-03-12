@@ -1,10 +1,10 @@
 spoopy_core_src += files(
     'spoopy_api.c',
     'spoopy_core_thread.c',
+    'spoopy_framerate.c',
     'spoopy_graphics.c',
 	'spoopy_image.c',
 	'spoopy_uniform.c',
-    'utils/spoopy_misc_math.c',
 	'format/spoopy_png.c',
 )
 
@@ -12,12 +12,16 @@ subdir('platform')
 subdir('renderer')
 subdir('sys')
 subdir('memory')
+subdir('scene')
+subdir('utils')
 
 spoopy_core_src += [
 	spoopy_sys_src,
 	spoopy_memory_src,
 	spoopy_platform_src,
 	spoopy_renderer_src,
+	spoopy_scene_src,
+	spoopy_utils_src,
 ]
 
 spoopy_core_deps = [

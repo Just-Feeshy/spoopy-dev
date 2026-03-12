@@ -34,6 +34,9 @@ static inline void spoopy_interp_##type##_set(spoopy_interp_##type##_t* interp, 
 	interp->curr = value; \
 	interp->_next = value; \
 	interp->_need_update = true; \
+} \
+static inline type spoopy_interp_##type##_get(spoopy_interp_##type##_t interp) { \
+	return interp.curr; \
 }
 
 SPOOPY_INTERPOLATION(float)

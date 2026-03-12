@@ -1,9 +1,10 @@
 #include <utils/spoopy_projection.h>
-#include <spoopy_misc_math.h>
-#include <spoopy_cglm.h>
+#include <utils/spoopy_misc_math.h>
+#include <utils/spoopy_cglm.h>
+#include <string.h>
 
 static inline float spoopy_projection_fovy_get(float fov_x, float aspect_ratio) {
-	return atanf(aspect_ratio * atanf(SPOOPY_DEG2RAD_F * fov_x * 0.5)) * 2.0f;
+	return 2.0f * atanf(tanf(SPOOPY_DEG2RAD_F * fov_x * 0.5f) / aspect_ratio);
 }
 
 void spoopy_projection_set_perspective(
@@ -20,7 +21,10 @@ void spoopy_projection_set_perspective(
 		fov_radians = spoopy_projection_fovy_get(fov_degrees, aspect_ratio);
 	}
 
-	glm_perspective(fov_radians, aspect_ratio, z_near, z_far, matrix);
+	mat4 temp;
+	glm_perspective(fov_radians, aspect_ratio, z_near, z_far, temp);
+
+	memcpy(matrix, temp, sizeof(float) * 16);
 }
 
 void spoopy_projection_set_orthographic(
@@ -35,6 +39,7 @@ void spoopy_projection_set_orthographic(
 		size *= aspect_ratio;
 	}
 
+	mat4 temp;
 	glm_ortho(
 		-size * 0.5f,
 		size  * 0.5f,
@@ -42,6 +47,8 @@ void spoopy_projection_set_orthographic(
 		size  * 0.5f / aspect_ratio,
 		z_near,
 		z_far,
-		matrix
+		temp
 	);
+
+	memcpy(matrix, temp, sizeof(float) * 16);
 }

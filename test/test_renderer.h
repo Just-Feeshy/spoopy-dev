@@ -8,6 +8,11 @@
 
 static EventHandler* handler_ptr = NULL;
 
+SPOOPY_ATTR_UNUSED static const spoopy_vec2_int_t VIEWPORT = (spoopy_vec2_int_t) {
+	.w = 800,
+	.h = 600,
+};
+
 SPOOPY_ATTR_UNUSED static const char* test_renderer_name(spoopy_renderer_t renderer) {
 	switch(renderer) {
 		case SPOOPY_RENDERER_API_METAL: return "Metal";
@@ -57,8 +62,8 @@ SPOOPY_ATTR_UNUSED static void test_init(void) {
 
     spoopy_api_video_init(&(spoopy_video_init_params_t) {
         .title = "Test Renderer",
-        .width = 800,
-        .height = 600,
+        .width = VIEWPORT.w,
+        .height = VIEWPORT.h,
 		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
     });
 }

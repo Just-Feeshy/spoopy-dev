@@ -48,6 +48,22 @@ void spoopy_api_swap_buffers(void) {
 	_backend_funcs.swap_buffers();
 }
 
+void spoopy_api_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
+	_backend_funcs.blend(pipeline, mode);
+}
+
+spoopy_blend_mode_t spoopy_api_blend_current(spoopy_pipeline_t* pipeline) {
+	return _backend_funcs.blend_current(pipeline);
+}
+
+void spoopy_api_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
+	_backend_funcs.cull(pipeline, mode);
+}
+
+spoopy_cull_face_mode_t spoopy_api_cull_current(spoopy_pipeline_t* pipeline) {
+	return _backend_funcs.cull_current(pipeline);
+}
+
 void spoopy_api_texture_create(spoopy_texture_t* tex, const spoopy_texture_params_t* p) {
 	_backend_funcs.texture_create(tex, p);
 }
@@ -142,6 +158,39 @@ void spoopy_api_uniform_set_matrix3(spoopy_uniform_t* uniform, const float* valu
 
 void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* values) {
 	SPOOPY_CALL_UNIFORM_FN(uniform_set_matrix4, uniform, values);
+}
+
+spoopy_capability_bits_t spoopy_api_capabilities_current(spoopy_pipeline_t* pipeline) {
+	return _backend_funcs.capabilities_current(pipeline);
+}
+
+spoopy_capability_bits_t spoopy_capability_bit(spoopy_render_capability_t cap) {
+	spoopy_capability_bits_t idx = cap;
+	assert(idx < SPOOPY_NUM_RCAPS);
+	return (1 << idx);
+}
+
+void spoopy_api_capability(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap, bool value) {
+	spoopy_capability_bits_t caps = spoopy_api_capabilities_current(pipeline), new_caps;
+
+	if(value) {
+		new_caps = caps | spoopy_capability_bit(cap);
+	}else {
+		new_caps = caps & ~spoopy_capability_bit(cap);
+	}
+
+	if(caps != new_caps) {
+		// TODO (States): Have somekind of states notification thingy, or something..
+		_backend_funcs.capabilities(pipeline, new_caps);
+	}
+}
+
+void spoopy_api_enable(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap) {
+	spoopy_api_capability(pipeline, cap, true);
+}
+
+void spoopy_api_disable(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap) {
+	spoopy_api_capability(pipeline, cap, false);
 }
 
 

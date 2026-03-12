@@ -17,6 +17,8 @@
 #include <spoopy_events.h>
 #include <spoopy_color.h>
 #include <spoopy_image_cruft.h>
+#include <spoopy_time.h>
+#include <spoopy_framerate.h>
 
 #include <spoopy_types.h>
 
@@ -55,6 +57,18 @@ SPOOPY_FUNC_CORE const char* spoopy_api_get_screen_name(uint32_t screen_index);
 SPOOPY_FUNC_CORE float spoopy_api_get_screen_max_scale(void);
 SPOOPY_FUNC_CORE spoopy_rec_int_t spoopy_api_screen_get_usable_rect(int32_t screen_index);
 SPOOPY_FUNC_CORE void spoopy_api_refresh_screens(void);
+
+SPOOPY_FUNC_CORE spoopy_capability_bits_t spoopy_api_capabilities_current(spoopy_pipeline_t* pipeline);
+SPOOPY_FUNC_CORE spoopy_capability_bits_t spoopy_capability_bit(spoopy_render_capability_t cap);
+SPOOPY_FUNC_CORE void spoopy_api_capability(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap, bool value);
+SPOOPY_FUNC_CORE void spoopy_api_enable(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap);
+SPOOPY_FUNC_CORE void spoopy_api_disable(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap);
+
+SPOOPY_FUNC_CORE void spoopy_api_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode);
+SPOOPY_FUNC_CORE spoopy_blend_mode_t spoopy_api_blend_current(spoopy_pipeline_t* pipeline);
+
+SPOOPY_FUNC_CORE void spoopy_api_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode);
+SPOOPY_FUNC_CORE spoopy_cull_face_mode_t spoopy_api_cull_current(spoopy_pipeline_t* pipeline);
 
 // TODO (Multi-Window): Have a parameter `window_index` to get it for each window
 SPOOPY_FUNC_CORE spoopy_renderer_t spoopy_api_window_get_renderer(void);

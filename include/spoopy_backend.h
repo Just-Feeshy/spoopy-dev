@@ -41,6 +41,12 @@ typedef struct spoopy_backend_funcs {
 	void (*uniform_set_bool)(spoopy_uniform_t* uniform, bool value);
 	void (*uniform_set_matrix3)(spoopy_uniform_t* uniform, const float* values);
 	void (*uniform_set_matrix4)(spoopy_uniform_t* uniform, const float* values);
+	void (*blend)(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode);
+	spoopy_blend_mode_t (*blend_current)(spoopy_pipeline_t* pipeline);
+	void (*cull)(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode);
+	spoopy_cull_face_mode_t (*cull_current)(spoopy_pipeline_t* pipeline);
+	void (*capabilities)(spoopy_pipeline_t* pipeline, spoopy_capability_bits_t new_caps);
+	spoopy_capability_bits_t (*capabilities_current)(spoopy_pipeline_t* pipeline);
 	void* (*window_create_pointer)(uint32_t display);
 } spoopy_backend_funcs_t;
 
