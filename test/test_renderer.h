@@ -6,7 +6,7 @@
 
 #include <spoopy_api.h>
 
-static EventHandler* handler_ptr = NULL;
+static spoopy_event_handler_t* handler_ptr = NULL;
 
 SPOOPY_ATTR_UNUSED static const spoopy_vec2_int_t VIEWPORT = (spoopy_vec2_int_t) {
 	.w = 800,

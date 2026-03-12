@@ -26,13 +26,13 @@ typedef enum {
 	EVENT_FLAG_NOPUMP = (1 << 0),
 } EventFlags; // Built in event flags
 
-typedef struct EventHandler {
+typedef struct spoopy_event_handler {
 	EventHandlerProc proc;
 	void *arg;
 	EventPriority priority;
 	int32_t event_type; // SDL_EventType or any other type identifier
-} EventHandler;
+} spoopy_event_handler_t;
 
-SPOOPY_FUNC_CORE EventHandler* spoopy_events_register_handlers(EventHandler* handler_ptr, uint32_t capacity, EventHandler handlers[capacity]);
-SPOOPY_FUNC_CORE void spoopy_events_init(int32_t NUM_USER_EVENTS, EventHandler** handler_ptr);
-SPOOPY_FUNC_CORE void spoopy_events_poll(EventHandler* handlers, EventFlags flags);
+SPOOPY_FUNC_CORE spoopy_event_handler_t* spoopy_events_register_handlers(spoopy_event_handler_t* handler_ptr, uint32_t capacity, spoopy_event_handler_t handlers[capacity]);
+SPOOPY_FUNC_CORE void spoopy_events_init(int32_t NUM_USER_EVENTS, spoopy_event_handler_t** handler_ptr);
+SPOOPY_FUNC_CORE void spoopy_events_poll(spoopy_event_handler_t* handlers, EventFlags flags);
