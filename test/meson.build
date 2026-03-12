@@ -12,6 +12,7 @@ tests = [
     'triangle',
 	'texture',
 	'cube',
+	'fukkireta',
 ]
 
 if host_machine.system() != 'emscripten'
