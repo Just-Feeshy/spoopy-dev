@@ -33,6 +33,7 @@ typedef struct spoopy_preset_vertex_model spoopy_preset_vertex_model_t;
 typedef struct spoopy_texture spoopy_texture_t;
 typedef struct spoopy_pipeline spoopy_pipeline_t;
 typedef struct spoopy_uniform spoopy_uniform_t;
+typedef uint_fast8_t spoopy_capability_bits_t;
 
 typedef uint32_t spoopy_hash_t;
 
@@ -143,6 +144,94 @@ typedef enum spoopy_window_id_state {
 	SPOOPY_WINDOW_ID_STATE_INVALID = -1,
 	SPOOPY_WINDOW_ID_STATE_MAIN = 0
 } spoopy_window_id_state_t;
+
+typedef enum spoopy_render_capability {
+	SPOOPY_RCAP_DEPTH_TEST,
+	SPOOPY_RCAP_DEPTH_WRITE,
+	SPOOPY_RCAP_CULL_FACE,
+	SPOOPY_NUM_RCAPS,
+} spoopy_render_capability_t;
+
+typedef enum spoopy_blend_mode_component {
+	SPOOPY_BLENDCOMP_COLOR_OP  = 0x00,
+	SPOOPY_BLENDCOMP_SRC_COLOR = 0x04,
+	SPOOPY_BLENDCOMP_DST_COLOR = 0x08,
+	SPOOPY_BLENDCOMP_ALPHA_OP  = 0x10,
+	SPOOPY_BLENDCOMP_SRC_ALPHA = 0x14,
+	SPOOPY_BLENDCOMP_DST_ALPHA = 0x18,
+} spoopy_blend_mode_component_t;
+
+#define SPOOPY_BLENDMODE_COMPOSE(src_color, dst_color, color_op, src_alpha, dst_alpha, alpha_op) \
+	( \
+		((uint32_t)(color_op)  << SPOOPY_BLENDCOMP_COLOR_OP)  | \
+		((uint32_t)(src_color) << SPOOPY_BLENDCOMP_SRC_COLOR) | \
+		((uint32_t)(dst_color) << SPOOPY_BLENDCOMP_DST_COLOR) | \
+		((uint32_t)(alpha_op)  << SPOOPY_BLENDCOMP_ALPHA_OP)  | \
+		((uint32_t)(src_alpha) << SPOOPY_BLENDCOMP_SRC_ALPHA) | \
+		((uint32_t)(dst_alpha) << SPOOPY_BLENDCOMP_DST_ALPHA)   \
+	)
+
+#define SPOOPY_BLENDMODE_COMPONENT(mode, comp) \
+	(((uint32_t)(mode) >> (uint32_t)(comp)) & 0xF)
+
+typedef enum spoopy_blend_op {
+	SPOOPY_BLENDOP_ADD     = 0x1,
+	SPOOPY_BLENDOP_SUB     = 0x2,
+	SPOOPY_BLENDOP_REV_SUB = 0x3,
+	SPOOPY_BLENDOP_MIN     = 0x4,
+	SPOOPY_BLENDOP_MAX     = 0x5,
+} spoopy_blend_op_t;
+
+typedef enum spoopy_blend_factor {
+	SPOOPY_BLENDFACTOR_ZERO          = 0x1,
+	SPOOPY_BLENDFACTOR_ONE           = 0x2,
+	SPOOPY_BLENDFACTOR_SRC_COLOR     = 0x3,
+	SPOOPY_BLENDFACTOR_INV_SRC_COLOR = 0x4,
+	SPOOPY_BLENDFACTOR_SRC_ALPHA     = 0x5,
+	SPOOPY_BLENDFACTOR_INV_SRC_ALPHA = 0x6,
+	SPOOPY_BLENDFACTOR_DST_COLOR     = 0x7,
+	SPOOPY_BLENDFACTOR_INV_DST_COLOR = 0x8,
+	SPOOPY_BLENDFACTOR_DST_ALPHA     = 0x9,
+	SPOOPY_BLENDFACTOR_INV_DST_ALPHA = 0xA,
+} spoopy_blend_factor_t;
+
+typedef enum spoopy_blend_mode {
+	SPOOPY_BLEND_NONE = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDFACTOR_ZERO, SPOOPY_BLENDOP_ADD,
+		SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDFACTOR_ZERO, SPOOPY_BLENDOP_ADD
+	),
+
+	SPOOPY_BLEND_ALPHA = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_SRC_ALPHA, SPOOPY_BLENDFACTOR_INV_SRC_ALPHA, SPOOPY_BLENDOP_ADD,
+		SPOOPY_BLENDFACTOR_ONE,       SPOOPY_BLENDFACTOR_INV_SRC_ALPHA, SPOOPY_BLENDOP_ADD
+	),
+
+	SPOOPY_BLEND_PREMUL_ALPHA = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDFACTOR_INV_SRC_ALPHA, SPOOPY_BLENDOP_ADD,
+		SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDFACTOR_INV_SRC_ALPHA, SPOOPY_BLENDOP_ADD
+	),
+
+	SPOOPY_BLEND_ADD = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_SRC_ALPHA, SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDOP_ADD,
+		SPOOPY_BLENDFACTOR_ZERO,      SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDOP_ADD
+	),
+
+	SPOOPY_BLEND_SUB = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_SRC_ALPHA, SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDOP_REV_SUB,
+		SPOOPY_BLENDFACTOR_ZERO,      SPOOPY_BLENDFACTOR_ONE, SPOOPY_BLENDOP_REV_SUB
+	),
+
+	SPOOPY_BLEND_MOD = SPOOPY_BLENDMODE_COMPOSE(
+		SPOOPY_BLENDFACTOR_ZERO, SPOOPY_BLENDFACTOR_SRC_COLOR, SPOOPY_BLENDOP_ADD,
+		SPOOPY_BLENDFACTOR_ZERO, SPOOPY_BLENDFACTOR_ONE,       SPOOPY_BLENDOP_ADD
+	),
+} spoopy_blend_mode_t;
+
+typedef enum spoopy_cull_face_mode {
+	SPOOPY_CULL_FRONT = 0x1,
+	SPOOPY_CULL_BACK  = 0x2,
+	SPOOPY_CULL_BOTH  = SPOOPY_CULL_BACK | SPOOPY_CULL_FRONT,
+} spoopy_cull_face_mode_t;
 
 // TODO (Viewport): Implement `spoopy_content_scale_aspect`
 

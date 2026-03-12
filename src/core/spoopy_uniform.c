@@ -1,6 +1,9 @@
 #include <spoopy_uniform.h>
 #include <spoopy_log.h>
 
+// I'm not a fan of this hash map system, but it gets the job done
+// In the future if I really need to I can remake this to be high quality
+
 static size_t spoopy_uniform_next_pow2(size_t value) {
 	size_t result = 1;
 

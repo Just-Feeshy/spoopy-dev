@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spoopy.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

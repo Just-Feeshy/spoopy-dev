@@ -1,86 +1,82 @@
 #include <spoopy_api.h>
+#include <utils/spoopy_cglm.h>
 
 #include "test_renderer.h"
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+typedef struct vertex_3d {
+	float pos[3];
+	float uv[2];
+	float normal[3];
+} vertex_3d_t;
+
 int main(int argc, char** argv) {
 	test_init();
 
-	const char* shader_vert = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
+	spoopy_fps_counter_t* fps = SPOOPY_INIT_FPS_COUNTER(120, spoopy_stack);
 
-		struct VertexInput
-		{
-			float3 a_pos : POSITION;
-			float2 a_uv : TEXCOORD0;
-			float3 a_normal : NORMAL;
-		};
+	const char* shader_vert =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"cbuffer SpoopyGlobalUniforms\n"
+		"{\n"
+		"	float4x4 u_model_view;\n"
+		"	float4x4 u_mvp;\n"
+		"};\n"
+		"\n"
+		"struct VertexInput\n"
+		"{\n"
+		"	float3 a_pos : POSITION;\n"
+		"	float2 a_uv : TEXCOORD0;\n"
+		"	float3 a_normal : NORMAL;\n"
+		"};\n"
+		"\n"
+		"struct VertexOutput\n"
+		"{\n"
+		"	float4 v_position : SV_POSITION;\n"
+		"	float2 v_uv : TEXCOORD0;\n"
+		"	float3 v_normal : TEXCOORD1;\n"
+		"};\n"
+		"\n"
+		"[shader(\"vertex\")]\n"
+		"VertexOutput vertexMain(VertexInput input)\n"
+		"{\n"
+		"	VertexOutput output;\n"
+		"\n"
+		"	output.v_position = mul(u_mvp, float4(input.a_pos, 1.0));\n"
+		"	output.v_uv = input.a_uv;\n"
+		"	output.v_normal = normalize(mul(u_model_view, float4(input.a_normal, 0.0)).xyz);\n"
+		"\n"
+		"	return output;\n"
+		"}\n";
 
-		struct VertexOutput
-		{
-			float4 v_position : SV_POSITION;
-			float2 v_uv : TEXCOORD0;
-			float3 v_normal : TEXCOORD1;
-			float3 v_fragPos : TEXCOORD2;
-		};
-
-		uniform float4x4 u_modelViewProjection;
-		uniform float4x4 u_projectionMatrix;
-
-		[shader("vertex")]
-		VertexOutput vertexMain(VertexInput input)
-		{
-			VertexOutput output;
-
-			float4 posMV = mul(u_modelViewProjection, float4(input.a_pos, 1.0));
-			output.v_position = mul(u_projectionMatrix, posMV);
-
-			output.v_fragPos = posMV.xyz;
-			output.v_uv = input.a_uv;
-
-			float3x3 mv3 = (float3x3)u_modelViewProjection;
-			float3x3 normalMatrix = transpose(inverse(mv3));
-			output.v_normal = mul(normalMatrix, input.a_normal);
-
-			return output;
-		}
-	)";
-
-	const char* shader_frag = R"(
-		#ifndef ShaderTypes_h
-		#define ShaderTypes_h
-		#endif
-
-		struct VertexOutput {
-			float4 v_position : SV_POSITION;
-			float2 v_uv : TEXCOORD0;
-			float3 v_normal : TEXCOORD1;
-			float3 v_fragPos : TEXCOORD2;
-		};
-
-		texture2D tex0;
-		sampler samp0;
-
-		uniform float4 u_lightPos;
-		uniform float4 u_viewPos;
-
-		[shader("fragment")]
-		float4 fragmentMain(VertexOutput input) : SV_Target {
-			float3 tex = tex0.Sample(samp0, input.v_uv).xyz;
-			float3 obj_color = (0.5 + 0.5 * float3(input.v_uv, 0.0)) * tex;
-
-			float3 norm = normalize(input.v_normal);
-			float3 lightDir = normalize(u_lightPos.xyz - input.v_fragPos);
-
-			float ndotl = max(dot(norm, lightDir), 0.0);
-			float3 diffuse = (0.1 + ndotl * u_lightPos.xyz) * obj_color;
-
-			return float4(diffuse, 1.0);
-		}
-)";
+	const char* shader_frag =
+		"#ifndef ShaderTypes_h\n"
+		"#define ShaderTypes_h\n"
+		"#endif\n"
+		"\n"
+		"struct VertexOutput {\n"
+		"	float4 v_position : SV_POSITION;\n"
+		"	float2 v_uv : TEXCOORD0;\n"
+		"	float3 v_normal : TEXCOORD1;\n"
+		"};\n"
+		"\n"
+		"Texture2D tex0;\n"
+		"SamplerState samp0;\n"
+		"\n"
+		"[shader(\"fragment\")]\n"
+		"float4 fragmentMain(VertexOutput input) : SV_Target {\n"
+		"	float3 norm = normalize(input.v_normal);\n"
+		"	float3 light_dir = normalize(float3(0.45, 0.70, 0.55));\n"
+		"	float diffuse = max(dot(norm, light_dir), 0.0);\n"
+		"	float ambient = 0.20;\n"
+		"	float3 albedo = tex0.Sample(samp0, input.v_uv).rgb;\n"
+		"	float3 color = albedo * (ambient + 0.80 * diffuse);\n"
+		"	return float4(color, 1.0);\n"
+		"}\n";
 
 	spoopy_shader_object_t* vert_obj = load_shader(shader_vert, SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader(shader_frag, SPOOPY_STAGE_FRAGMENT);
@@ -93,8 +89,12 @@ int main(int argc, char** argv) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 3, vertex_spec, 0);
+	spoopy_uniform_t* uniform_model_view = spoopy_api_shader_uniform(pipeline, "u_model_view");
+	spoopy_uniform_t* uniform_mvp = spoopy_api_shader_uniform(pipeline, "u_mvp");
 
-	spoopy_vertex_buffer_t vbuf = {0};
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
+	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+	spoopy_texture_t* tex = NULL;
 
 	spoopy_mesh_t mesh = {
 		.vertex_buffers = NULL,
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 	};
 
 	{
-		vertex3d_t vertices[] = {
+		vertex_3d_t vertices[] = {
 			{ { -1.f,-1.f, 1.f }, { 0.f,0.f }, { 0.f, 0.f, 1.f } },
 			{ {  1.f,-1.f, 1.f }, { 1.f,0.f }, { 0.f, 0.f, 1.f } },
 			{ {  1.f, 1.f, 1.f }, { 1.f,1.f }, { 0.f, 0.f, 1.f } },
@@ -145,22 +145,64 @@ int main(int argc, char** argv) {
 		};
 
 		size_t vertex_data_size = sizeof(vertices);
-		spoopy_api_vertex_buffer_create(&vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0);
-		spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+		spoopy_api_vertex_buffer_create(vbuf, vertex_data_size, ARRAY_SIZE(vertices), vertices, 0);
 		spoopy_api_index_buffer_create(ibuf, ARRAY_SIZE(indices), indices);
 
-		mesh.vertex_buffers = &vbuf;
+		mesh.vertex_buffers = vbuf;
 		mesh.index_buffer = ibuf;
 		mesh.index_count = (uint32_t)ARRAY_SIZE(indices);
 		mesh.vertex_count = 1;
 	}
 
-	spoopy_uniform_t* u_lightPos = spoopy_api_shader_uniform(pipeline, "u_lightPos");
-	spoopy_uniform_t* u_viewPos = spoopy_api_shader_uniform(pipeline, "u_viewPos");
+	tex = test_renderer_load_texture("test/teto.png");
+	if(!tex) {
+		return 1;
+	}
 
-	spoopy_api_uniform_set_float4(u_lightPos, 5.0f, 4.0f, 3.0f, 1.0f);
-	spoopy_api_uniform_set_float4(u_viewPos, 0.0f, 0.0f, 5.0f, 1.0f);
+	spoopy_api_texture_set(pipeline, "tex0", tex);
 
+	size_t last_time = spoopy_time_get();
+	size_t last_print_time = last_time;
+	spoopy_camera_3d_t camera = spoopy_camera_3d_init(VIEWPORT);
 
+	spoopy_api_enable(pipeline, SPOOPY_RCAP_CULL_FACE);
+	spoopy_api_cull(pipeline, SPOOPY_CULL_FRONT);
+	spoopy_api_blend(pipeline, SPOOPY_BLEND_NONE);
+
+	while(!spoopy_api_should_quit()) {
+		size_t t = spoopy_time_get();
+		float time_seconds = (float)t / (float)SPOOPY_TIME_RESOLUTION;
+		mat4 model_view;
+		mat4 rotated;
+		mat4 projection;
+		mat4 model_view_projection;
+
+		spoopy_events_poll(handler_ptr, 0);
+		glm_translate_make(model_view, (vec3){ 0.0f, 0.0f, -5.0f });
+		glm_rotate_y(model_view, time_seconds * 0.9f, rotated);
+		glm_rotate_x(rotated, -0.55f + 0.25f * sinf(time_seconds * 0.7f), model_view);
+		spoopy_camera_get_projection(camera, &projection[0][0]);
+		glm_mat4_mul(projection, model_view, model_view_projection);
+
+		spoopy_api_uniform_set_matrix4(uniform_model_view, &model_view[0][0]);
+		spoopy_api_uniform_set_matrix4(uniform_mvp, &model_view_projection[0][0]);
+
+		spoopy_api_clear(SPOOPY_BUFFER_COLOR, SPOOPY_RGB(0.0, 0.0, 0.0), 1.0f);
+		spoopy_api_pipeline_bind(pipeline);
+		spoopy_api_draw_mesh(&mesh, pipeline);
+		spoopy_api_swap_buffers();
+
+		spoopy_fps_counter_update(fps);
+
+		if(t - last_print_time > SPOOPY_TIME_RESOLUTION) {
+			last_print_time = t;
+			SPOOPY_LOG_INFO("%.02f FPS", fps->fps);
+		}
+
+		last_time = t;
+	}
+	spoopy_api_texture_destroy(tex);
+	spoopy_heap_free(tex);
+	spoopy_api_video_shutdown();
 	return 0;
 }

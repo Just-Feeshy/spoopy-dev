@@ -12,14 +12,63 @@ const size_t spoopy_shader_object_size = sizeof(spoopy_shader_object_t);
 static_assert(sizeof(spoopy_color_t) >= sizeof(sg_color), "spoopy_color_t must hold sg_color");
 static_assert(__alignof(spoopy_color_t) >= __alignof(sg_color), "spoopy_color_t alignment must satisfy sg_color");
 
-// TODO (Mutli-Window): Have this be per window instead of a crappy static variable
-sg_swapchain spoopy_swapchain = {
-	.width = 0,
-	.height = 0,
-	.sample_count = 1,
-	.color_format = SG_PIXELFORMAT_BGRA8,
-	.depth_format = SG_PIXELFORMAT_NONE,
+spoopy_sokol_global_t spoopy_sokol = {
+	.frame = {
+		.swapchain = {
+			.color_format = SG_PIXELFORMAT_BGRA8,
+			.depth_format = SG_PIXELFORMAT_NONE,
+			.sample_count = 1,
+		},
+	},
 };
+
+static inline spoopy_capability_bits_t spoopy_sokol_capability_bit(spoopy_render_capability_t cap) {
+	const spoopy_capability_bits_t idx = (spoopy_capability_bits_t)cap;
+	assert(idx < SPOOPY_NUM_RCAPS);
+	return (spoopy_capability_bits_t)(1u << idx);
+}
+
+static inline sg_blend_op spoopy_sokol_blend_op(spoopy_blend_op_t op) {
+	switch(op) {
+		case SPOOPY_BLENDOP_ADD:     return SG_BLENDOP_ADD;
+		case SPOOPY_BLENDOP_SUB:     return SG_BLENDOP_SUBTRACT;
+		case SPOOPY_BLENDOP_REV_SUB: return SG_BLENDOP_REVERSE_SUBTRACT;
+		case SPOOPY_BLENDOP_MIN:     return SG_BLENDOP_MIN;
+		case SPOOPY_BLENDOP_MAX:     return SG_BLENDOP_MAX;
+		default:                     return SG_BLENDOP_ADD;
+	}
+}
+
+static inline sg_blend_factor spoopy_sokol_blend_factor(spoopy_blend_factor_t factor) {
+	switch(factor) {
+		case SPOOPY_BLENDFACTOR_ZERO:          return SG_BLENDFACTOR_ZERO;
+		case SPOOPY_BLENDFACTOR_ONE:           return SG_BLENDFACTOR_ONE;
+		case SPOOPY_BLENDFACTOR_SRC_COLOR:     return SG_BLENDFACTOR_SRC_COLOR;
+		case SPOOPY_BLENDFACTOR_INV_SRC_COLOR: return SG_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+		case SPOOPY_BLENDFACTOR_SRC_ALPHA:     return SG_BLENDFACTOR_SRC_ALPHA;
+		case SPOOPY_BLENDFACTOR_INV_SRC_ALPHA: return SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+		case SPOOPY_BLENDFACTOR_DST_COLOR:     return SG_BLENDFACTOR_DST_COLOR;
+		case SPOOPY_BLENDFACTOR_INV_DST_COLOR: return SG_BLENDFACTOR_ONE_MINUS_DST_COLOR;
+		case SPOOPY_BLENDFACTOR_DST_ALPHA:     return SG_BLENDFACTOR_DST_ALPHA;
+		case SPOOPY_BLENDFACTOR_INV_DST_ALPHA: return SG_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+		default:                               return SG_BLENDFACTOR_ONE;
+	}
+}
+
+static inline sg_cull_mode spoopy_sokol_cull_mode(const spoopy_pipeline_t* pipeline) {
+	if(!(pipeline->state.caps & spoopy_sokol_capability_bit(SPOOPY_RCAP_CULL_FACE))) {
+		return SG_CULLMODE_NONE;
+	}
+
+	switch(pipeline->state.cull) {
+		case SPOOPY_CULL_FRONT:
+			return SG_CULLMODE_FRONT;
+		case SPOOPY_CULL_BACK:
+		case SPOOPY_CULL_BOTH:
+		default:
+			return SG_CULLMODE_BACK;
+	}
+}
 
 static const struct {
 	uint8_t elements;
@@ -68,16 +117,16 @@ static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
 		default:
 		case SPOOPY_RENDERER_API_METAL:
 			#if defined(SPOOPY_RENDERER_METAL)
-			spoopy_swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
-			spoopy_swapchain.metal.depth_stencil_texture = NULL;
-			spoopy_swapchain.metal.msaa_color_texture = NULL;
+			spoopy_sokol.frame.swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
+			spoopy_sokol.frame.swapchain.metal.depth_stencil_texture = NULL;
+			spoopy_sokol.frame.swapchain.metal.msaa_color_texture = NULL;
 			#endif
 
 			break;
 	}
 
-	spoopy_swapchain.width  = fb_size.w;
-	spoopy_swapchain.height = fb_size.h;
+	spoopy_sokol.frame.swapchain.width  = fb_size.w;
+	spoopy_sokol.frame.swapchain.height = fb_size.h;
 }
 
 static inline sg_shader_stage spoopy_stage_to_sg(spoopy_shader_stage_t s) {
@@ -544,6 +593,14 @@ static void spoopy_sokol_pipeline_free_allocations(spoopy_pipeline_t* pipeline) 
 		return;
 	}
 
+	if(pipeline->pipeline.id != SG_INVALID_ID) {
+		sg_destroy_pipeline(pipeline->pipeline);
+	}
+
+	if(pipeline->shader.id != SG_INVALID_ID) {
+		sg_destroy_shader(pipeline->shader);
+	}
+
 	if(pipeline->arena.pages.begin_page) {
 		spoopy_arena_deinit(&pipeline->arena);
 	}
@@ -591,7 +648,12 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 
 	spoopy_pipeline_t* pipeline = spoopy_heap_alloc(sizeof(*pipeline));
 	assert(pipeline);
-	*pipeline = (spoopy_pipeline_t){0};
+	*pipeline = (spoopy_pipeline_t){
+		.state = {
+			.blend = SPOOPY_BLEND_NONE,
+			.cull = SPOOPY_CULL_BACK,
+		},
+	};
 	spoopy_arena_init(&pipeline->arena, spoopy_sokol_pipeline_arena_size(num_objs, objs, total_uniforms));
 	if(!spoopy_uniform_ht_init(&pipeline->uniforms, &pipeline->arena, total_uniforms)) {
 		goto fail;
@@ -607,7 +669,7 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 
 		switch(obj->stage) {
 			case SPOOPY_STAGE_VERTEX:
-				pipeline->stages.vertex = obj;
+				pipeline->shader_stages.vertex = obj;
 				desc.vertex_func = obj->func;
 				has_vertex = true;
 				SPOOPY_LOG_INFO("Vertex shader entry: '%s', source len: %zu",
@@ -615,7 +677,7 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 					obj->func.source ? strlen(obj->func.source) : 0);
 				break;
 			case SPOOPY_STAGE_FRAGMENT:
-				pipeline->stages.fragment = obj;
+				pipeline->shader_stages.fragment = obj;
 				desc.fragment_func = obj->func;
 				has_fragment = true;
 				SPOOPY_LOG_INFO("Fragment shader entry: '%s', source len: %zu",
@@ -724,6 +786,34 @@ static sg_vertex_format spoopy_sokol_vertex_format(const spoopy_vertex_attr_spec
 	return SG_VERTEXFORMAT_INVALID;
 }
 
+static size_t spoopy_sokol_vertex_attr_size(const spoopy_vertex_attr_spec_t* spec) {
+	size_t element_size = 0;
+
+	switch(spec->type) {
+		case SPOOPY_VA_FLOAT:
+		case SPOOPY_VA_INT:
+		case SPOOPY_VA_UINT:
+			element_size = 4;
+			break;
+
+		case SPOOPY_VA_SHORT:
+		case SPOOPY_VA_USHORT:
+			element_size = 2;
+			break;
+
+		case SPOOPY_VA_BYTE:
+		case SPOOPY_VA_UBYTE:
+			element_size = 1;
+			break;
+
+		default:
+			SPOOPY_LOG_ERROR("Invalid vertex attribute type: %u", spec->type);
+			return 0;
+	}
+
+	return element_size * spec->elements;
+}
+
 static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t flags, const spoopy_color_t *color_val, float depth_val) {
 	static const sg_load_action load_actions[2] = { SG_LOADACTION_LOAD, SG_LOADACTION_CLEAR };
 
@@ -733,7 +823,7 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 	action.colors[0].clear_value = *(const sg_color*)color_val->rgba;
 
 	const uint32_t wants_depth_clear = (flags & SPOOPY_BUFFER_DEPTH) != 0;
-	const uint32_t has_depth_attachment = spoopy_swapchain.depth_format != SG_PIXELFORMAT_NONE;
+	const uint32_t has_depth_attachment = spoopy_sokol.frame.swapchain.depth_format != SG_PIXELFORMAT_NONE;
 	action.depth.load_action = has_depth_attachment
 		? load_actions[wants_depth_clear]
 		: SG_LOADACTION_DONTCARE;
@@ -743,25 +833,103 @@ static void spoopy_sokol_clear(spoopy_graphics_t* graphics, spoopy_buffer_kind_t
 
 	sg_begin_pass(&(sg_pass) {
 		.action = action,
-		.swapchain = spoopy_swapchain,
+		.swapchain = spoopy_sokol.frame.swapchain,
 	});
 }
 
-static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+static void spoopy_sokol_pipeline_apply_desc(spoopy_pipeline_t* pipeline) {
 	sg_pipeline_desc pdesc = {0};
+	size_t stride = 0;
+	const uint32_t spec_count = pipeline->vertex_spec_count;
+	const uint32_t buffer_index = pipeline->vertex_buffer_index;
+	const bool has_depth_attachment = spoopy_sokol.frame.swapchain.depth_format != SG_PIXELFORMAT_NONE;
+	const spoopy_capability_bits_t caps = pipeline->state.caps;
+	const spoopy_blend_mode_t blend = pipeline->state.blend;
+
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
 	pdesc.color_count = 1;
-	pdesc.sample_count = spoopy_swapchain.sample_count;
-	pdesc.colors[0].pixel_format = spoopy_swapchain.color_format;
-	pdesc.depth.pixel_format = spoopy_swapchain.depth_format;
+	pdesc.sample_count = spoopy_sokol.frame.swapchain.sample_count;
+	pdesc.colors[0].pixel_format = spoopy_sokol.frame.swapchain.color_format;
+	pdesc.colors[0].blend.enabled = blend != SPOOPY_BLEND_NONE;
+	pdesc.colors[0].blend.src_factor_rgb = spoopy_sokol_blend_factor(
+		(spoopy_blend_factor_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_SRC_COLOR));
+	pdesc.colors[0].blend.dst_factor_rgb = spoopy_sokol_blend_factor(
+		(spoopy_blend_factor_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_DST_COLOR));
+	pdesc.colors[0].blend.op_rgb = spoopy_sokol_blend_op(
+		(spoopy_blend_op_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_COLOR_OP));
+	pdesc.colors[0].blend.src_factor_alpha = spoopy_sokol_blend_factor(
+		(spoopy_blend_factor_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_SRC_ALPHA));
+	pdesc.colors[0].blend.dst_factor_alpha = spoopy_sokol_blend_factor(
+		(spoopy_blend_factor_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_DST_ALPHA));
+	pdesc.colors[0].blend.op_alpha = spoopy_sokol_blend_op(
+		(spoopy_blend_op_t)SPOOPY_BLENDMODE_COMPONENT(blend, SPOOPY_BLENDCOMP_ALPHA_OP));
+	pdesc.depth.pixel_format = spoopy_sokol.frame.swapchain.depth_format;
+	pdesc.depth.compare = ((caps & spoopy_sokol_capability_bit(SPOOPY_RCAP_DEPTH_TEST)) && has_depth_attachment)
+		? SG_COMPAREFUNC_LESS_EQUAL
+		: SG_COMPAREFUNC_ALWAYS;
+	pdesc.depth.write_enabled = (caps & spoopy_sokol_capability_bit(SPOOPY_RCAP_DEPTH_WRITE)) && has_depth_attachment;
+	pdesc.cull_mode = spoopy_sokol_cull_mode(pipeline);
 
-	// Simplified to match minimal working test - only set what's necessary
 	for(uint32_t i = 0; i < spec_count && i < SG_MAX_VERTEX_ATTRIBUTES; i++) {
-		pdesc.layout.attrs[i].format = spoopy_sokol_vertex_format(&spec[i]);
+		const size_t attr_size = spoopy_sokol_vertex_attr_size(&pipeline->vertex_spec[i]);
+		pdesc.layout.attrs[i].format = spoopy_sokol_vertex_format(&pipeline->vertex_spec[i]);
+		pdesc.layout.attrs[i].buffer_index = (int)buffer_index;
+		pdesc.layout.attrs[i].offset = (int)stride;
+		stride += attr_size;
+	}
+
+	if(buffer_index < SG_MAX_VERTEXBUFFER_BINDSLOTS) {
+		pdesc.layout.buffers[buffer_index].stride = (int)stride;
+	}
+
+	if(pipeline->pipeline.id != SG_INVALID_ID) {
+		sg_destroy_pipeline(pipeline->pipeline);
 	}
 
 	pipeline->pipeline = sg_make_pipeline(&pdesc);
+}
+
+static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+	if(!pipeline) {
+		return;
+	}
+
+	pipeline->vertex_spec_count = spec_count > SG_MAX_VERTEX_ATTRIBUTES ? SG_MAX_VERTEX_ATTRIBUTES : spec_count;
+	pipeline->vertex_buffer_index = buffer_index;
+
+	for(uint32_t i = 0; i < pipeline->vertex_spec_count; ++i) {
+		pipeline->vertex_spec[i] = spec[i];
+	}
+
+	spoopy_sokol_pipeline_apply_desc(pipeline);
+}
+
+static void spoopy_sokol_capabilities(spoopy_pipeline_t* pipeline, spoopy_capability_bits_t new_caps) {
+	pipeline->state.caps = new_caps;
+	spoopy_sokol_pipeline_apply_desc(pipeline);
+}
+
+static spoopy_capability_bits_t spoopy_sokol_capabilities_current(spoopy_pipeline_t* pipeline) {
+	return pipeline->state.caps;
+}
+
+static void spoopy_sokol_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
+	pipeline->state.blend = mode;
+	spoopy_sokol_pipeline_apply_desc(pipeline);
+}
+
+static spoopy_blend_mode_t spoopy_sokol_blend_current(spoopy_pipeline_t* pipeline) {
+	return pipeline->state.blend;
+}
+
+static void spoopy_sokol_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
+	pipeline->state.cull = mode;
+	spoopy_sokol_pipeline_apply_desc(pipeline);
+}
+
+static spoopy_cull_face_mode_t spoopy_sokol_cull_current(spoopy_pipeline_t* pipeline) {
+	return pipeline->state.cull;
 }
 
 static size_t spoopy_sokol_buffer_size(spoopy_buffer_type_t type) {
@@ -993,24 +1161,20 @@ static void spoopy_sokol_uniform_write_matrix(spoopy_uniform_t* uniform, const f
 	}
 }
 
+// TODO (Uniform): Replace this Sokol uniform upload path with the backend-specific
+// native upload path once the Metal/WGPU wrapper is in place.
 static void spoopy_sokol_apply_uniform_buffers(spoopy_pipeline_t* pipeline) {
-	if(!pipeline) {
-		return;
-	}
-
-	// TODO (Uniform): Replace this Sokol uniform upload path with the backend-specific
-	// native upload path once the Metal/WGPU wrapper is in place.
-	if(pipeline->stages.vertex && pipeline->stages.vertex->uniform_buffer.data && pipeline->stages.vertex->uniform_buffer.size) {
-		sg_apply_uniforms(pipeline->stages.vertex->uniform_buffer.slot, &(sg_range) {
-			.ptr = pipeline->stages.vertex->uniform_buffer.data,
-			.size = pipeline->stages.vertex->uniform_buffer.size,
+	if(pipeline->shader_stages.vertex && pipeline->shader_stages.vertex->uniform_buffer.data && pipeline->shader_stages.vertex->uniform_buffer.size) {
+		sg_apply_uniforms(pipeline->shader_stages.vertex->uniform_buffer.slot, &(sg_range) {
+			.ptr = pipeline->shader_stages.vertex->uniform_buffer.data,
+			.size = pipeline->shader_stages.vertex->uniform_buffer.size,
 		});
 	}
 
-	if(pipeline->stages.fragment && pipeline->stages.fragment->uniform_buffer.data && pipeline->stages.fragment->uniform_buffer.size) {
-		sg_apply_uniforms(pipeline->stages.fragment->uniform_buffer.slot, &(sg_range) {
-			.ptr = pipeline->stages.fragment->uniform_buffer.data,
-			.size = pipeline->stages.fragment->uniform_buffer.size,
+	if(pipeline->shader_stages.fragment && pipeline->shader_stages.fragment->uniform_buffer.data && pipeline->shader_stages.fragment->uniform_buffer.size) {
+		sg_apply_uniforms(pipeline->shader_stages.fragment->uniform_buffer.slot, &(sg_range) {
+			.ptr = pipeline->shader_stages.fragment->uniform_buffer.data,
+			.size = pipeline->shader_stages.fragment->uniform_buffer.size,
 		});
 	}
 }
@@ -1294,4 +1458,10 @@ spoopy_backend_funcs_t _backend_funcs = {
 	.uniform_set_bool = spoopy_sokol_uniform_set_bool,
 	.uniform_set_matrix3 = spoopy_sokol_uniform_set_matrix3,
 	.uniform_set_matrix4 = spoopy_sokol_uniform_set_matrix4,
+	.blend = spoopy_sokol_blend,
+	.blend_current = spoopy_sokol_blend_current,
+	.cull = spoopy_sokol_cull,
+	.cull_current = spoopy_sokol_cull_current,
+	.capabilities = spoopy_sokol_capabilities,
+	.capabilities_current = spoopy_sokol_capabilities_current,
 };

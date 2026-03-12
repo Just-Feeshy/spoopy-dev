@@ -21,7 +21,7 @@ extern "C" {
  * ============================================================================= */
 
 #define SDL_GPU_DISABLE
-#define CGLM_CONFIG_CLIP_CONTROL CGLM_CLIP_CONTROL_RH_ZO
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #define SPOOPY_HAS_SDL_WINDOW_SUPPORT
 
 

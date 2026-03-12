@@ -2,7 +2,7 @@
 
 #include <spoopy.h>
 
-#define SPOOPY_PI_F 3.14159265358979323846f
+#define SPOOPY_PI_F 3.1415926535f
 #define SPOOPY_DEG2RAD_F (SPOOPY_PI_F / 180.0f)
 #define SPOOPY_RAD2DEG_F (180.0f / SPOOPY_PI_F)
 

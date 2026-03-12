@@ -6,6 +6,7 @@
 #include <spoopy_graphics.h>
 #include <spoopy_shader.h>
 #include <memory/spoopy_memory.h>
+#include <spoopy_vertex_attr.h>
 #include <memory/spoopy_arena.h>
 #include <spoopy_uniform.h>
 
@@ -76,7 +77,12 @@ static inline void spoopy_sokol_log_cb(
 extern "C" {
 #endif
 
-extern sg_swapchain spoopy_swapchain;
+// TODO (Mutli-Window): Have this be per window instead of a crappy static variable
+typedef struct spoopy_sokol_global {
+	struct {
+		sg_swapchain swapchain;
+	} frame;
+} spoopy_sokol_global_t;
 
 struct spoopy_vertex_buffer {
 	sg_buffer buffer;
@@ -90,16 +96,26 @@ struct spoopy_index_buffer {
 };
 
 struct spoopy_pipeline {
+	spoopy_vertex_attr_spec_t vertex_spec[SG_MAX_VERTEX_ATTRIBUTES];
+
 	struct {
 		spoopy_shader_object_t *vertex;
 		spoopy_shader_object_t *fragment;
-	} stages;
+	} shader_stages;
+
+	struct {
+		spoopy_capability_bits_t caps;
+		spoopy_blend_mode_t blend;
+		spoopy_cull_face_mode_t cull;
+	} state;
 
 	spoopy_mem_arena_t arena;
 	spoopy_uniform_ht_t uniforms;
 	sg_shader shader;
 	sg_pipeline pipeline;
 	sg_bindings bindings;
+	uint32_t vertex_spec_count;
+	uint32_t vertex_buffer_index;
 };
 
 struct spoopy_shader_object {
