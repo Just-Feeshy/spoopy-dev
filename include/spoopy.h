@@ -1,8 +1,29 @@
-#ifndef SPOOPY_H
-#define SPOOPY_H
+#pragma once
+
+#ifndef SPOOPY_EPSILON
+#define SPOOPY_EPSILON 0.00001f
+#endif
 
 #ifndef SPOOPY_SUPPORT_SDL_THREADS
 #define SPOOPY_SUPPORT_SDL_THREADS 1
+#endif
+
+#ifndef SPOOPY_PRIMARY_SCREEN_INDEX
+#define SPOOPY_PRIMARY_SCREEN_INDEX 0u
+#endif
+
+#ifndef SPOOPY_ARENA_MIN_SIZE
+#define SPOOPY_ARENA_MIN_SIZE 4096
+#endif
+
+#ifndef SPOOPY_FRAMES_TO_AVERAGE
+#define SPOOPY_FRAME_TO_AVERAGE 120
+#endif
+
+#ifdef __cplusplus
+#define SPOOPY_FLEX_ARR 1
+#else
+#define SPOOPY_FLEX_ARR
 #endif
 
 #ifndef SPOOPY_FUNC_CORE
@@ -21,17 +42,3 @@
 
 #include <utils/spoopy_compat.h>
 #include <utils/assert.h>
-
-
-// Include all necessary headers to act as an API for the developer
-#ifdef SPOOPY_MAIN_PROJECT
-
-#include <spoopy_shader.h>
-#include <spoopy_thread.h>
-#include <spoopy_log.h>
-#include <spoopy_video.h>
-#include <spoopy_app.h>
-
-#endif // SPOOPY_MAIN_PROJECT
-
-#endif // SPOOPY_H

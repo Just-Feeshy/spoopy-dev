@@ -1,0 +1,114 @@
+#pragma once
+
+#include <spoopy.h>
+#include <spoopy_color.h>
+
+#define SPOOPY_PIXEL_MAKE_FORMAT(layout, depth) (((uint32_t)(layout) << 8) | (uint32_t)(depth))
+#define SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(layout, depth) (SPOOPY_PIXEL_MAKE_FORMAT((layout), (depth)) | SPOOPY_FORMAT_FLOAT_BIT)
+
+#define SPOOPY_PIXEL_FORMAT_LAYOUT(fmt) (((fmt) >> 8) & 0xFF)
+#define SPOOPY_PIXEL_FORMAT_DEPTH(fmt)  ((fmt) & 0xFF)
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum {
+	SPOOPY_FORMAT_FLOAT_BIT = 0x80,
+	SPOOPY_FORMAT_FLAG_BITS = SPOOPY_FORMAT_FLOAT_BIT
+};
+
+typedef enum spoopy_image_file_format {
+	SPOOPY_IMAGE_FILE_FORMAT_AUTO = -1,
+
+	SPOOPY_IMAGE_FILE_FORMAT_PNG,
+
+	SPOOPY_IMAGE_NUM_FILE_FORMATS
+} spoopy_image_file_format_t;
+
+typedef enum spoopy_pixel_layout {
+	SPOOPY_PIXEL_LAYOUT_INVALID = -1,
+	SPOOPY_PIXEL_LAYOUT_R = 1,
+	SPOOPY_PIXEL_LAYOUT_RG,
+	SPOOPY_PIXEL_LAYOUT_RGB,
+	SPOOPY_PIXEL_LAYOUT_RGBA,
+} spoopy_pixel_layout_t;
+
+typedef enum spoopy_pixel_format {
+	SPOOPY_PIXEL_FORMAT_INVALID = -1,
+
+	SPOOPY_PIXEL_FORMAT_R8      = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_R,    8),
+	SPOOPY_PIXEL_FORMAT_R16     = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_R,   16),
+	SPOOPY_PIXEL_FORMAT_R32     = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_R,   32),
+
+	SPOOPY_PIXEL_FORMAT_R16F    = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_R,   16),
+	SPOOPY_PIXEL_FORMAT_R32F    = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_R,   32),
+
+	SPOOPY_PIXEL_FORMAT_RG8     = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RG,   8),
+	SPOOPY_PIXEL_FORMAT_RG16    = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RG,  16),
+	SPOOPY_PIXEL_FORMAT_RG32    = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RG,  32),
+
+	SPOOPY_PIXEL_FORMAT_RG16F   = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RG,  16),
+	SPOOPY_PIXEL_FORMAT_RG32F   = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RG,  32),
+
+	SPOOPY_PIXEL_FORMAT_RGB8    = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGB,  8),
+	SPOOPY_PIXEL_FORMAT_RGB16   = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGB, 16),
+	SPOOPY_PIXEL_FORMAT_RGB32   = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGB, 32),
+
+	SPOOPY_PIXEL_FORMAT_RGB16F  = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RGB, 16),
+	SPOOPY_PIXEL_FORMAT_RGB32F  = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RGB, 32),
+
+	SPOOPY_PIXEL_FORMAT_RGBA8   = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGBA,  8),
+	SPOOPY_PIXEL_FORMAT_RGBA16  = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGBA, 16),
+	SPOOPY_PIXEL_FORMAT_RGBA32  = SPOOPY_PIXEL_MAKE_FORMAT(SPOOPY_PIXEL_LAYOUT_RGBA, 32),
+
+	SPOOPY_PIXEL_FORMAT_RGBA16F = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RGBA, 16),
+	SPOOPY_PIXEL_FORMAT_RGBA32F = SPOOPY_PIXEL_MAKE_FLOAT_FORMAT(SPOOPY_PIXEL_LAYOUT_RGBA, 32),
+
+	SPOOPY_PIXEL_FORMAT_FIRST = SPOOPY_PIXEL_FORMAT_R8,
+	SPOOPY_PIXEL_FORMAT_LAST = SPOOPY_PIXEL_FORMAT_RGBA32F,
+	SPOOPY_PIXEL_FORMAT_COUNT = SPOOPY_PIXEL_FORMAT_LAST - SPOOPY_PIXEL_FORMAT_FIRST + 1
+} spoopy_pixel_format_t;
+
+typedef enum spoopy_image_origin {
+	SPOOPY_IMAGE_ORIGIN_TOP_LEFT,
+	SPOOPY_IMAGE_ORIGIN_BOTTOM_LEFT,
+} spoopy_image_origin_t;
+
+typedef struct spoopy_image_save_options {
+	spoopy_image_file_format_t file_format;
+} spoopy_image_save_options_t;
+
+typedef struct spoopy_image {
+	union {
+		void* raw_data;
+
+		spoopy_color1_t* color1;
+		spoopy_color2_t* color2;
+		spoopy_color3_t* color3;
+		spoopy_color_t* color;
+	} pixels;
+
+	uint32_t width;
+	uint32_t height;
+	uint32_t data_size;
+	spoopy_pixel_format_t format;
+	spoopy_image_origin_t origin;
+} spoopy_image_t;
+
+static inline bool spoopy_pixel_format_is_float(spoopy_pixel_format_t fmt) {
+	return (((uint32_t)fmt) & ((uint32_t)SPOOPY_FORMAT_FLOAT_BIT)) != 0u;
+}
+
+static inline unsigned int spoopy_pixel_format_depth(spoopy_pixel_format_t fmt) {
+    return ((uint32_t)fmt & 0xFFu) & ~((uint32_t)SPOOPY_FORMAT_FLAG_BITS);
+}
+
+static inline spoopy_pixel_layout_t spoopy_format_layout(spoopy_pixel_format_t fmt) {
+	return (spoopy_pixel_layout_t)SPOOPY_PIXEL_FORMAT_LAYOUT(fmt);
+}
+
+#ifdef __cplusplus
+}
+#endif

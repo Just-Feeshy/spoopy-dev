@@ -1,5 +1,4 @@
-#ifndef SPOOPY_THREAD_H
-#define SPOOPY_THREAD_H
+#pragma once
 
 #include <spoopy.h>
 
@@ -45,8 +44,8 @@ typedef struct spoopy_thread_buffers {
 typedef struct {
     spoopy_thread_buffers_t buffers;
     spoopy_thread_process_t process;
-    spoopy_thread_priority_t priority;
     void* args_buff;
+    spoopy_thread_priority_t priority;
 } spoopy_core_thread_data_t;
 
 
@@ -121,15 +120,16 @@ SPOOPY_FUNC_CORE void _spoopy_internal_thread_unset(spoopy_thread_index_t index)
 #endif // _spoopy_thread
 
 
-#if SPOOPY_SUPPORT_SDL_THREADS
+// Maybe in the future, we can add more for kinc threads (most likely not)
+// this is more less here for developers to make their own thread design
+// if they want to use something else other than SDL threads, or have a different
+// artchitecture for threads using SDL_Thread.
 
-_spoopy_thread(sdl,
+_spoopy_thread(sys,
     SDL_Thread* thrd,
     SDL_AtomicInt ref_count;
     SDL_AtomicInt thread_state;
 )
-
-#endif // SPOOPY_SUPPORT_SDL_THREADS
 
 SPOOPY_FUNC_CORE void spoopy_create_core_thread_data(
     spoopy_core_thread_data_t* data,
@@ -148,5 +148,3 @@ SPOOPY_FUNC_CORE spoopy_thread_index_t spoopy_get_main_id(void);
 
 #undef __SPOOPY_USE_CORE_THREAD_DESIGN
 #undef SPOOPY_ALLOW_THREAD_DESIGN
-
-#endif
