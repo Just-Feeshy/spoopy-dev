@@ -1,0 +1,8 @@
+[wrap-git]
+directory = cglm
+url = https://github.com/recp/cglm.git
+push-url = git@github.com:recp/cglm.git
+revision = master
+
+[provide]
+cglm = cglm_dep

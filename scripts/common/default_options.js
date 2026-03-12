@@ -55,6 +55,7 @@ class Config {
         }
 
         options.push('default_library=static');
+        options.push('libpng:default_library=static');
 
         if (this.build_type === 'debug') {
             options.push(

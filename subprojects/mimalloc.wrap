@@ -1,0 +1,5 @@
+[wrap-git]
+directory = mimalloc
+method = cmake
+url = https://github.com/microsoft/mimalloc.git
+revision = v2.1.7

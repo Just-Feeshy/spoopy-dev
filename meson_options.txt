@@ -21,17 +21,17 @@ option('have_sdl_thread_support',
     description: 'Use SDL threads for multi-threading'
 )
 
-# option('triplet',
-#     type: 'string',
-#     value: '',
-#     description : 'Rust target triplet (if needed)'
-# )
-#
-# option('rustc-version',
-#     type: 'string',
-#     value: '',
-#     description : 'Minimum Rust compiler version (if needed)'
-# )
+option('triplet',
+    type: 'string',
+    value: '',
+    description : 'Rust target triplet (if needed)'
+)
+
+option('rustc-version',
+    type: 'string',
+    value: '',
+    description : 'Minimum Rust compiler version (if needed)'
+)
 
 option('slang_dir',
     type: 'string',
@@ -49,4 +49,30 @@ option('slang_lib_dir',
     type: 'string',
     value: '',
     description: 'Slang library directory'
+)
+
+option('allocator',
+	type: 'combo',
+	choices: ['custom', 'default'],
+	value: 'default',
+	description: 'Choose whether to use the default memory allocator or manually manage memory allocation'
+)
+
+option('need_mimalloc',
+	type: 'boolean',
+	value: true,
+	description: 'Whether mimalloc is a required allocator'
+)
+
+option('enable_sokol',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Enable the Sokol renderer backend'
+)
+
+option('sokol_backend',
+    type: 'combo',
+    value: 'auto',
+    choices: ['auto', 'metal', 'd3d11', 'wgpu'],
+    description: 'Sokol backend to enable (maps to SPOOPY_RENDERER_* defines)'
 )

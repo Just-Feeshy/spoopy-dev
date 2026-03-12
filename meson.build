@@ -11,11 +11,14 @@ project('spoopy', ['c'],
     ], check: true).stdout().strip().split('\n')
 )
 
+fs = import('fs')
+
 cc = meson.get_compiler('c')
 config = configuration_data()
 
 if host_machine.system() == 'darwin'
-    add_project_arguments('-mmacosx-version-min=12.0', language: ['c', 'objc'])
+    add_languages('objc', native: false)
+    add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
 endif
 
 spoopy_includes = include_directories('include', 'include')
@@ -23,9 +26,76 @@ spoopy_includes = include_directories('include', 'include')
 is_debug_build = get_option('debug')
 deprecation_warnings = get_option('deprecation_warnings')
 
-spoopy_deps = []
+enable_sokol = get_option('enable_sokol')
+sokol_backend = get_option('sokol_backend')
+sokol_compile_args = []
+sokol_dep = disabler()
 
-spoopy_deps += dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+if enable_sokol.disabled()
+    if sokol_backend != 'auto'
+        error('sokol_backend is set but enable_sokol is disabled; enable with -Denable_sokol=enabled')
+    endif
+endif
+
+sokol_requested = enable_sokol.enabled() or (enable_sokol.auto() and sokol_backend != 'auto')
+if sokol_requested
+    if sokol_backend == 'auto'
+        if host_machine.system() == 'darwin'
+            sokol_backend = 'metal'
+        elif host_machine.system() == 'windows'
+            sokol_backend = 'd3d11'
+        else
+            sokol_backend = 'wgpu'
+        endif
+    endif
+
+    sokol_backend_map = {
+        'metal': 'SPOOPY_RENDERER_METAL',
+        'd3d11': 'SPOOPY_RENDERER_D3D11',
+        'wgpu': 'SPOOPY_RENDERER_WGPU',
+    }
+
+    if not sokol_backend_map.has_key(sokol_backend)
+        error('Unknown Sokol backend: @0@'.format(sokol_backend))
+    endif
+    renderer_define = '-D@0@'.format(sokol_backend_map[sokol_backend])
+    sokol_compile_args += renderer_define
+    add_global_arguments(renderer_define, language: ['c', 'cpp', 'objc'])
+endif
+
+spoopy_sys_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
+
+spoopy_deps = []
+if host_machine.system() == 'darwin'
+    spoopy_deps += dependency('appleframeworks', modules: ['AppKit', 'Cocoa', 'Foundation', 'Metal', 'QuartzCore'])
+endif
+spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
+libpng_dep = dependency('libpng', 'libpng16', version: '>=1.5', required: false)
+if not libpng_dep.found()
+    cmake = import('cmake')
+    libpng_options = cmake.subproject_options()
+    libpng_options.set_install(false)
+    libpng_options.add_cmake_defines({
+        'PNG_SHARED': false,
+        'PNG_STATIC': true,
+        'PNG_FRAMEWORK': false,
+        'PNG_TESTS': false,
+        'PNG_TOOLS': false,
+    })
+
+    libpng_subproject = cmake.subproject('libpng', options: libpng_options)
+    libpng_dep = libpng_subproject.dependency('png_static')
+endif
+spoopy_deps += libpng_dep
+spoopy_deps += dependency('cglm', required: true)
+
+if sokol_requested
+    sokol_dep = dependency('sokol', fallback: ['sokol', 'sokol_dep'], required: true)
+    sokol_dep = declare_dependency(
+        dependencies: [sokol_dep],
+        compile_args: sokol_compile_args,
+    )
+endif
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')
 
@@ -69,7 +139,7 @@ endif
 
 
 # Get absolute paths
-# "Borrowed" from Sway, also, very confused about what
+# "Borrowed" from Sway desktop environment, also, very confused about what
 # this was for, so I wrote comments to explain each process
 # for others' planning to "borrow" this code.
 
@@ -120,67 +190,12 @@ else
 endif
 
 subdir('scripts')
-
-slang_version = '2025.14.3'
-
-fs = import('fs')
-slang_dir = meson.current_source_dir() / 'external' / 'slang'
-slang_paths_file = slang_dir / 'slang_paths.txt'
-
-if not fs.exists(slang_paths_file)
-    message('Downloading Slang paths binaries...')
-
-    download_result = run_command([
-        slang_fetch_script,
-        slang_version,
-        slang_dir,
-    ], check: true)
-
-    if download_result.returncode() != 0
-        error('Failed to download Slang paths binaries. Return code: ' + download_result.returncode().to_string())
-    endif
-endif
-
-slang_paths = {}
-if fs.exists(slang_paths_file)
-    paths_content = fs.read(slang_paths_file).strip().split('\n')
-
-    foreach line : paths_content
-        if line != ''
-            parts = line.split('=')
-            if parts.length() == 2
-                slang_paths += {parts[0]: parts[1]}
-            endif
-        endif
-    endforeach
-else
-    error('Slang paths file not found')
-endif
-
-if host_machine.system() == 'windows'
-    slang_lib = declare_dependency(
-        include_directories: include_directories('external/slang/include'),
-        dependencies: [
-            meson.get_compiler('cpp').find_library('slang',
-                dirs: [fs.parent(slang_paths['lib'])],
-                static: false
-            )
-        ]
-    )
-else
-    slang_lib = declare_dependency(
-        include_directories: include_directories('external/slang/include'),
-        link_args: [slang_paths['lib']]
-    )
-endif
-
-subdir('shaders')
 subdir('src')
 subdir('test')
 
-spoopy_sdl_threads_support = get_option('have_sdl_thread_support')
+spoopy_sys_threads_support = get_option('have_sdl_thread_support')
 
-if not spoopy_sdl_threads_support
+if not spoopy_sys_threads_support
     config.set('SPOOPY_SUPPORT_SDL_THREADS', 0)
 endif
 
@@ -188,5 +203,5 @@ summary({
     'System Type': systype,
     'Build Type': is_debug_build ? 'debug' : 'release',
     'Deprecation Warnings': deprecation_warnings,
-    'SDL Threading Support': spoopy_sdl_threads_support ? 'enabled' : 'disabled',
+    'SDL Threading Support': spoopy_sys_threads_support ? 'enabled' : 'disabled',
 }, section: 'Configuration', bool_yn: true)

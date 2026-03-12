@@ -1,6 +1,13 @@
 [submodule "src/renderer/Kore"]
 	path = src/renderer/Kore
-	url = https://github.com/Just-Feeshy/Kore.git
-[submodule "src/renderer/kmake"]
-	path = src/renderer/kmake
-	url = https://github.com/Just-Feeshy/kmake.git
+	url = https://github.com/Kode/Kore.git
+	branch = v2
+[submodule "subprojects/spoopy-slang-wrapper/bx"]
+	path = subprojects/spoopy-slang-wrapper/bx
+	url = https://github.com/bkaradzic/bx.git
+[submodule "subprojects/cglm"]
+	path = subprojects/cglm
+	url = https://github.com/recp/cglm.git
+[submodule "subprojects/mimalloc"]
+	path = subprojects/mimalloc
+	url = https://github.com/microsoft/mimalloc.git
