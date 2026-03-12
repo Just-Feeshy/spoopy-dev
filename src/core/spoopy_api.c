@@ -180,7 +180,7 @@ void spoopy_api_capability(spoopy_pipeline_t* pipeline, spoopy_render_capability
 	}
 
 	if(caps != new_caps) {
-		// TODO (States): Have somekind of states notification thingy, or something..
+		// TODO (Events): Have somekind of state notification thingy, or something..
 		_backend_funcs.capabilities(pipeline, new_caps);
 	}
 }

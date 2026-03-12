@@ -107,7 +107,7 @@ struct spoopy_pipeline {
 		spoopy_capability_bits_t caps;
 		spoopy_blend_mode_t blend;
 		spoopy_cull_face_mode_t cull;
-	} st;
+	} state;
 
 	spoopy_mem_arena_t arena;
 	spoopy_uniform_ht_t uniforms;

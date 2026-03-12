@@ -56,11 +56,11 @@ static inline sg_blend_factor spoopy_sokol_blend_factor(spoopy_blend_factor_t fa
 }
 
 static inline sg_cull_mode spoopy_sokol_cull_mode(const spoopy_pipeline_t* pipeline) {
-	if(!(pipeline->st.caps & spoopy_sokol_capability_bit(SPOOPY_RCAP_CULL_FACE))) {
+	if(!(pipeline->state.caps & spoopy_sokol_capability_bit(SPOOPY_RCAP_CULL_FACE))) {
 		return SG_CULLMODE_NONE;
 	}
 
-	switch(pipeline->st.cull) {
+	switch(pipeline->state.cull) {
 		case SPOOPY_CULL_FRONT:
 			return SG_CULLMODE_FRONT;
 		case SPOOPY_CULL_BACK:
@@ -649,7 +649,7 @@ static spoopy_pipeline_t* spoopy_sokol_pipeline_link(uint32_t num_objs, spoopy_s
 	spoopy_pipeline_t* pipeline = spoopy_heap_alloc(sizeof(*pipeline));
 	assert(pipeline);
 	*pipeline = (spoopy_pipeline_t){
-		.st = {
+		.state = {
 			.blend = SPOOPY_BLEND_NONE,
 			.cull = SPOOPY_CULL_BACK,
 		},
@@ -843,8 +843,8 @@ static void spoopy_sokol_pipeline_apply_desc(spoopy_pipeline_t* pipeline) {
 	const uint32_t spec_count = pipeline->vertex_spec_count;
 	const uint32_t buffer_index = pipeline->vertex_buffer_index;
 	const bool has_depth_attachment = spoopy_sokol.frame.swapchain.depth_format != SG_PIXELFORMAT_NONE;
-	const spoopy_capability_bits_t caps = pipeline->st.caps;
-	const spoopy_blend_mode_t blend = pipeline->st.blend;
+	const spoopy_capability_bits_t caps = pipeline->state.caps;
+	const spoopy_blend_mode_t blend = pipeline->state.blend;
 
 	pdesc.shader = pipeline->shader;
 	pdesc.index_type = SG_INDEXTYPE_UINT16;
@@ -906,30 +906,30 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 }
 
 static void spoopy_sokol_capabilities(spoopy_pipeline_t* pipeline, spoopy_capability_bits_t new_caps) {
-	pipeline->st.caps = new_caps;
+	pipeline->state.caps = new_caps;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_capability_bits_t spoopy_sokol_capabilities_current(spoopy_pipeline_t* pipeline) {
-	return pipeline->st.caps;
+	return pipeline->state.caps;
 }
 
 static void spoopy_sokol_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
-	pipeline->st.blend = mode;
+	pipeline->state.blend = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_blend_mode_t spoopy_sokol_blend_current(spoopy_pipeline_t* pipeline) {
-	return pipeline->st.blend;
+	return pipeline->state.blend;
 }
 
 static void spoopy_sokol_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
-	pipeline->st.cull = mode;
+	pipeline->state.cull = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_cull_face_mode_t spoopy_sokol_cull_current(spoopy_pipeline_t* pipeline) {
-	return pipeline->st.cull;
+	return pipeline->state.cull;
 }
 
 static size_t spoopy_sokol_buffer_size(spoopy_buffer_type_t type) {
