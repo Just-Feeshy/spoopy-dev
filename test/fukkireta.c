@@ -1,0 +1,169 @@
+#include <spoopy_api.h>
+#include <SDL3/SDL_iostream.h>
+
+typedef struct vertex2d {
+	float pos[2];
+} vertex2d_t;
+
+static spoopy_event_handler_t* handler_ptr = NULL;
+
+static char* load_shader(const char* path) {
+
+	// Read the Slang source from disk so this test covers file-backed shader loading.
+	SDL_IOStream* io = SDL_IOFromFile(path, "rb");
+
+	if(!io) {
+		SPOOPY_LOG_ERROR("Failed to open shader file: %s", path);
+		return NULL;
+	}
+
+	const Sint64 size = SDL_GetIOSize(io);
+	if(size <= 0) {
+		SPOOPY_LOG_ERROR("Failed to read shader file size: %s", path);
+		SDL_CloseIO(io);
+		return NULL;
+	}
+
+	char* source = spoopy_heap_alloc((size_t)size + 1);
+	if(!source) {
+		SDL_CloseIO(io);
+		return NULL;
+	}
+
+	const size_t bytes_read = SDL_ReadIO(io, source, (size_t)size);
+	SDL_CloseIO(io);
+
+	if(bytes_read != (size_t)size) {
+		SPOOPY_LOG_ERROR("Failed to read shader file contents: %s", path);
+		spoopy_heap_free(source);
+		return NULL;
+	}
+
+	source[size] = '\0';
+	return source;
+}
+
+static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shader_stage_t stage) {
+	char* src = load_shader(path);
+	if(!src) {
+		return NULL;
+	}
+
+	spoopy_shader_source_t source = {
+		.content = src,
+		.content_size = strlen(src),
+		.stage = stage,
+		.entry_point = (stage == SPOOPY_STAGE_VERTEX) ? "vertexMain" : "fragmentMain",
+		.module_name = "fukkireta",
+		.target = spoopy_api_window_get_renderer(),
+	};
+
+	spoopy_transpile_options_t transpile_opts = {
+		.filename = path,
+		.compile.optimization_level = SPOOPY_OPTIMIZATION_LEVEL_NONE,
+	};
+
+	// Resolve the active backend target before asking Slang to emit backend code.
+	if(!spoopy_api_shader_supported(&source, &transpile_opts)) {
+		SPOOPY_LOG_ERROR("Shader is not supported: %s", path);
+		spoopy_heap_free(src);
+		return NULL;
+	}
+
+	spoopy_shader_source_t transpiled = {0};
+	spoopy_mem_arena_t transpile_arena = {0};
+	spoopy_arena_init(&transpile_arena, source.content_size + (1 << 11));
+
+	// Transpile once into runtime shader code, then materialize the backend object immediately.
+	if(!spoopy_api_shader_transpile(&source, &transpiled, &transpile_opts, &transpile_arena)) {
+		SPOOPY_LOG_ERROR("Failed to transpile shader: %s", path);
+		spoopy_arena_deinit(&transpile_arena);
+		spoopy_heap_free(src);
+		return NULL;
+	}
+
+	spoopy_shader_object_t* shader = spoopy_heap_alloc(spoopy_shader_object_size);
+	if(!shader) {
+		spoopy_arena_deinit(&transpile_arena);
+		spoopy_heap_free(src);
+		return NULL;
+	}
+
+	if(!spoopy_api_shader_init(shader, &transpiled)) {
+		SPOOPY_LOG_ERROR("Failed to initialize shader object: %s", path);
+		spoopy_api_shader_destroy(shader, true);
+		spoopy_arena_deinit(&transpile_arena);
+		spoopy_heap_free(src);
+		return NULL;
+	}
+
+	spoopy_arena_deinit(&transpile_arena);
+	spoopy_heap_free(src);
+	return shader;
+}
+
+int	main(void) {
+	spoopy_memory_init_hooks();
+	spoopy_events_init(0, &handler_ptr);
+
+	spoopy_api_video_init(&(spoopy_video_init_params_t) {
+		.title = "Fukkireta",
+		.width = 1280,
+		.height = 720,
+		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
+	});
+
+	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta_vertex.slang", SPOOPY_STAGE_VERTEX);
+	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta_fragment.slang", SPOOPY_STAGE_FRAGMENT);
+	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
+
+	spoopy_vertex_attr_spec_t vertex_spec[] = {
+		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
+	};
+
+	spoopy_api_pipeline_compile(pipeline, 1, vertex_spec, 0);
+
+	// Fullscreen clip-space quad.
+	vertex2d_t vertices[] = {
+		{ { -1.0f, -1.0f } },
+		{ {  1.0f, -1.0f } },
+		{ {  1.0f,  1.0f } },
+		{ { -1.0f,  1.0f } },
+	};
+
+	uint16_t indices[] = { 0, 1, 2, 0, 2, 3 };
+
+	spoopy_vertex_buffer_t* vbuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_VERTEX));
+	spoopy_index_buffer_t* ibuf = spoopy_stack_alloc(spoopy_api_buffer_size(SPOOPY_BUFFER_TYPE_INDEX));
+
+	if(!spoopy_api_vertex_buffer_create(vbuf, sizeof(vertices), 4, vertices, 0)) {
+		SPOOPY_LOG_ERROR("Failed to create vertex buffer");
+		return 1;
+	}
+
+	if(!spoopy_api_index_buffer_create(ibuf, 6, indices)) {
+		SPOOPY_LOG_ERROR("Failed to create index buffer");
+		return 1;
+	}
+
+	spoopy_mesh_t mesh = {
+		.vertex_buffers = vbuf,
+		.index_buffer = ibuf,
+		.index_count = 6,
+		.vertex_count = 1
+	};
+
+	while(!spoopy_api_should_quit()) {
+
+		// Keep the render path intentionally simple: clear, bind, draw, present.
+		spoopy_events_poll(handler_ptr, 0);
+		spoopy_api_clear(SPOOPY_BUFFER_COLOR, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
+		spoopy_api_pipeline_bind(pipeline);
+		spoopy_api_draw_mesh(&mesh, pipeline);
+		spoopy_api_swap_buffers();
+	}
+
+	spoopy_heap_free(handler_ptr);
+	spoopy_api_video_shutdown();
+	return 0;
+}
