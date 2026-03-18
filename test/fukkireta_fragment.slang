@@ -2,14 +2,48 @@
 #define MAX_DISTANCE 10
 #define TRACER_EPSILON 0.001
 #define AA_SAMPLE_COUNT 8
-
-#define R_2A float3(1.10,0.87,1.20)
-#define R_3A float3(0.30,0.28,0.28)
+#define PI 3.14159265359
+#define HASHSCALE1 .1031
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
 	float2 resolution : TEXCOORD0;
 };
+
+float hash(float p) {
+	float3 p3  = frac(float3(p) * HASHSCALE1);
+    p3 += dot(p3, p3.yzx + 19.19);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
+float3 randomSphereDir(float2 rnd) {
+    float s = rnd.x * PI * 2.0;
+    float t = rnd.y * 2.0 - 1.0;
+    return float3(sin(s), cos(s), t) / sqrt(1.0 + t * t);
+}
+
+float3 randomHemisphereDir(float3 dir, float i) {
+    float3 v = randomSphereDir(float2(hash(i + 1.0), hash(i + 2.0)));
+    return v * sign(dot(v, dir));
+}
+
+float ao(float3 p, float3 n, float maxDist, float falloff) {
+    static const int   nbIte    = 16;
+    static const float nbIteInv = 1.0 / float(nbIte);
+    static const float rad      = 1.0 - 1.0 * nbIteInv;
+
+    float ao = 0.0;
+
+    [unroll]
+    for (int i = 0; i < nbIte; ++i) {
+        float l   = hash(float(i)) * maxDist;
+        float3 rd = normalize(n + randomHemisphereDir(n, l) * rad) * l;
+
+        ao += (l - max(mapScene(p + rd), 0.0)) / maxDist * falloff;
+    }
+
+    return clamp(1.0 - ao * nbIteInv, 0.0, 1.0);
+}
 
 float sdfSphere(float3 p, float radius) {
 	return length(p) - radius;
@@ -53,13 +87,16 @@ float3 absx(float3 p) {
 }
 
 float mapScene(float3 p) {
-	const float3 c_1 = float3(0.67, -0.535, 1.3);
-	const float3 c_2 = float3(0.0, -0.95, 0.05);
-	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
-	const float3 c_3a = float3(0.63, 0.445, -0.95);
-	const float3 c_3b = float3(-0.63, 0.445, -0.95);
+	static const float3 R_2A = float3(1.10,0.87,1.20);
+	static const float3 R_3A = float3(0.30,0.28,0.28);
+	static const float3 c_1  = float3(0.67, -0.53, 1.3);
+	static const float3 c_2  = float3(0.0, -0.95, 0.05);
+	static const float3 c_3a = float3(0.63, 0.44, -0.95);
+	static const float3 c_3b = float3(-0.63, 0.44, -0.95);
+	static const float3 c_4  = float3(-0.38, 0.33, -0.29);
+
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
-	const float3 c_4 = float3(-0.38, 0.335, -0.29);
+	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
 
 	float d_1 = sdfSphere(p, 1.45);
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
@@ -118,7 +155,7 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 	}
 
 	float3 normal = calcNormal(hitPos);
-	float3 color = normal * 0.5 + 0.5;
+	float3 color = float3(0.992, 0.918, 0.859) * ao(hitPos, normal, 1.6, 0.4);
 	return float4(color, 1.0);
 }
 
