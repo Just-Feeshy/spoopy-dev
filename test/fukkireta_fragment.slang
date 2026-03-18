@@ -16,35 +16,6 @@ float hash(float p) {
     return frac((p3.x + p3.y) * p3.z);
 }
 
-float3 randomSphereDir(float2 rnd) {
-    float s = rnd.x * PI * 2.0;
-    float t = rnd.y * 2.0 - 1.0;
-    return float3(sin(s), cos(s), t) / sqrt(1.0 + t * t);
-}
-
-float3 randomHemisphereDir(float3 dir, float i) {
-    float3 v = randomSphereDir(float2(hash(i + 1.0), hash(i + 2.0)));
-    return v * sign(dot(v, dir));
-}
-
-float ao(float3 p, float3 n, float maxDist, float falloff) {
-    static const int   nbIte    = 16;
-    static const float nbIteInv = 1.0 / float(nbIte);
-    static const float rad      = 1.0 - 1.0 * nbIteInv;
-
-    float ao = 0.0;
-
-    [unroll]
-    for (int i = 0; i < nbIte; ++i) {
-        float l   = hash(float(i)) * maxDist;
-        float3 rd = normalize(n + randomHemisphereDir(n, l) * rad) * l;
-
-        ao += (l - max(mapScene(p + rd), 0.0)) / maxDist * falloff;
-    }
-
-    return clamp(1.0 - ao * nbIteInv, 0.0, 1.0);
-}
-
 float calcOcclusion(float3 pos, float3 nor) {
     const float4 H4 = float4(0.1031, 0.11369, 0.13787, 0.09987);
     float occlusion = 0.0;
@@ -111,12 +82,13 @@ float3 absx(float3 p) {
 
 float mapScene(float3 p) {
 	static const float3 R_2A = float3(1.10,0.87,1.20);
-	static const float3 R_3A = float3(0.30,0.28,0.28);
-	static const float3 c_1  = float3(0.67, -0.53, 1.3);
+	static const float3 R_3A = float3(0.30,0.24,0.28);
+	static const float3 c_1  = float3(0.67, -0.53, 1.38);
 	static const float3 c_2  = float3(0.0, -0.95, 0.05);
-	static const float3 c_3a = float3(0.63, 0.44, -0.95);
-	static const float3 c_3b = float3(-0.63, 0.44, -0.95);
-	static const float3 c_4  = float3(-0.38, 0.33, -0.29);
+	static const float3 c_3a = float3(0.63, 0.41, -0.91);
+	static const float3 c_3b = float3(-0.63, 0.41, -0.91);
+	static const float3 c_4  = float3(-0.52, 0.39, -0.615);
+
 
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
 	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
@@ -125,11 +97,11 @@ float mapScene(float3 p) {
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
 	float d_3 = sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67));
 
-	float outline = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.28, 0.28));
+	float outline = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
 	float socket  = min(sdfEllipsoid(p+c_3a, float3(0.0), r_3), sdfEllipsoid(p+c_3b, float3(0.0), r_3));
 
-	float eyes    = sdfSphere(absx(p)+c_4, 0.8);
-	return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.14), eyes, 0.09);
+	float eyes    = sdfSphere(absx(p)+c_4, 0.52);
+	return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.16), eyes, 0.01);
 }
 
 float3 calcNormal(float3 p) {
@@ -179,7 +151,8 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 
 	float3 normal = calcNormal(hitPos);
 	float ambientOcclusion = calcOcclusion(hitPos, normal);
-	float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
+	float3 color = calcNormal(hitPos) * 0.5 + 0.5;
+	//float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
 	return float4(color, 1.0);
 }
 
