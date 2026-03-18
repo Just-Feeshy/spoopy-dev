@@ -45,6 +45,29 @@ float ao(float3 p, float3 n, float maxDist, float falloff) {
     return clamp(1.0 - ao * nbIteInv, 0.0, 1.0);
 }
 
+float calcOcclusion(float3 pos, float3 nor) {
+    const float4 H4 = float4(0.1031, 0.11369, 0.13787, 0.09987);
+    float occlusion = 0.0;
+    float4 k = float4(0.7012912, 0.3941462, 0.8294585, 0.109841);
+
+    [loop]
+    for(int i = 0; i < 16; ++i) {
+        k = frac(k + H4);
+        float3 ap = normalize(-1.0 + 2.0 * k.xyz);
+        float h = k.w * 0.1;
+        ap = (nor + ap) * h;
+        float d = mapScene(pos + ap);
+        occlusion += max(0.0, h - d);
+
+        if(occlusion > 16.0) {
+            break;
+        }
+    }
+
+    occlusion /= 16.0;
+    return clamp(1.0 - occlusion * 24.0, 0.0, 1.0);
+}
+
 float sdfSphere(float3 p, float radius) {
 	return length(p) - radius;
 }
@@ -155,7 +178,8 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 	}
 
 	float3 normal = calcNormal(hitPos);
-	float3 color = float3(0.992, 0.918, 0.859) * ao(hitPos, normal, 1.6, 0.4);
+	float ambientOcclusion = calcOcclusion(hitPos, normal);
+	float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
 	return float4(color, 1.0);
 }
 
