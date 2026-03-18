@@ -101,7 +101,7 @@ float mapScene(float3 p) {
 	float socket  = min(sdfEllipsoid(p+c_3a, float3(0.0), r_3), sdfEllipsoid(p+c_3b, float3(0.0), r_3));
 
 	float eyes    = sdfSphere(absx(p)+c_4, 0.52);
-	return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.16), eyes, 0.01);
+	return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
 }
 
 float3 calcNormal(float3 p) {
