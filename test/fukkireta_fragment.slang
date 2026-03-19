@@ -83,25 +83,35 @@ float3 absx(float3 p) {
 float mapScene(float3 p) {
 	static const float3 R_2A = float3(1.10,0.87,1.20);
 	static const float3 R_3A = float3(0.30,0.24,0.28);
-	static const float3 c_1  = float3(0.67, -0.53, 1.38);
+	static const float3 c_1  = float3(0.67, -0.41, 1.38);
 	static const float3 c_2  = float3(0.0, -0.95, 0.05);
-	static const float3 c_3a = float3(0.63, 0.41, -0.91);
-	static const float3 c_3b = float3(-0.63, 0.41, -0.91);
+	static const float3 c_3a = float3(0.63, 0.37, -0.91);
+	static const float3 c_3b = float3(-0.63, 0.37, -0.91);
 	static const float3 c_4  = float3(-0.52, 0.39, -0.615);
 
 
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
-	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
 
-	float d_1 = sdfSphere(p, 1.45);
+	float d = sdfSphere(p, 1.45);
+
+	// Jaw
+	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
+	d = smin(d, d_2, 0.85);
+
+	// Eye Sockey
+	d_2 = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
+	d = smax(d, -d_2, 1.0);
+
+	d_2 = sdfEllipsoid(p+c_3a, float3(0.0), r_3);
+	d_2 = min(d_2, sdfEllipsoid(p+c_3b, float3(0.0), r_3));
+	d = smax(d, -d_2, 0.15);
+
 	float d_3 = sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67));
 
-	float outline = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
-	float socket  = min(sdfEllipsoid(p+c_3a, float3(0.0), r_3), sdfEllipsoid(p+c_3b, float3(0.0), r_3));
-
 	float eyes    = sdfSphere(absx(p)+c_4, 0.52);
-	return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
+	return d;
+	//return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
 }
 
 float3 calcNormal(float3 p) {
