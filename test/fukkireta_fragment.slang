@@ -59,11 +59,16 @@ float sat(float x) {
 }
 
 float smin(float d_1, float d_2, float k) {
+    float h = max(k-abs(d_1-d_2),0.0);
+    return min(d_1, d_2) - h*h*0.25/k;
+}
+
+float smin3(float d_1, float d_2, float k) {
 	return min(d_1, d_2) - f_k(d_1, d_2, k);
 }
 
 float smax(float d_1, float d_2, float k) {
-	return max(d_1, d_2) + f_k(d_1, d_2, k);
+	return max(d_1, d_2) + f_k(d_1, d_2, k * 1.4);
 }
 
 float sdfSegment(float3 p, float3 a, float3 b) {
@@ -87,7 +92,7 @@ float mapScene(float3 p) {
 	static const float3 c_2  = float3(0.0, -0.95, 0.05);
 	static const float3 c_3a = float3(0.63, 0.37, -0.91);
 	static const float3 c_3b = float3(-0.63, 0.37, -0.91);
-	static const float3 c_4  = float3(-0.52, 0.39, -0.615);
+	static const float3 c_4  = float3(-0.48, 0.3, -0.42);
 
 
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
@@ -97,21 +102,22 @@ float mapScene(float3 p) {
 	// Jaw
 	const float3 r_2 = R_2A + (float3(0.3,-0.40*p.z,0.1)) * (p.y - c_2.y);
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
-	d = smin(d, d_2, 0.85);
+	d = smin3(d, d_2, 0.85);
 
-	// Eye Sockey
+	// Eye Socket
 	d_2 = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
-	d = smax(d, -d_2, 1.0);
+	d = smax(d, -d_2, 0.714);
 
 	d_2 = sdfEllipsoid(p+c_3a, float3(0.0), r_3);
 	d_2 = min(d_2, sdfEllipsoid(p+c_3b, float3(0.0), r_3));
-	d = smax(d, -d_2, 0.15);
+	d = smax(d, -d_2, 0.05);
+
+	d_2 = sdfSphere(absx(p)+c_4, 0.68);
+	d = smin(d, d_2, 0.012);
 
 	float d_3 = sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67));
-
-	float eyes    = sdfSphere(absx(p)+c_4, 0.52);
 	return d;
-	//return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
+	//return smin3(smax(smax(smin3(smin3(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
 }
 
 float3 calcNormal(float3 p) {
@@ -161,8 +167,8 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 
 	float3 normal = calcNormal(hitPos);
 	float ambientOcclusion = calcOcclusion(hitPos, normal);
-	float3 color = calcNormal(hitPos) * 0.5 + 0.5;
-	//float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
+	//float3 color = calcNormal(hitPos) * 0.5 + 0.5;
+	float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
 	return float4(color, 1.0);
 }
 
