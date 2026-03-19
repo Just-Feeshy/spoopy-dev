@@ -113,8 +113,8 @@ int	main(void) {
 		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
 	});
 
-	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta_vertex.slang", SPOOPY_STAGE_VERTEX);
-	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta_fragment.slang", SPOOPY_STAGE_FRAGMENT);
+	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta/vertex.slang", SPOOPY_STAGE_VERTEX);
+	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta/fragment.slang", SPOOPY_STAGE_FRAGMENT);
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
