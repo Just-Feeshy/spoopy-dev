@@ -143,11 +143,18 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 	float t = 0.0;
 	bool hit = false;
 	float3 hitPos = rayOrigin;
+	float3 closestPos = rayOrigin;
+	float closestDist = MAX_DISTANCE;
 
 	[loop]
 	for(int i = 0; i < MAX_STEPS; ++i) {
 		hitPos = rayOrigin + rayDir * t;
 		float dist = mapScene(hitPos);
+
+		if(dist < closestDist) {
+			closestDist = dist;
+			closestPos = hitPos;
+		}
 
 		if(dist < TRACER_EPSILON) {
 			hit = true;
@@ -161,7 +168,17 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 	}
 
 	if(!hit) {
-		return float4(1.0, 1.0, 1.0, 1.0);
+		const float edgeWidth = 0.015;
+		float alpha = sat(1.0 - closestDist / edgeWidth);
+
+		if(alpha <= 0.0) {
+			return float4(1.0, 1.0, 1.0, 0.0);
+		}
+
+		float3 normal = calcNormal(closestPos);
+		float ambientOcclusion = calcOcclusion(closestPos, normal);
+		float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
+		return float4(color, alpha);
 	}
 
 	float3 normal = calcNormal(hitPos);
@@ -174,16 +191,45 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 [shader("fragment")]
 float4 fragmentMain(FragmentInput input) : SV_Target {
 	float2 fragCoord = input.position.xy;
-	float4 color = 0.0;
+	float4 sample = 0.0;
+	float3 accum = 0.0;
+	float coverage = 0.0;
+	const float3 background = float3(1.0, 1.0, 1.0);
 
-	color += traceSample(fragCoord + float2(-0.5625, -0.4375), input.resolution);
-	color += traceSample(fragCoord + float2(-0.0625, -0.1875), input.resolution);
-	color += traceSample(fragCoord + float2( 0.4375, -0.3125), input.resolution);
-	color += traceSample(fragCoord + float2( 0.1875,  0.0625), input.resolution);
-	color += traceSample(fragCoord + float2(-0.3125,  0.1875), input.resolution);
-	color += traceSample(fragCoord + float2(-0.4375,  0.5625), input.resolution);
-	color += traceSample(fragCoord + float2( 0.0625,  0.3125), input.resolution);
-	color += traceSample(fragCoord + float2( 0.5625,  0.4375), input.resolution);
+	sample = traceSample(fragCoord + float2(-0.5625, -0.4375), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
 
-	return color / AA_SAMPLE_COUNT;
+	sample = traceSample(fragCoord + float2(-0.0625, -0.1875), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2( 0.4375, -0.3125), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2( 0.1875,  0.0625), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2(-0.3125,  0.1875), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2(-0.4375,  0.5625), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2( 0.0625,  0.3125), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	sample = traceSample(fragCoord + float2( 0.5625,  0.4375), input.resolution);
+	accum += sample.rgb * sample.a;
+	coverage += sample.a;
+
+	float sampleWeight = 1.0 / AA_SAMPLE_COUNT;
+	float alpha = coverage * sampleWeight;
+	float3 color = accum * sampleWeight + background * (1.0 - alpha);
+	return float4(color, 1.0);
 }
