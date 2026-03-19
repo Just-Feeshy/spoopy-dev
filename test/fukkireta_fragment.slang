@@ -58,17 +58,17 @@ float sat(float x) {
 	return min(1.0, max(0.0, x));
 }
 
-float smin(float d_1, float d_2, float k) {
-    float h = max(k-abs(d_1-d_2),0.0);
-    return min(d_1, d_2) - h*h*0.25/k;
-}
-
 float smin3(float d_1, float d_2, float k) {
 	return min(d_1, d_2) - f_k(d_1, d_2, k);
 }
 
+float smin(float d_1, float d_2, float k) {
+	float h = max(k-abs(d_1-d_2),0.0);
+    return min(d_1, d_2) - h*h*0.25/k;
+}
+
 float smax(float d_1, float d_2, float k) {
-	return max(d_1, d_2) + f_k(d_1, d_2, k * 1.4);
+	return max(d_1, d_2) + f_k(d_1, d_2, k);
 }
 
 float sdfSegment(float3 p, float3 a, float3 b) {
@@ -86,7 +86,7 @@ float3 absx(float3 p) {
 }
 
 float mapScene(float3 p) {
-	static const float3 R_2A = float3(1.10,0.87,1.20);
+static const float3 R_2A = float3(1.10,0.87,1.20);
 	static const float3 R_3A = float3(0.30,0.24,0.28);
 	static const float3 c_1  = float3(0.67, -0.41, 1.38);
 	static const float3 c_2  = float3(0.0, -0.95, 0.05);
@@ -117,7 +117,6 @@ float mapScene(float3 p) {
 
 	float d_3 = sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67));
 	return d;
-	//return smin3(smax(smax(smin3(smin3(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.012);
 }
 
 float3 calcNormal(float3 p) {
