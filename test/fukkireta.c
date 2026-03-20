@@ -3,6 +3,7 @@
 
 typedef struct vertex2d {
 	float pos[2];
+	float resolution[2];
 } vertex2d_t;
 
 static spoopy_event_handler_t* handler_ptr = NULL;
@@ -103,13 +104,15 @@ static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shade
 }
 
 int	main(void) {
+	const float window_width = 1280.0f;
+	const float window_height = 720.0f;
 	spoopy_memory_init_hooks();
 	spoopy_events_init(0, &handler_ptr);
 
 	spoopy_api_video_init(&(spoopy_video_init_params_t) {
 		.title = "Fukkireta",
-		.width = 1280,
-		.height = 720,
+		.width = (uint32_t)window_width,
+		.height = (uint32_t)window_height,
 		.renderer = SPOOPY_RENDERER_API_BEST_OPTION,
 	});
 
@@ -118,17 +121,18 @@ int	main(void) {
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
+		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT },
 		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
 	};
 
-	spoopy_api_pipeline_compile(pipeline, 1, vertex_spec, 0);
+	spoopy_api_pipeline_compile(pipeline, 2, vertex_spec, 0);
 
 	// Fullscreen clip-space quad.
 	vertex2d_t vertices[] = {
-		{ { -1.0f, -1.0f } },
-		{ {  1.0f, -1.0f } },
-		{ {  1.0f,  1.0f } },
-		{ { -1.0f,  1.0f } },
+		{ { -1.0f, -1.0f }, { window_width, window_height } },
+		{ {  1.0f, -1.0f }, { window_width, window_height } },
+		{ {  1.0f,  1.0f }, { window_width, window_height } },
+		{ { -1.0f,  1.0f }, { window_width, window_height } },
 	};
 
 	uint16_t indices[] = { 0, 1, 2, 0, 2, 3 };

@@ -10,6 +10,13 @@ struct FragmentInput {
 	float2 resolution : TEXCOORD0;
 };
 
+float2 rotY(float2 p, float an) {
+	float cc = cos(an);
+	float ss = sin(an);
+	float2x2 m = float2x2(cc, -ss, ss, cc);
+	return mul(m, p);
+}
+
 float hash(float p) {
 	float3 p3  = frac(float3(p) * HASHSCALE1);
     p3 += dot(p3, p3.yzx + 19.19);
@@ -36,7 +43,12 @@ float calcOcclusion(float3 pos, float3 nor) {
     }
 
     occlusion /= 16.0;
-    return clamp(1.0 - occlusion * 24.0, 0.0, 1.0);
+    return clamp(1.0 - occlusion * 12.0, 0.0, 1.0);
+}
+
+float sdTorus(float3 p, float2 t) {
+  float2 q = float2(length(p.xz)-t.x,p.y);
+  return length(q)-t.y;
 }
 
 float sdfSphere(float3 p, float radius) {
@@ -90,9 +102,9 @@ float mapScene(float3 p) {
 	static const float3 R_3A = float3(0.30,0.24,0.28);
 	static const float3 c_1  = float3(0.67, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.91, 0.05);
-	static const float3 c_3a = float3(0.63, 0.41, -0.91);
-	static const float3 c_3b = float3(-0.63, 0.41, -0.91);
-	static const float3 c_4  = float3(-0.45, 0.41, -0.46);
+	static const float3 c_3a = float3( 0.61, 0.37, -0.91);
+	static const float3 c_3b = float3(-0.61, 0.37, -0.91);
+	static const float3 c_4  = float3(-0.45, 0.37, -0.46);
 
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
 
@@ -101,7 +113,7 @@ float mapScene(float3 p) {
 	// Jaw
 	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.1 * (p.y - c_2.y);
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
-	d = smin(d, d_2, 0.54);
+	d = smin(d, d_2, 0.52);
 
 	// Eye Socket
 	d_2 = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
@@ -112,11 +124,10 @@ float mapScene(float3 p) {
 	d = smax(d, -d_2, 0.15);
 
 	d_2 = sdfSphere(absx(p)+c_4, 0.68);
-	d = smin(d, d_2, 0.012);
+	d = smin(d, d_2, 0.02);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)), 0.5);
 	return d;
-	// return smin(smax(smax(smin(smin(d_1, d_2, 0.86), d_3, 0.5), -abs(outline), 1.0), -socket, 0.15), eyes, 0.02);
 }
 
 float3 calcNormal(float3 p) {
@@ -127,6 +138,9 @@ float3 calcNormal(float3 p) {
 		mapScene(p + float3(e.y, e.y, e.x)) - mapScene(p - float3(e.y, e.y, e.x))
 	));
 }
+
+
+// TODO (Swapchain): Have resolution be a uniform and be iResolution like shadertoy
 
 float2 makeUv(float2 fragCoord, float2 resolution) {
 	float2 uv = (fragCoord / resolution) * 2.0 - 1.0;

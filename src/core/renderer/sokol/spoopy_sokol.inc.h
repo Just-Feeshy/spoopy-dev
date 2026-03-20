@@ -906,59 +906,35 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 }
 
 static void spoopy_sokol_capabilities(spoopy_pipeline_t* pipeline, spoopy_capability_bits_t new_caps) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_capabilities called with NULL pipeline");
-		return;
-	}
-
+	assert(pipeline);
 	pipeline->state.caps = new_caps;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_capability_bits_t spoopy_sokol_capabilities_current(spoopy_pipeline_t* pipeline) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_capabilities_current called with NULL pipeline");
-		return 0;
-	}
-
+	assert(pipeline);
 	return pipeline->state.caps;
 }
 
 static void spoopy_sokol_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_blend called with NULL pipeline");
-		return;
-	}
-
+	assert(pipeline);
 	pipeline->state.blend = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_blend_mode_t spoopy_sokol_blend_current(spoopy_pipeline_t* pipeline) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_blend_current called with NULL pipeline");
-		return SPOOPY_BLEND_NONE;
-	}
-
+	assert(pipeline);
 	return pipeline->state.blend;
 }
 
 static void spoopy_sokol_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_cull called with NULL pipeline");
-		return;
-	}
-
+	assert(pipeline);
 	pipeline->state.cull = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_cull_face_mode_t spoopy_sokol_cull_current(spoopy_pipeline_t* pipeline) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_cull_current called with NULL pipeline");
-		return SPOOPY_CULL_BACK;
-	}
-
+	assert(pipeline);
 	return pipeline->state.cull;
 }
 
@@ -1277,25 +1253,13 @@ static void spoopy_sokol_uniform_set_matrix4(spoopy_uniform_t* uniform, const fl
 }
 
 static void spoopy_sokol_pipeline_bind(spoopy_pipeline_t* pipeline) {
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_pipeline_bind called with NULL pipeline");
-		return;
-	}
-
+	assert(pipeline);
 	sg_apply_pipeline(pipeline->pipeline);
 }
 
 static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
-	if(!mesh) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_draw_mesh called with NULL mesh");
-		return;
-	}
-
-	if(!pipeline) {
-		SPOOPY_LOG_ERROR("spoopy_sokol_draw_mesh called with NULL pipeline");
-		return;
-	}
-
+	assert(mesh);
+	assert(pipeline);
 	memset(pipeline->bindings.vertex_buffers, 0, sizeof(pipeline->bindings.vertex_buffers));
 	memset(pipeline->bindings.vertex_buffer_offsets, 0, sizeof(pipeline->bindings.vertex_buffer_offsets));
 	pipeline->bindings.index_buffer = (sg_buffer){0};
