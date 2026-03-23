@@ -1,6 +1,7 @@
 #include <spoopy_api.h>
 #include <spoopy_backend.h>
 #include <spoopy_graphics.h>
+#include "../spoopy_api_comp.h"
 #include <SDL3/SDL.h>
 
 #if SPOOPY_HAS_INCLUDE("spoopy_system_info.h")
@@ -27,6 +28,7 @@ static struct {
 
 	// 4-byte types
 	SDL_AtomicInt should_quit;
+	SDL_AtomicInt warned_api_once_bits;
 	int32_t cached_display_count;
 
 	// 1-byte types
@@ -34,6 +36,63 @@ static struct {
 } app = { 0 };
 
 static spoopy_video_cap_state_t (*video_query_capability)(spoopy_video_cap_t cap);
+
+#if SPOOPY_DEBUG
+static bool spoopy_api_warn_once(spoopy_api_warn_once_flag_t warn_flag) {
+	for(;;) {
+		const int warned_bits = SDL_GetAtomicInt(&app.warned_api_once_bits);
+		if((warned_bits & (int)warn_flag) != 0) {
+			return false;
+		}
+
+		if(SDL_CompareAndSwapAtomicInt(&app.warned_api_once_bits, warned_bits, warned_bits | (int)warn_flag)) {
+			return true;
+		}
+	}
+}
+#endif
+
+bool spoopy_api_require_pipeline(
+	const spoopy_pipeline_t* pipeline,
+	spoopy_api_warn_once_flag_t warn_flag,
+	const char* action
+) {
+	if(pipeline) {
+		return true;
+	}
+
+#if SPOOPY_DEBUG
+	if(spoopy_api_warn_once(warn_flag)) {
+		SPOOPY_LOG_WARN("%s ignored: pipeline is NULL", action);
+	}
+#else
+	(void)warn_flag;
+	(void)action;
+#endif
+
+	return false;
+}
+
+bool spoopy_api_require_mesh(
+	const spoopy_mesh_t* mesh,
+	spoopy_api_warn_once_flag_t warn_flag,
+	const char* action
+) {
+	if(mesh) {
+		return true;
+	}
+
+#if SPOOPY_DEBUG
+	if(spoopy_api_warn_once(warn_flag)) {
+		SPOOPY_LOG_WARN("%s ignored: mesh is NULL", action);
+	}
+#else
+	(void)warn_flag;
+	(void)action;
+#endif
+
+	return false;
+}
 
 static inline SDL_DisplayID get_cached_display_safe(int32_t index) {
 	if(index < 0 || index >= app.cached_display_count) {
@@ -312,6 +371,7 @@ void spoopy_api_video_init(const spoopy_video_init_params_t* params) {
 	app.initialized = true;
 	app.display_mutex = SDL_CreateMutex();
 	spoopy_vec2_vec_int_init(&app.fs_modes, 16);
+	SDL_SetAtomicInt(&app.warned_api_once_bits, 0);
 
 	app.scaling_factor = 0;
 
@@ -372,6 +432,7 @@ void spoopy_api_video_shutdown(void) {
 	SDL_DestroyMutex(app.display_mutex);
 	spoopy_heap_free(app.graphics);
 	SDL_SetAtomicInt(&app.should_quit, 0);
+	SDL_SetAtomicInt(&app.warned_api_once_bits, 0);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	app.initialized = false;
 }

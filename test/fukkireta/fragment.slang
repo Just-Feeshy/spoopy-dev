@@ -10,7 +10,7 @@ struct FragmentInput {
 	float2 resolution : TEXCOORD0;
 };
 
-float2 rotY(float2 p, float an) {
+float2 rot2(float2 p, float an) {
 	float cc = cos(an);
 	float ss = sin(an);
 	float2x2 m = float2x2(cc, -ss, ss, cc);
@@ -46,7 +46,7 @@ float calcOcclusion(float3 pos, float3 nor) {
     return clamp(1.0 - occlusion * 12.0, 0.0, 1.0);
 }
 
-float sdTorus(float3 p, float2 t) {
+float sdfTorus(float3 p, float2 t) {
   float2 q = float2(length(p.xz)-t.x,p.y);
   return length(q)-t.y;
 }
@@ -93,38 +93,40 @@ float3 sabsx(float3 p) {
 	return float3(sqrt(p.x * p.x + k), p.y, p.z);
 }
 
-float3 absx(float3 p) {
-	return float3(abs(p.x), p.y, p.z);
-}
-
 float mapScene(float3 p) {
 	static const float3 R_2A = float3(1.10,0.87,1.20);
 	static const float3 R_3A = float3(0.30,0.24,0.28);
 	static const float3 c_1  = float3(0.67, -0.52, 1.38);
-	static const float3 c_2  = float3(0.0, -0.91, 0.05);
-	static const float3 c_3a = float3( 0.61, 0.37, -0.91);
-	static const float3 c_3b = float3(-0.61, 0.37, -0.91);
+	static const float3 c_2  = float3(0.0, -0.89, 0.1);
+	static const float3 c_3  = float3(-0.61, 0.37, -0.91);
 	static const float3 c_4  = float3(-0.45, 0.37, -0.46);
 
 	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
+	const float3 qos = float3(abs(p.x), p.yz);
+	const float3 sos = sabsx(p);
 
 	float d = sdfSphere(p, 1.45);
 
 	// Jaw
 	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.1 * (p.y - c_2.y);
-	float d_2 = sdfEllipsoid(p, c_2, r_2);
+	//float d_2 = sdfEllipsoid(p, c_2, r_2);
 	d = smin(d, d_2, 0.52);
+	//d = min(d, d_2);
 
 	// Eye Socket
-	d_2 = sdfEllipsoid(sabsx(p), c_1, float3(0.32, 0.24, 0.28));
+	d_2 = sdfEllipsoid(sos, c_1, float3(0.32, 0.24, 0.28));
 	d = smax(d, -d_2, 1.0);
 
-	d_2 = sdfEllipsoid(p+c_3a, float3(0.0), r_3);
-	d_2 = min(d_2, sdfEllipsoid(p+c_3b, float3(0.0), r_3));
-	d = smax(d, -d_2, 0.15);
+	{
+		d_2 = sdfEllipsoid(p+float3(abs(c_3.x), c_3.yz), float3(0.0), r_3);
+		d_2 = min(d_2, sdfEllipsoid(p+c_3, float3(0.0), r_3));
+		d = smax(d, -d_2, 0.15);
+	}
 
-	d_2 = sdfSphere(absx(p)+c_4, 0.68);
+	// Eyelids
+	d_2 = sdfSphere(qos+c_4, 0.68);
 	d = smin(d, d_2, 0.02);
+	float3 tos = qos+c_3;
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)), 0.5);
 	return d;

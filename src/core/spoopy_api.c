@@ -1,5 +1,6 @@
 #include <spoopy_api.h>
 #include <spoopy_backend.h>
+#include "spoopy_api_comp.h"
 
 
 // My dumbass always forgets to create a uniform function
@@ -33,14 +34,30 @@ spoopy_pipeline_t* spoopy_api_pipeline_link(uint32_t num_objs, spoopy_shader_obj
 }
 
 void spoopy_api_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t spec_count, spoopy_vertex_attr_spec_t spec[spec_count], uint32_t buffer_index) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_COMPILE, "Pipeline compile request")) {
+		return;
+	}
+
 	_backend_funcs.pipeline_compile(pipeline, spec_count, spec, buffer_index);
 }
 
 void spoopy_api_pipeline_bind(spoopy_pipeline_t* pipeline) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_BIND, "Pipeline bind request")) {
+		return;
+	}
+
 	_backend_funcs.pipeline_bind(pipeline);
 }
 
 void spoopy_api_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
+	if(!spoopy_api_require_mesh(mesh, SPOOPY_API_WARN_NULL_MESH_DRAW, "Draw request")) {
+		return;
+	}
+
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_DRAW, "Draw request")) {
+		return;
+	}
+
 	_backend_funcs.draw_mesh(mesh, pipeline);
 }
 
@@ -49,18 +66,34 @@ void spoopy_api_swap_buffers(void) {
 }
 
 void spoopy_api_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_BLEND_UPDATE, "Blend state update")) {
+		return;
+	}
+
 	_backend_funcs.blend(pipeline, mode);
 }
 
 spoopy_blend_mode_t spoopy_api_blend_current(spoopy_pipeline_t* pipeline) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_BLEND_QUERY, "Blend state query")) {
+		return SPOOPY_BLEND_NONE;
+	}
+
 	return _backend_funcs.blend_current(pipeline);
 }
 
 void spoopy_api_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_CULL_UPDATE, "Cull state update")) {
+		return;
+	}
+
 	_backend_funcs.cull(pipeline, mode);
 }
 
 spoopy_cull_face_mode_t spoopy_api_cull_current(spoopy_pipeline_t* pipeline) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_CULL_QUERY, "Cull state query")) {
+		return SPOOPY_CULL_BACK;
+	}
+
 	return _backend_funcs.cull_current(pipeline);
 }
 
@@ -161,6 +194,10 @@ void spoopy_api_uniform_set_matrix4(spoopy_uniform_t* uniform, const float* valu
 }
 
 spoopy_capability_bits_t spoopy_api_capabilities_current(spoopy_pipeline_t* pipeline) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_CAPABILITY_QUERY, "Render capability query")) {
+		return 0;
+	}
+
 	return _backend_funcs.capabilities_current(pipeline);
 }
 
@@ -171,6 +208,10 @@ spoopy_capability_bits_t spoopy_capability_bit(spoopy_render_capability_t cap) {
 }
 
 void spoopy_api_capability(spoopy_pipeline_t* pipeline, spoopy_render_capability_t cap, bool value) {
+	if(!spoopy_api_require_pipeline(pipeline, SPOOPY_API_WARN_NULL_PIPELINE_CAPABILITY_UPDATE, "Render capability update")) {
+		return;
+	}
+
 	spoopy_capability_bits_t caps = spoopy_api_capabilities_current(pipeline), new_caps;
 
 	if(value) {

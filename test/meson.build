@@ -9,6 +9,7 @@ test_inc = include_directories('.')
 test_links = []
 
 tests = [
+	'null_pipeline',
     'triangle',
 	'texture',
 	'cube',

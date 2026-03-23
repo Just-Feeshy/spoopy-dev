@@ -20,6 +20,16 @@
 #define SPOOPY_FRAME_TO_AVERAGE 120
 #endif
 
+#ifndef SPOOPY_DEBUG
+  #if defined(SPOOPY_BUILD_DEBUG)
+    #define SPOOPY_DEBUG 1
+  #elif defined(NDEBUG)
+    #define SPOOPY_DEBUG 0
+  #else
+    #define SPOOPY_DEBUG 1
+  #endif
+#endif
+
 #ifdef __cplusplus
 #define SPOOPY_FLEX_ARR 1
 #else
