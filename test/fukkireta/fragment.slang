@@ -26,6 +26,7 @@ float hash(float p) {
 float calcOcclusion(float3 pos, float3 nor) {
     const float4 H4 = float4(0.1031, 0.11369, 0.13787, 0.09987);
     float occlusion = 0.0;
+	float kk;
     float4 k = float4(0.7012912, 0.3941462, 0.8294585, 0.109841);
 
     [loop]
@@ -34,7 +35,7 @@ float calcOcclusion(float3 pos, float3 nor) {
         float3 ap = normalize(-1.0 + 2.0 * k.xyz);
         float h = k.w * 0.1;
         ap = (nor + ap) * h;
-        float d = mapScene(pos + ap);
+        float d = mapScene(pos + ap, kk);
         occlusion += max(0.0, h - d);
 
         if(occlusion > 16.0) {
@@ -93,24 +94,27 @@ float3 sabsx(float3 p) {
 	return float3(sqrt(p.x * p.x + k), p.y, p.z);
 }
 
-float mapScene(float3 p) {
-	static const float3 R_2A = float3(1.10,0.87,1.20);
-	static const float3 R_3A = float3(0.30,0.24,0.28);
-	static const float3 c_1  = float3(0.67, -0.52, 1.38);
-	static const float3 c_2  = float3(0.0, -0.89, 0.1);
-	static const float3 c_3  = float3(-0.61, 0.37, -0.91);
-	static const float3 c_4  = float3(-0.45, 0.37, -0.46);
+float mapScene(float3 p, out float outMat) {
+	outMat = 1.0;
 
-	const float3 r_3 = R_3A + float3(0.07,0.0,0.0) * (p.y - c_2.y);
+	static const float3 R_2A = float3(1.10,0.81,1.20);
+	static const float3 R_3A = float3(0.33,0.31,0.3);
+	static const float3 c_1  = float3(0.7, -0.52, 1.38);
+	static const float3 c_2  = float3(0.0, -0.76, 0.22);
+	static const float3 c_3  = float3(-0.61, 0.33, -0.91);
+	static const float3 c_4  = float3(-0.45, 0.23, -0.47);
+
+	const float3 r_3 = R_3A + float3(0.06,0.0,0.0) * (p.y - c_2.y);
 	const float3 qos = float3(abs(p.x), p.yz);
+	const float3 tos = float3(p.xy, abs(p.z));
 	const float3 sos = sabsx(p);
 
 	float d = sdfSphere(p, 1.45);
 
 	// Jaw
 	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.1 * (p.y - c_2.y);
-	//float d_2 = sdfEllipsoid(p, c_2, r_2);
-	d = smin(d, d_2, 0.52);
+	float d_2 = sdfEllipsoid(p, c_2, r_2);
+	d = smin(d, d_2, 0.4);
 	//d = min(d, d_2);
 
 	// Eye Socket
@@ -124,20 +128,31 @@ float mapScene(float3 p) {
 	}
 
 	// Eyelids
-	d_2 = sdfSphere(qos+c_4, 0.68);
+
+	d_2 = sdfSphere(qos+c_4, 0.69);
+	float3 plane_n = normalize(float3(-0.1, 1.0, 0.0));
+	float d_3 = abs(dot(qos + float3(0.0, 0.55, 0.0), plane_n)) - 0.01;
+	d_2 = smax(-d_3, d_2, 0.01);
 	d = smin(d, d_2, 0.02);
-	float3 tos = qos+c_3;
+
+	// Eyeballs
+	d_2 = sdfSphere(qos+c_4+float3(0.0, 0.0, 0.005), 0.69);
+	if(d_2 < d) {
+		outMat = 2.0;
+	}
+	d = smin(d, d_2, 0.02);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)), 0.5);
 	return d;
 }
 
 float3 calcNormal(float3 p) {
+	float kk = 0.0;
 	float2 e = float2(TRACER_EPSILON, 0.0);
 	return normalize(float3(
-		mapScene(p + float3(e.x, e.y, e.y)) - mapScene(p - float3(e.x, e.y, e.y)),
-		mapScene(p + float3(e.y, e.x, e.y)) - mapScene(p - float3(e.y, e.x, e.y)),
-		mapScene(p + float3(e.y, e.y, e.x)) - mapScene(p - float3(e.y, e.y, e.x))
+		mapScene(p + float3(e.x, e.y, e.y), kk) - mapScene(p - float3(e.x, e.y, e.y), kk),
+		mapScene(p + float3(e.y, e.x, e.y), kk) - mapScene(p - float3(e.y, e.x, e.y), kk),
+		mapScene(p + float3(e.y, e.y, e.x), kk) - mapScene(p - float3(e.y, e.y, e.x), kk)
 	));
 }
 
@@ -151,21 +166,18 @@ float2 makeUv(float2 fragCoord, float2 resolution) {
 	return uv;
 }
 
-float4 traceSample(float2 fragCoord, float2 resolution) {
-	float2 uv = makeUv(fragCoord, resolution);
-
-	float3 rayOrigin = float3(0.0, 0.0, 4.5);
-	float3 rayDir = normalize(float3(uv, -1.5));
+float2 traceSample(in float3 rayOrigin, in float3 rayDir) {
 	float t = 0.0;
-	bool hit = false;
 	float3 hitPos = rayOrigin;
 	float3 closestPos = rayOrigin;
 	float closestDist = MAX_DISTANCE;
+	float matID = -1.0;
 
 	[loop]
 	for(int i = 0; i < MAX_STEPS; ++i) {
+		float tmp;
 		hitPos = rayOrigin + rayDir * t;
-		float dist = mapScene(hitPos);
+		float dist = mapScene(hitPos, tmp);
 
 		if(dist < closestDist) {
 			closestDist = dist;
@@ -173,7 +185,7 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 		}
 
 		if(dist < TRACER_EPSILON) {
-			hit = true;
+			matID = tmp;
 			break;
 		}
 
@@ -183,24 +195,33 @@ float4 traceSample(float2 fragCoord, float2 resolution) {
 		}
 	}
 
-	if(!hit) {
-		const float edgeWidth = 0.015;
-		float alpha = sat(1.0 - closestDist / edgeWidth);
+	return float2(t,matID);
+}
 
-		if(alpha <= 0.0) {
-			return float4(1.0, 1.0, 1.0, 0.0);
-		}
+float4 renderTeto(float2 fragCoord, float2 resolution) {
+	float2 uv = makeUv(fragCoord, resolution);
+	float3 rayOrigin = float3(0.0, 0.0, 4.5);
+	float3 rayDir = normalize(float3(uv, -1.5));
+	float3 color = float3(1.0);
+	float2 tm = traceSample(rayOrigin, rayDir);
 
-		float3 normal = calcNormal(closestPos);
-		float ambientOcclusion = calcOcclusion(closestPos, normal);
-		float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
-		return float4(color, alpha);
+	if(tm.y < 0.0) {
+		return float4(color, 1.0);
 	}
 
-	float3 normal = calcNormal(hitPos);
-	float ambientOcclusion = calcOcclusion(hitPos, normal);
-	//float3 color = calcNormal(hitPos) * 0.5 + 0.5;
-	float3 color = float3(0.992, 0.918, 0.859) * ambientOcclusion;
+	color = float3(0.992, 0.918, 0.859);
+
+	// if(tm.y < 1.5) {
+	// 	color = float3(0.992, 0.918, 0.859);
+	// }else if(tm.y < 2.5) {
+	// 	color = float3(1.0);
+	// }
+
+	float3 normal = calcNormal(rayOrigin + tm.x * rayDir);
+	float ambientOcclusion = calcOcclusion(rayOrigin + tm.x * rayDir, normal);
+	color *= ambientOcclusion;
+	color = pow(color, float3(0.9090));
+	//color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
 	return float4(color, 1.0);
 }
 
@@ -212,35 +233,35 @@ float4 fragmentMain(FragmentInput input) : SV_Target {
 	float coverage = 0.0;
 	const float3 background = float3(1.0, 1.0, 1.0);
 
-	sample = traceSample(fragCoord + float2(-0.5625, -0.4375), input.resolution);
+	sample = renderTeto(fragCoord + float2(-0.5625, -0.4375), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2(-0.0625, -0.1875), input.resolution);
+	sample = renderTeto(fragCoord + float2(-0.0625, -0.1875), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2( 0.4375, -0.3125), input.resolution);
+	sample = renderTeto(fragCoord + float2( 0.4375, -0.3125), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2( 0.1875,  0.0625), input.resolution);
+	sample = renderTeto(fragCoord + float2( 0.1875,  0.0625), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2(-0.3125,  0.1875), input.resolution);
+	sample = renderTeto(fragCoord + float2(-0.3125,  0.1875), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2(-0.4375,  0.5625), input.resolution);
+	sample = renderTeto(fragCoord + float2(-0.4375,  0.5625), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2( 0.0625,  0.3125), input.resolution);
+	sample = renderTeto(fragCoord + float2( 0.0625,  0.3125), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
-	sample = traceSample(fragCoord + float2( 0.5625,  0.4375), input.resolution);
+	sample = renderTeto(fragCoord + float2( 0.5625,  0.4375), input.resolution);
 	accum += sample.rgb * sample.a;
 	coverage += sample.a;
 
