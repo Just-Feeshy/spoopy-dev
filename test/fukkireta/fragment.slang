@@ -149,7 +149,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	// Eyelids
 	d_2 = sdfSphere(qos+c_4, 0.69);
 	float3 plane_n = normalize(float3(-0.1, 1.0, 0.0));
-	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.15;
+	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.55;
 	d_2 = smax(-d_3, d_2, 0.01);
 	d = smin(d, d_2, 0.02);
 
@@ -267,15 +267,15 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		color = float3(0.992, 0.918, 0.859);
 
 		{
-			// Eyebrows - use 2D bezier (xy plane only)
-			float4 be = sdfBezier(float3(qos.xy, 0.0) - float3(0.349, 0.0, 0.0),
-						float3(0.20, 0.38, 0.0),
-						float3(0.40, 0.45, 0.0),
-						float3(0.55, 0.35, 0.0));
-			float ra = 0.005 + 0.015 * sqrt(1.0-be.y);
+			// Eyelash - follows upper eyelid edge
+			float4 be = sdfBezier(float3(qos.xy, 0.0),
+						float3(0.46, -0.17, 0.0),   // inner corner
+						float3(0.95, 0.1, 0.0),   // middle (lower arc)
+						float3(1.0, -0.37, 0.0));  // outer corner
+			float ra = 0.008 + 0.025 * sqrt(be.y * (1.0 - be.y)) * 2.0;
 
 			float d = be.x - ra;
-			float mask = 1.0-smoothstep(-0.005, 0.01, d);
+			float mask = 1.0-smoothstep(-0.006, 0.012, d);
 			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
 	}else if(tm.y < 2.5) {
