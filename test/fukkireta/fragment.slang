@@ -267,15 +267,16 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		color = float3(0.992, 0.918, 0.859);
 
 		{
-			float shift = 1.0;
-			float4 be = sdfBezier(qos,	float3(-0.349, shift, -0.532),
-										float3(0.1,    shift, 0.02),
-										float3(-0.72,  shift, 0.11));
+			// Eyebrows - use 2D bezier (xy plane only)
+			float4 be = sdfBezier(float3(qos.xy, 0.0) - float3(0.349, 0.0, 0.0),
+						float3(0.20, 0.38, 0.0),
+						float3(0.40, 0.45, 0.0),
+						float3(0.55, 0.35, 0.0));
 			float ra = 0.005 + 0.015 * sqrt(1.0-be.y);
 
 			float d = be.x - ra;
 			float mask = 1.0-smoothstep(-0.005, 0.01, d);
-			color = mix(color, float3(0.04,0.02, 0.02), mask);
+			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
 	}else if(tm.y < 2.5) {
 		color = float3(1.0);
