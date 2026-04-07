@@ -23,10 +23,15 @@ float hash(float p) {
     return frac((p3.x + p3.y) * p3.z);
 }
 
+float det2(float2 a, float2 b) {
+	return a.x * b.y - a.y * b.x;
+}
+
 float calcOcclusion(float3 pos, float3 nor) {
     const float4 H4 = float4(0.1031, 0.11369, 0.13787, 0.09987);
     float occlusion = 0.0;
-	float kk;
+	float kk = 0.0;
+	float3 uvw = float3(0.0);
     float4 k = float4(0.7012912, 0.3941462, 0.8294585, 0.109841);
 
     [loop]
@@ -35,7 +40,7 @@ float calcOcclusion(float3 pos, float3 nor) {
         float3 ap = normalize(-1.0 + 2.0 * k.xyz);
         float h = k.w * 0.1;
         ap = (nor + ap) * h;
-        float d = mapScene(pos + ap, kk);
+        float d = mapScene(pos + ap, kk, uvw);
         occlusion += max(0.0, h - d);
 
         if(occlusion > 16.0) {
@@ -67,6 +72,14 @@ float f_k(float x, float y, float k) {
 	return (top*top*top) / (6*k*k);
 }
 
+float3 mix(float3 x, float3 y, float3 a) {
+	return x * (float3(1.0) - a) + y * a;
+}
+
+float linearstep(float a, float b, in float x) {
+    return clamp( (x-a)/(b-a), 0.0, 1.0 );
+}
+
 float sat(float x) {
 	return min(1.0, max(0.0, x));
 }
@@ -94,17 +107,27 @@ float3 sabsx(float3 p) {
 	return float3(sqrt(p.x * p.x + k), p.y, p.z);
 }
 
-float mapScene(float3 p, out float outMat) {
+float eyeSockets(float3 p) {
+	static const float3 R_3A = float3(0.33,0.31,0.3);
+	static const float3 c_3  = float3(-0.61, 0.33, -0.91);
+
+	const float3 r_3 = R_3A + float3(0.06,0.0,0.0) * (p.y + 0.67);
+	float d_2 = sdfEllipsoid(p+float3(abs(c_3.x), c_3.yz), float3(0.0), r_3);
+	d_2 = min(d_2, sdfEllipsoid(p+c_3, float3(0.0), r_3));
+	return d_2;
+}
+
+float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
+	p.x *= 1.03;
+	p.y /= 1.01;
+	uvw = p;
 
 	static const float3 R_2A = float3(1.10,0.81,1.20);
-	static const float3 R_3A = float3(0.33,0.31,0.3);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.76, 0.22);
-	static const float3 c_3  = float3(-0.61, 0.33, -0.91);
 	static const float3 c_4  = float3(-0.45, 0.23, -0.47);
 
-	const float3 r_3 = R_3A + float3(0.06,0.0,0.0) * (p.y - c_2.y);
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
 	const float3 sos = sabsx(p);
@@ -115,23 +138,18 @@ float mapScene(float3 p, out float outMat) {
 	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.1 * (p.y - c_2.y);
 	float d_2 = sdfEllipsoid(p, c_2, r_2);
 	d = smin(d, d_2, 0.4);
-	//d = min(d, d_2);
 
 	// Eye Socket
 	d_2 = sdfEllipsoid(sos, c_1, float3(0.32, 0.24, 0.28));
 	d = smax(d, -d_2, 1.0);
 
-	{
-		d_2 = sdfEllipsoid(p+float3(abs(c_3.x), c_3.yz), float3(0.0), r_3);
-		d_2 = min(d_2, sdfEllipsoid(p+c_3, float3(0.0), r_3));
-		d = smax(d, -d_2, 0.15);
-	}
+	d_2 = eyeSockets(p);
+	d = smax(d, -d_2, 0.15);
 
 	// Eyelids
-
 	d_2 = sdfSphere(qos+c_4, 0.69);
 	float3 plane_n = normalize(float3(-0.1, 1.0, 0.0));
-	float d_3 = abs(dot(qos + float3(0.0, 0.55, 0.0), plane_n)) - 0.01;
+	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.15;
 	d_2 = smax(-d_3, d_2, 0.01);
 	d = smin(d, d_2, 0.02);
 
@@ -140,7 +158,7 @@ float mapScene(float3 p, out float outMat) {
 	if(d_2 < d) {
 		outMat = 2.0;
 	}
-	d = smin(d, d_2, 0.02);
+	d = min(d, d_2);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)), 0.5);
 	return d;
@@ -148,11 +166,12 @@ float mapScene(float3 p, out float outMat) {
 
 float3 calcNormal(float3 p) {
 	float kk = 0.0;
+	float3 uvw = float3(0.0);
 	float2 e = float2(TRACER_EPSILON, 0.0);
 	return normalize(float3(
-		mapScene(p + float3(e.x, e.y, e.y), kk) - mapScene(p - float3(e.x, e.y, e.y), kk),
-		mapScene(p + float3(e.y, e.x, e.y), kk) - mapScene(p - float3(e.y, e.x, e.y), kk),
-		mapScene(p + float3(e.y, e.y, e.x), kk) - mapScene(p - float3(e.y, e.y, e.x), kk)
+		mapScene(p + float3(e.x, e.y, e.y), kk, uvw) - mapScene(p - float3(e.x, e.y, e.y), kk, uvw),
+		mapScene(p + float3(e.y, e.x, e.y), kk, uvw) - mapScene(p - float3(e.y, e.x, e.y), kk, uvw),
+		mapScene(p + float3(e.y, e.y, e.x), kk, uvw) - mapScene(p - float3(e.y, e.y, e.x), kk, uvw)
 	));
 }
 
@@ -166,8 +185,9 @@ float2 makeUv(float2 fragCoord, float2 resolution) {
 	return uv;
 }
 
-float2 traceSample(in float3 rayOrigin, in float3 rayDir) {
+float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 	float t = 0.0;
+	uvw = float3(0.0);
 	float3 hitPos = rayOrigin;
 	float3 closestPos = rayOrigin;
 	float closestDist = MAX_DISTANCE;
@@ -177,7 +197,7 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir) {
 	for(int i = 0; i < MAX_STEPS; ++i) {
 		float tmp;
 		hitPos = rayOrigin + rayDir * t;
-		float dist = mapScene(hitPos, tmp);
+		float dist = mapScene(hitPos, tmp, uvw);
 
 		if(dist < closestDist) {
 			closestDist = dist;
@@ -198,28 +218,74 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir) {
 	return float2(t,matID);
 }
 
+// http://research.microsoft.com/en-us/um/people/hoppe/ravg.pdf
+float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
+	float3 w = normalize(cross(vc - vb, va - vb));
+	float3 u = normalize(vc - vb);
+	float3 v = cross(w, u);
+
+	float2 m = float2(dot(va - vb, u), dot(va - vb, v));
+	float2 n = float2(dot(vc - vb, u), dot(vc - vb, v));
+	float3 q = float3(dot(p - vb, u), dot(p - vb, v), dot(p - vb, w));
+
+	float mn = det2(m, n);
+	float mq = det2(m, q.xy);
+	float nq = det2(n, q.xy);
+
+	float2 g = (nq + mq + mn) * n + (nq + mq - mn) * m;
+	float  f = (nq - mq + mn) * (nq - mq + mn) + 4.0 * mq * nq;
+
+	float2 z = 0.5 * f * float2(-g.y, g.x) / dot(g, g);
+
+	// float t = clamp(0.5 + 0.5 * (det2(z, m + n) + mq + nq) / mn, 0.0, 1.0);
+	float t = clamp(0.5 + 0.5 * (det2(z - q.xy, m + n)) / mn, 0.0, 1.0);
+
+	float2 cp = m * (1.0 - t) * (1.0 - t) + n * t * t - q.xy;
+
+	float d2 = dot(cp, cp);
+	return float4(sqrt(d2 + q.z * q.z), t, q.z, -sign(f) * sqrt(d2));
+}
+
 float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float2 uv = makeUv(fragCoord, resolution);
 	float3 rayOrigin = float3(0.0, 0.0, 4.5);
 	float3 rayDir = normalize(float3(uv, -1.5));
 	float3 color = float3(1.0);
-	float2 tm = traceSample(rayOrigin, rayDir);
+	float3 uvw = float3(0.0);
+	float2 tm = traceSample(rayOrigin, rayDir, uvw);
+	float focc = 1.0;
 
 	if(tm.y < 0.0) {
 		return float4(color, 1.0);
 	}
 
 	color = float3(0.992, 0.918, 0.859);
+	if(tm.y < 1.5) {
+		float3 qos = float3(abs(uvw.x), uvw.yz);
 
-	// if(tm.y < 1.5) {
-	// 	color = float3(0.992, 0.918, 0.859);
-	// }else if(tm.y < 2.5) {
-	// 	color = float3(1.0);
-	// }
+		// Base skin color
+		color = float3(0.992, 0.918, 0.859);
+
+		{
+			float shift = 1.0;
+			float4 be = sdfBezier(qos,	float3(-0.349, shift, -0.532),
+										float3(0.1,    shift, 0.02),
+										float3(-0.72,  shift, 0.11));
+			float ra = 0.005 + 0.015 * sqrt(1.0-be.y);
+
+			float d = be.x - ra;
+			float mask = 1.0-smoothstep(-0.005, 0.01, d);
+			color = mix(color, float3(0.04,0.02, 0.02), mask);
+		}
+	}else if(tm.y < 2.5) {
+		color = float3(1.0);
+		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.41))/float2(4.2,3.3));
+		color *= mix(float3(1.0), float3(0.4, 0.1, 0.2), linearstep(0.07, 0.16, edis)) * 1.1;
+	}
 
 	float3 normal = calcNormal(rayOrigin + tm.x * rayDir);
 	float ambientOcclusion = calcOcclusion(rayOrigin + tm.x * rayDir, normal);
-	color *= ambientOcclusion;
+	color *= focc*ambientOcclusion;
 	color = pow(color, float3(0.9090));
 	//color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
 	return float4(color, 1.0);
