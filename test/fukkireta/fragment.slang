@@ -275,14 +275,18 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 			// float ra = 0.008 + 0.025 * sqrt(be.y * (1.0 - be.y)) * 2.0;
 
 			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.38, -0.25, 0.0),   // inner corner
-						float3(0.77, 0.1, 0.0),    // middle (lower arc)
-						float3(0.99, -0.19, 0.0));  // outer corner
-			//float4 be2 = sdfBezier(float3(qos.xy, 0.0),
-			//			float3(0.38
-			float ra = 0.008 + 0.025 * sqrt(be.y * (1.0 - be.y)) * 2.0;
+						float3(0.38, -0.25, 0.0),
+						float3(0.77, 0.1, 0.0),
+						float3(0.99, -0.19, 0.0));
+			float4 be2 = sdfBezier(float3(qos.xy, 0.0),
+						float3(0.99, -0.19, 0.0),
+						float3(1.1, -0.50, 0.0),
+						float3(0.71, -0.65, 0.0));
 
-			float d = be.x - ra;
+			float ra = 0.006 + 0.02 * sqrt(be.y * (1.0 - be.y)) * 2.0;
+			float ra2 = 0.004 + 0.0125 * sqrt(be2.y * (1.0 - be2.y)) * 2.0;
+
+			float d = smin(be.x - ra, be2.x - ra2, 0.28);
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
 			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
