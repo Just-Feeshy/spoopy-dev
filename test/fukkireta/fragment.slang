@@ -133,6 +133,36 @@ float sdfCone( in float3 p, in float2 c ) {
 			    float2( dot( b, b ), s*(q.y-c.y)  ));
   return -sqrt(d.x)*sign(d.y);
 }
+
+// http://research.microsoft.com/en-us/um/people/hoppe/ravg.pdf
+float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
+	float3 w = normalize(cross(vc - vb, va - vb));
+	float3 u = normalize(vc - vb);
+	float3 v = cross(w, u);
+
+	float2 m = float2(dot(va - vb, u), dot(va - vb, v));
+	float2 n = float2(dot(vc - vb, u), dot(vc - vb, v));
+	float3 q = float3(dot(p - vb, u), dot(p - vb, v), dot(p - vb, w));
+
+	float mn = det2(m, n);
+	float mq = det2(m, q.xy);
+	float nq = det2(n, q.xy);
+
+	float2 g = (nq + mq + mn) * n + (nq + mq - mn) * m;
+	float  f = (nq - mq + mn) * (nq - mq + mn) + 4.0 * mq * nq;
+
+	float2 z = 0.5 * f * float2(-g.y, g.x) / dot(g, g);
+
+	// float t = clamp(0.5 + 0.5 * (det2(z, m + n) + mq + nq) / mn, 0.0, 1.0);
+	float t = clamp(0.5 + 0.5 * (det2(z - q.xy, m + n)) / mn, 0.0, 1.0);
+
+	float2 cp = m * (1.0 - t) * (1.0 - t) + n * t * t - q.xy;
+
+	float d2 = dot(cp, cp);
+	return float4(sqrt(d2 + q.z * q.z), t, q.z, -sign(f) * sqrt(d2));
+}
+
+
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
 	p.x *= 1.03;
@@ -176,11 +206,14 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	}
 	d = min(d, d_2);
 
-	float3 eos = p - float3(0.0, -0.485, 1.275);
-	eos.yz = rot2(eos.yz, 0.24);
-	eos = scale3(eos, float3(1.0, 1.0, 0.5));
+	// Nose
+	float3 eos = p - float3(0.0, -0.495, 1.185);
+	eos = scale3(eos, float3(1.0, 1.0, 0.45));
+	eos.yz = rot2(eos.yz, 0.465);
 	float h = smoothstep(0.0, 0.26, -eos.y);
-	d_2 = sdfCone(eos - float3(0.0, -0.02, 0.0), float2(0.03, -0.25)) - 0.03 * h - 0.01;
+	d_2 = sdfCone(eos - float3(0.0, -0.02, 0.0), float2(0.03, -0.25)) - 0.02 * h - 0.01;
+	eos.x = sqrt(eos.x*eos.x + 0.001);
+	d_2 = smin(d_2, sdfSphere(eos - float3(0.0, -0.285, -0.025), 0.05), 0.035);
 	d = smin(d, d_2, 0.07 - 0.025 * h);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
@@ -239,34 +272,6 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 	}
 
 	return float2(t,matID);
-}
-
-// http://research.microsoft.com/en-us/um/people/hoppe/ravg.pdf
-float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
-	float3 w = normalize(cross(vc - vb, va - vb));
-	float3 u = normalize(vc - vb);
-	float3 v = cross(w, u);
-
-	float2 m = float2(dot(va - vb, u), dot(va - vb, v));
-	float2 n = float2(dot(vc - vb, u), dot(vc - vb, v));
-	float3 q = float3(dot(p - vb, u), dot(p - vb, v), dot(p - vb, w));
-
-	float mn = det2(m, n);
-	float mq = det2(m, q.xy);
-	float nq = det2(n, q.xy);
-
-	float2 g = (nq + mq + mn) * n + (nq + mq - mn) * m;
-	float  f = (nq - mq + mn) * (nq - mq + mn) + 4.0 * mq * nq;
-
-	float2 z = 0.5 * f * float2(-g.y, g.x) / dot(g, g);
-
-	// float t = clamp(0.5 + 0.5 * (det2(z, m + n) + mq + nq) / mn, 0.0, 1.0);
-	float t = clamp(0.5 + 0.5 * (det2(z - q.xy, m + n)) / mn, 0.0, 1.0);
-
-	float2 cp = m * (1.0 - t) * (1.0 - t) + n * t * t - q.xy;
-
-	float d2 = dot(cp, cp);
-	return float4(sqrt(d2 + q.z * q.z), t, q.z, -sign(f) * sqrt(d2));
 }
 
 float4 renderTeto(float2 fragCoord, float2 resolution) {
@@ -346,6 +351,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	color *= focc*ambientOcclusion;
 	color = pow(color, float3(0.9090));
 	// color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
+	color *= 1.1;
 	return float4(color, 1.0);
 }
 
