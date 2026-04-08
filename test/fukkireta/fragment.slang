@@ -207,13 +207,18 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = min(d, d_2);
 
 	// Nose
-	float3 eos = p - float3(0.0, -0.495, 1.185);
+	float3 eos = p - float3(0.0, -0.485, 1.19);
 	eos = scale3(eos, float3(1.0, 1.0, 0.45));
 	eos.yz = rot2(eos.yz, 0.465);
 	float h = smoothstep(0.0, 0.26, -eos.y);
-	d_2 = sdfCone(eos - float3(0.0, -0.02, 0.0), float2(0.03, -0.25)) - 0.02 * h - 0.01;
+	float4 be = sdfBezier(eos,
+				float3(0.0, -0.005, -0.015),
+				float3(0.0, -0.135, -0.01),
+				float3(0.0, -0.27, -0.003));
+	float ra = 0.015 + 0.025 * (1.0 - be.y);
+	d_2 = be.x - ra;
 	eos.x = sqrt(eos.x*eos.x + 0.001);
-	d_2 = smin(d_2, sdfSphere(eos - float3(0.0, -0.285, -0.025), 0.05), 0.035);
+	d_2 = smin(d_2, sdfSphere(eos - float3(0.0, -0.285, -0.015), 0.05), 0.04);
 	d = smin(d, d_2, 0.07 - 0.025 * h);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
@@ -320,7 +325,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 						float3(0.52, 0.005, 0.0),
 						float3(0.705, 0.04, 0.0));
 
-			float ra = 0.0005 + 0.01 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.0002 + 0.01 * sqrt(be.y * (1.0 - be.y));
 
 			float d = be.x - ra;
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
@@ -334,7 +339,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 						float3(0.62, 0.285, 0.0),
 						float3(0.925, 0.225, 0.0));
 
-			float ra = 0.0005 + 0.045 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.0002 + 0.045 * sqrt(be.y * (1.0 - be.y));
 
 			float d = be.x - ra;
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
@@ -350,8 +355,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float ambientOcclusion = calcOcclusion(rayOrigin + tm.x * rayDir, normal);
 	color *= focc*ambientOcclusion;
 	color = pow(color, float3(0.9090));
-	// color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
-	color *= 1.1;
+	//color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
 	return float4(color, 1.0);
 }
 
