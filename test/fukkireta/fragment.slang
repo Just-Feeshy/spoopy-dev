@@ -120,7 +120,7 @@ float eyeSockets(float3 p) {
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
 	p.x *= 1.03;
-	p.y /= 1.01;
+	p.y *= 1.01;
 	uvw = p;
 
 	static const float3 R_2A = float3(1.10,0.81,1.20);
@@ -268,10 +268,18 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		{
 			// Eyelash - follows upper eyelid edge
+			// float4 be = sdfBezier(float3(qos.xy, 0.0),
+			// 			float3(0.46, -0.17, 0.0),   // inner corner
+			// 			float3(0.95, 0.09, 0.0),   // middle (lower arc)
+			// 			float3(1.0, -0.37, 0.0));  // outer corner
+			// float ra = 0.008 + 0.025 * sqrt(be.y * (1.0 - be.y)) * 2.0;
+
 			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.46, -0.17, 0.0),   // inner corner
-						float3(0.95, 0.1, 0.0),   // middle (lower arc)
-						float3(1.0, -0.37, 0.0));  // outer corner
+						float3(0.38, -0.25, 0.0),   // inner corner
+						float3(0.77, 0.1, 0.0),    // middle (lower arc)
+						float3(0.99, -0.19, 0.0));  // outer corner
+			//float4 be2 = sdfBezier(float3(qos.xy, 0.0),
+			//			float3(0.38
 			float ra = 0.008 + 0.025 * sqrt(be.y * (1.0 - be.y)) * 2.0;
 
 			float d = be.x - ra;
