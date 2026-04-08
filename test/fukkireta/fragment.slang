@@ -283,8 +283,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 						float3(1.1, -0.50, 0.0),
 						float3(0.71, -0.65, 0.0));
 
-			float ra = 0.006 + 0.02 * sqrt(be.y * (1.0 - be.y)) * 2.0;
-			float ra2 = 0.004 + 0.0125 * sqrt(be2.y * (1.0 - be2.y)) * 2.0;
+			float ra = 0.006 + 0.05 * sqrt(be.y * (1.0 - be.y));
+			float ra2 = 0.004 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
 
 			float d = smin(be.x - ra, be2.x - ra2, 0.28);
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
