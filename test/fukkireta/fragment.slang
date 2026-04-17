@@ -228,13 +228,11 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	// Lips
 	mos.x = abs(mos.x);
-	mos.z += 0.04;
-	mos.y -= 0.07;
 	mos.y /= 1.05;
 	float4 lip = sdfBezier(mos,
-	 	float3(0.0, -0.321, 1.15),
-	 	float3(0.153, -0.326, 1.15),
-	 	float3(0.297, -0.286, 0.97));
+	 	float3(0.0, -0.254, 1.11),
+	 	float3(0.153, -0.259, 1.11),
+	 	float3(0.297, -0.219, 0.93));
 	float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
 	float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
 	d_2 = lip.x - lipRa;
