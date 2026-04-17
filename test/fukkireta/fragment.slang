@@ -223,27 +223,28 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.07 - 0.015 * h);
 
 	// Mouth
-	eos = p-float3(0.0, -0.36, 1.23);
-	eos.yz = rot2(eos.yz, -0.05);
-	eos.x /= 1.04;
-	d_2 = sdfEllipsoid(mos, float3(0.0, -0.22, 1.15), float3(0.190, 0.015, 0.1) * 1.41);
+	d_2 = sdfEllipsoid(mos, float3(0.0, -0.24, 1.15), float3(0.190, 0.015, 0.1) * 1.41);
 	d = smax(d, -d_2, 0.01);
 
 	// Lips
-	// mos.z += 0.02;
-	// mos.y -= 0.09;
-	// mos.y /= 1.05;
+	mos.x = abs(mos.x);
+	mos.z += 0.04;
+	mos.y -= 0.07;
+	mos.y /= 1.05;
+	float4 lip = sdfBezier(mos,
+	 	float3(0.0, -0.321, 1.15),
+	 	float3(0.153, -0.326, 1.15),
+	 	float3(0.297, -0.286, 0.97));
+	float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
+	float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
+	d_2 = lip.x - lipRa;
+	d = smin(d, d_2, 0.04);
+
 	// float4 lip = sdfBezier(float3(abs(mos.x), mos.yz),
 	//  	float3(0.0, -0.32, 1.15),
-	//  	float3(0.153, -0.325, 1.15),
+	//  	float3(0.153, -0.355, 1.15),
 	//  	float3(0.297, -0.285, 0.97));
-	// float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
 	// float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
-	// d_2 = lip.x - lipRa;
-	// d = smin(d, d_2, 0.03);
-
-	// d_2 = sdfCone(eos, float2(0.19, -0.58)) - 0.035;
-	// d = smin(d, d_2, 0.06);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
 	return d;
