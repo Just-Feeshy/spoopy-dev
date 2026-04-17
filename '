@@ -169,9 +169,9 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	p.y *= 1.01;
 	uvw = p;
 
-	static const float3 R_2A = float3(1.05,0.61,1.20);
+	static const float3 R_2A = float3(1.05,0.71,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
-	static const float3 c_2  = float3(0.0, -0.87, 0.25);
+	static const float3 c_2  = float3(0.0, -0.81, 0.22);
 	static const float3 c_4  = float3(-0.45, 0.23, -0.47);
 
 	const float3 qos = float3(abs(p.x), p.yz);
@@ -183,7 +183,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	// Jaw
 	float3 mos = p - c_2;
 	mos.yz = rot2(mos.yz, 0.1);
-	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.15 * (p.y + 0.81);
+	const float3 r_2 = R_2A + (float3(0.3,-0.35*p.z,0.1)) * 1.15 * (p.y - c_2.y);
 	float d_2 = sdfEllipsoid(mos, float3(0.0, 0.0, 0.05), r_2);
 	d = smin(d, d_2, 0.4);
 
@@ -209,7 +209,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = min(d, d_2);
 
 	// Nose
-	float3 eos = p - float3(0.0, -0.445, 1.03);
+	float3 eos = p - float3(0.0, -0.445, 1.07);
 	eos.z *= 0.35;
 	eos.yz = rot2(eos.yz, 0.465);
 	float h = smoothstep(0.0, 0.26, -eos.y);
@@ -223,27 +223,24 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.07 - 0.015 * h);
 
 	// Mouth
-	eos = p-float3(0.0, -0.36, 1.23);
+	eos = p-float3(0.0, -0.34, 1.23);
 	eos.yz = rot2(eos.yz, -0.05);
 	eos.x /= 1.04;
-	d_2 = sdfEllipsoid(mos, float3(0.0, -0.22, 1.15), float3(0.190, 0.015, 0.1) * 1.41);
+	d_2 = sdfEllipsoid(mos, float3(0.0, -0.27, 1.15), float3(0.190, 0.025, 0.1) * 1.41);
 	d = smax(d, -d_2, 0.01);
 
 	// Lips
-	// mos.z += 0.02;
-	// mos.y -= 0.09;
-	// mos.y /= 1.05;
-	// float4 lip = sdfBezier(float3(abs(mos.x), mos.yz),
-	//  	float3(0.0, -0.32, 1.15),
-	//  	float3(0.153, -0.325, 1.15),
-	//  	float3(0.297, -0.285, 0.97));
-	// float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
-	// float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
-	// d_2 = lip.x - lipRa;
-	// d = smin(d, d_2, 0.03);
+	float4 lip = sdfBezier(p,
+		float3(-0.35, -0.78, 1.46),
+		float3(0.0, -0.92, 1.49),
+		float3(0.35, -0.78, 1.46));
+	float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
+	float lipRa = 0.038 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y) * smoothstep(0.0, 0.6, lip.y);
+	d_2 = lip.x - lipRa;
+	d = smin(d, d_2, 0.02);
 
-	// d_2 = sdfCone(eos, float2(0.19, -0.58)) - 0.035;
-	// d = smin(d, d_2, 0.06);
+	d_2 = sdfCone(eos, float2(0.19, -0.58)) - 0.035;
+	d = smin(d, d_2, 0.06);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
 	return d;
@@ -258,26 +255,6 @@ float3 calcNormal(float3 p) {
 		mapScene(p + float3(e.y, e.x, e.y), kk, uvw) - mapScene(p - float3(e.y, e.x, e.y), kk, uvw),
 		mapScene(p + float3(e.y, e.y, e.x), kk, uvw) - mapScene(p - float3(e.y, e.y, e.x), kk, uvw)
 	));
-}
-
-float sdif(float d, float b) {
-	return 0.5 + 0.5 * smoothstep(-b, b, d);
-}
-
-float calcSoftshadow(float3 ro, float3 rd, float mint, float maxt, float k) {
-	float res = 1.0;
-	float t = mint;
-	float kk = 0.0;
-	float3 uvw = float3(0.0);
-
-	[loop]
-	for(int i = 0; i < 32; ++i) {
-		float h = mapScene(ro + rd * t, kk, uvw);
-		res = min(res, k * h / t);
-		t += clamp(h, 0.01, 0.1);
-		if(res < 0.001 || t > maxt) break;
-	}
-	return clamp(res, 0.0, 1.0);
 }
 
 
@@ -398,11 +375,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float3 normal = calcNormal(rayOrigin + tm.x * rayDir);
 	float ambientOcclusion = calcOcclusion(rayOrigin + tm.x * rayDir, normal);
 	color *= focc*ambientOcclusion;
-	float3 lig = normalize(float3(0.57, 0.46, 0.68));
-	float3 light = color * (1.25 * float3(0.988, 0.757, 0.733) * sdif(dot(normal, lig), 0.67));
-	color = mix(color, light, 0.4);
 	color = pow(color, float3(0.9090));
-	// color = normal * 0.5 + 0.5;
+	color = calcNormal(rayOrigin + tm.x * rayDir) * 0.5 + 0.5;
 	color *= 1.1;
 	return float4(color, 1.0);
 }
