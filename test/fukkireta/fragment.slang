@@ -125,10 +125,10 @@ float3 sabsx(float3 p) {
 }
 
 float eyeSockets(float3 p) {
-	static const float3 R_3A = float3(0.33,0.31,0.3);
-	static const float3 c_3  = float3(-0.61, 0.33, -0.91);
+	static const float3 R_3A = float3(0.31,0.32,0.3);
+	static const float3 c_3  = float3(-0.61, 0.38, -0.91);
 
-	const float3 r_3 = R_3A + float3(0.06,0.0,0.0) * (p.y + 0.67);
+	const float3 r_3 = R_3A + float3(0.03,0.0,0.0) * (p.y + 0.41);
 	float d_2 = sdfEllipsoid(p+float3(abs(c_3.x), c_3.yz), float3(0.0), r_3);
 	d_2 = min(d_2, sdfEllipsoid(p+c_3, float3(0.0), r_3));
 	return d_2;
@@ -172,7 +172,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.87, 0.25);
-	static const float3 c_4  = float3(-0.45, 0.23, -0.47);
+	static const float3 c_4  = float3(-0.45, 0.28, -0.47);
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
@@ -187,18 +187,26 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	float d_2 = sdfEllipsoid(mos, float3(0.0, 0.0, 0.05), r_2);
 	d = smin(d, d_2, 0.4);
 
+	// Mouth
+	const float mouth = sdfEllipsoid(mos, float3(0.0, -0.24, 1.15), float3(0.13, 0.045, 0.2) * 1.2);
+
+	float eyelid_plane =
+		dot(qos, float3(-0.05, 1.0, 0.0)) + 0.77;
+
 	// Eye Socket
 	d_2 = sdfEllipsoid(sos, c_1, float3(0.32, 0.24, 0.28));
 	d = smax(d, -d_2, 1.0);
 
 	d_2 = eyeSockets(p);
+	d_2 = smax(-eyelid_plane, d_2, 0.3);
 	d = smax(d, -d_2, 0.15);
 
 	// Eyelids
 	d_2 = sdfSphere(qos+c_4, 0.69);
 	float3 plane_n = normalize(float3(-0.1, 1.0, 0.0));
-	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.55;
+	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.5;
 	d_2 = smax(-d_3, d_2, 0.01);
+	d_2 = smax(-eyelid_plane, d_2, 0.3);
 	d = smin(d, d_2, 0.02);
 
 	// Eyeballs
@@ -206,6 +214,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	if(d_2 < d) {
 		outMat = 2.0;
 	}
+	d_2 = smax(-eyelid_plane, d_2, 0.3);
 	d = min(d, d_2);
 
 	// Nose
@@ -222,27 +231,35 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	eos.x = sqrt(eos.x*eos.x + 0.001);
 	d = smin(d, d_2, 0.07 - 0.015 * h);
 
-	// Mouth
-	d_2 = sdfEllipsoid(mos, float3(0.0, -0.24, 1.15), float3(0.190, 0.015, 0.1) * 1.41);
-	d = smax(d, -d_2, 0.01);
+	// Upper Lip
+	float3 cos = mos-float3(0.0, 0.015, 1.1);
+	cos.yz = rot2(cos.yz, 0.1);
+	d_2 = sdfCone(cos, float2(0.08, -0.16)) - 0.01;
+	d = smin(d, d_2, 0.1);
 
-	// Lips
-	mos.x = abs(mos.x);
-	mos.y /= 1.05;
-	float4 lip = sdfBezier(mos,
-	 	float3(0.0, -0.254, 1.11),
-	 	float3(0.153, -0.259, 1.11),
-	 	float3(0.297, -0.219, 0.93));
-	float isLip = smoothstep(0.063, 0.056, lip.x + lip.y * 0.042);
-	float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
+	mos = sabsx(mos) + float3(0.13, 0.0, 0.0);
+	eos = float3(mos.x, (mos.y + 0.04) / 1.05, mos.z);
+	float3 uos = eos - float3(0.0, 0.17, 0.04);
+	float4 lip = sdfBezier(uos,
+	  	float3(0.0, -0.264, 1.17),
+	  	float3(0.333, -0.269, 1.17),
+	  	float3(0.381, -0.4, 0.8));
+	float lipRa = 0.019 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
 	d_2 = lip.x - lipRa;
-	d = smin(d, d_2, 0.04);
+	d = smin(d, d_2, 0.05);
 
-	// float4 lip = sdfBezier(float3(abs(mos.x), mos.yz),
-	//  	float3(0.0, -0.32, 1.15),
-	//  	float3(0.153, -0.355, 1.15),
-	//  	float3(0.297, -0.285, 0.97));
-	// float lipRa = 0.022 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
+	// Mouth
+	d = smax(d, -mouth, 0.01);
+
+	// Bottom Lip
+	lip = sdfBezier(eos,
+	 	float3(0.0, -0.264, 1.11),
+	 	float3(0.333, -0.269, 1.11),
+	 	float3(0.391, -0.02, 0.93));
+	lipRa = 0.021 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
+	d_2 = lip.x - lipRa;
+	d_2 = max(d_2, -mouth);
+	d = smin(d, d_2, 0.05);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
 	return d;
@@ -342,18 +359,18 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Base skin color
 		color = float3(0.992, 0.918, 0.859);
 
-		// Eyelash - follows upper eyelid edge
+		// Eyeliner - follows upper eyelid edge
 		{
-			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.38, -0.25, 0.0),
+			float4 be = sdfBezier(float3(qos.xy + float2(0.0, 0.05), 0.0),
+						float3(0.39, -0.215, 0.0),
 						float3(0.77, 0.1, 0.0),
 						float3(0.99, -0.19, 0.0));
-			float4 be2 = sdfBezier(float3(qos.xy, 0.0),
+			float4 be2 = sdfBezier(float3(qos.xy + float2(0.0, 0.05), 0.0),
 						float3(0.99, -0.19, 0.0),
 						float3(1.1, -0.50, 0.0),
-						float3(0.71, -0.65, 0.0));
+						float3(0.7, -0.61, 0.0));
 
-			float ra = 0.006 + 0.05 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.01 + 0.05 * sqrt(be.y * (1.0 - be.y));
 			float ra2 = 0.004 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
 
 			float d = smin(be.x - ra, be2.x - ra2, 0.28);
@@ -363,10 +380,10 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		// Eyebrows (Tiny)
 		{
-			float4 be = sdfBezier(float3(qos.xy, 0.0),
+			float4 be = sdfBezier(float3(qos.xy + float2(0.05, 0.1), 0.0),
 						float3(0.445, -0.065, 0.0),
-						float3(0.52, 0.005, 0.0),
-						float3(0.705, 0.04, 0.0));
+						float3(0.52, 0.025, 0.0),
+						float3(0.675, 0.065, 0.0));
 
 			float ra = 0.0002 + 0.01 * sqrt(be.y * (1.0 - be.y));
 
@@ -378,9 +395,9 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Eyebrows
 		{
 			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.345, 0.165, 0.0),
-						float3(0.62, 0.285, 0.0),
-						float3(0.925, 0.225, 0.0));
+						float3(0.345, 0.145, 0.0),
+						float3(0.62, 0.265, 0.0),
+						float3(0.925, 0.205, 0.0));
 
 			float ra = 0.0002 + 0.035 * sqrt(be.y * (1.0 - be.y));
 
