@@ -1,9 +1,10 @@
-#define MAX_STEPS 80
+#define MAX_STEPS 256
 #define MAX_DISTANCE 10
 #define TRACER_EPSILON 0.001
 #define AA_SAMPLE_COUNT 8
 #define PI 3.14159265359
 #define HASHSCALE1 .1031
+#define SMOOTH_EYE 0.3
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -17,9 +18,10 @@ float2 rot2(float2 p, float an) {
 	return mul(m, p);
 }
 
-float3 scale3(float3 p, float3 s) {
-	float3x3 m = float3x3(s.x, 0, 0, 0, s.y, 0, 0, 0, s.z);
-	return mul(m, p);
+float2 shear(float2 p, float k) {
+	float2x2 I2 = float2x2(1.0, 0.0, 0.0, 1.0);
+	I2[0][1] = k;
+	return mul(I2, p);
 }
 
 float hash(float p) {
@@ -172,7 +174,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.87, 0.25);
-	static const float3 c_4  = float3(-0.45, 0.28, -0.47);
+	static const float3 c_4  = float3(-0.45, 0.24, -0.455);
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
@@ -191,30 +193,33 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	const float mouth = sdfEllipsoid(mos, float3(0.0, -0.24, 1.15), float3(0.13, 0.045, 0.2) * 1.2);
 
 	float eyelid_plane =
-		dot(qos, float3(-0.05, 1.0, 0.0)) + 0.77;
+		dot(qos, float3(-0.05, 1.0, 0.0)) + 0.74;
+	float eyelid_plane_2 =
+		dot(qos, float3(-0.05, 1.0, 0.0)) + 0.74;
 
 	// Eye Socket
 	d_2 = sdfEllipsoid(sos, c_1, float3(0.32, 0.24, 0.28));
 	d = smax(d, -d_2, 1.0);
 
 	d_2 = eyeSockets(p);
-	d_2 = smax(-eyelid_plane, d_2, 0.3);
+	d_2 = smax(-eyelid_plane, d_2, SMOOTH_EYE);
 	d = smax(d, -d_2, 0.15);
 
 	// Eyelids
-	d_2 = sdfSphere(qos+c_4, 0.69);
+	float3 ebos = qos + c_4;
+	ebos.xy = shear(ebos.xy, -0.12);
 	float3 plane_n = normalize(float3(-0.1, 1.0, 0.0));
 	float d_3 = dot(qos + float3(0.0, 0.56, 0.0), plane_n) - 0.5;
 	d_2 = smax(-d_3, d_2, 0.01);
-	d_2 = smax(-eyelid_plane, d_2, 0.3);
+	d_2 = smax(-eyelid_plane_2, d_2, SMOOTH_EYE / 1.7);
 	d = smin(d, d_2, 0.02);
 
 	// Eyeballs
-	d_2 = sdfSphere(qos+c_4+float3(0.0, 0.0, 0.005), 0.69);
+	d_2 = sdfSphere(ebos, 0.69);
 	if(d_2 < d) {
 		outMat = 2.0;
 	}
-	d_2 = smax(-eyelid_plane, d_2, 0.3);
+	d_2 = smax(-eyelid_plane_2, d_2, SMOOTH_EYE / 1.7);
 	d = min(d, d_2);
 
 	// Nose
@@ -253,13 +258,16 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	// Bottom Lip
 	lip = sdfBezier(eos,
-	 	float3(0.0, -0.264, 1.11),
-	 	float3(0.333, -0.269, 1.11),
-	 	float3(0.391, -0.02, 0.93));
+	 	float3(0.0, -0.264, 1.105),
+	 	float3(0.333, -0.269, 1.105),
+	 	float3(0.391, -0.02, 0.9205));
 	lipRa = 0.021 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
 	d_2 = lip.x - lipRa;
 	d_2 = max(d_2, -mouth);
 	d = smin(d, d_2, 0.05);
+
+	// Cheeks
+	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71), 0.1), 0.4);
 
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
 	return d;
@@ -347,17 +355,23 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float3 uvw = float3(0.0);
 	float2 tm = traceSample(rayOrigin, rayDir, uvw);
 	float focc = 1.0;
+	float sss = 0.0;
 
 	if(tm.y < 0.0) {
 		return float4(color, 1.0);
 	}
 
-	color = float3(0.992, 0.918, 0.859);
-	if(tm.y < 1.5) {
-		float3 qos = float3(abs(uvw.x), uvw.yz);
+	float3 pos = rayOrigin + tm.x * rayDir;
+	float3 normal = calcNormal(rayOrigin + tm.x * rayDir);
 
-		// Base skin color
-		color = float3(0.992, 0.918, 0.859);
+	if(tm.y < 1.5) {
+		sss = 1.0;
+
+		float3 qos = float3(abs(uvw.x), uvw.yz);
+		color = mix(float3(0.992, 0.918, 0.859),
+					float3(1.0, 0.768, 0.705),
+					smoothstep(0.5, 0.0, length(qos.xy - float2(0.67, -0.69)))
+		);
 
 		// Eyeliner - follows upper eyelid edge
 		{
@@ -366,14 +380,14 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 						float3(0.77, 0.1, 0.0),
 						float3(0.99, -0.19, 0.0));
 			float4 be2 = sdfBezier(float3(qos.xy + float2(0.0, 0.05), 0.0),
-						float3(0.99, -0.19, 0.0),
-						float3(1.1, -0.50, 0.0),
-						float3(0.7, -0.61, 0.0));
+						float3(1.05, -0.19, 0.0),
+						float3(0.935, -0.565, 0.0),
+						float3(0.7, -0.59, 0.0));
 
 			float ra = 0.01 + 0.05 * sqrt(be.y * (1.0 - be.y));
-			float ra2 = 0.004 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
+			float ra2 = 0.003 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
 
-			float d = smin(be.x - ra, be2.x - ra2, 0.28);
+			float d = smin(be.x - ra, be2.x - ra2, 0.25);
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
 			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
@@ -406,18 +420,35 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 			color = mix(color, float3(1.0, 0.0, 0.271), mask);
 		}
 	}else if(tm.y < 2.5) {
-		color = float3(1.0);
-		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.41))/float2(4.2,3.3));
-		color *= mix(float3(1.0), float3(0.4, 0.1, 0.2), linearstep(0.07, 0.16, edis)) * 1.1;
+		sss = 1.0;
+
+		float3 qos = float3(abs(uvw.x), uvw.yz);
+		float3 eos = qos - float3(0.63, -0.39, 0.45);
+		eos.x *= 1.2;
+
+		float r = length(eos.xy)+0.005;
+		float3 iris = float3(0.9, 0.15, 0.3);
+		color = float3(0.94);
+		color *= 0.1 + 0.9 * smoothstep(0.26, 0.3, r);
+		color = mix(color, iris, 1.0-smoothstep(0.24, 0.3, r));
+		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
+		color *= mix(float3(1.0), float3(0.4, 0.2, 0.2), linearstep(0.07, 0.16, edis)) * 1.1;
 	}
 
-	float3 normal = calcNormal(rayOrigin + tm.x * rayDir);
-	float ambientOcclusion = calcOcclusion(rayOrigin + tm.x * rayDir, normal);
-	color *= focc*ambientOcclusion;
-	float3 lig = normalize(float3(0.57, 0.46, 0.68));
+	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
+	float occ = focc * calcOcclusion(pos, normal);
+
+	float3 lig = float3(0.57, 0.46, 0.68);
 	float3 light = color * (1.25 * float3(0.988, 0.757, 0.733) * sdif(dot(normal, lig), 0.67));
 	color = mix(color, light, 0.4);
-	color = pow(color, float3(0.9090));
+
+	// float bou = clamp(0.4 - 0.6 * normal.x, 0.0, 1.0);
+	float3 lin = float3(0.0);
+	lin += occ;
+	lig = normalize(float3(-1.87, -0.86, -0.6));
+	lin += float3(1.0, 0.3, 0.1) * sss * fre * 0.2 * (0.5+0.5 * dot(normal, lig)) * (0.1 + 0.9 * focc);
+
+	color = color*lin + fre*fre*fre*0.07*occ;
 	// color = normal * 0.5 + 0.5;
 	color *= 1.1;
 	return float4(color, 1.0);
@@ -466,5 +497,6 @@ float4 fragmentMain(FragmentInput input) : SV_Target {
 	float sampleWeight = 1.0 / AA_SAMPLE_COUNT;
 	float alpha = coverage * sampleWeight;
 	float3 color = accum * sampleWeight + background * (1.0 - alpha);
+	color = pow(color, float3(0.9090));
 	return float4(color, 1.0);
 }
