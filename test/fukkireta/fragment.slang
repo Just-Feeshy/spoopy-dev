@@ -426,14 +426,19 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		sss = 1.0;
 
 		float3 qos = float3(abs(uvw.x), uvw.yz);
+		float ss = sign(uvw.x);
 		float3 eos = qos - float3(0.63, -0.39, 0.45);
-		eos.x *= 1.2;
+		eos.x *= 1.175;
 
 		float r = length(eos.xy)+0.005;
+		float a = atan2(eos.y, ss * eos.x);
 		float3 iris = float3(0.9, 0.15, 0.3);
+		// iris *= 0.3 + 0.7 * tex0.Sample(samp0, float2(r, a / 6.2831)).r;
 		color = float3(0.94);
-		color *= 0.1 + 0.9 * smoothstep(0.26, 0.3, r);
-		color = mix(color, iris, 1.0-smoothstep(0.24, 0.3, r));
+		color *= 0.1 + 0.9 * smoothstep(0.27, 0.31, r);
+		color = mix(color, iris, 1.0-smoothstep(0.25, 0.31, r));
+
+		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
 		color *= mix(float3(1.0), float3(0.4, 0.2, 0.2), linearstep(0.07, 0.16, edis)) * 1.1;
 	}
@@ -461,7 +466,6 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 float4 fragmentMain(FragmentInput input) : SV_Target {
 	float2 fragCoord = input.position.xy;
 	float2 screenUv = fragCoord / input.resolution;
-	float noise = tex0.Sample(samp0, screenUv).r * 2.0 - 1.0;
 	float4 sample = 0.0;
 	float3 accum = 0.0;
 	float coverage = 0.0;
@@ -502,7 +506,6 @@ float4 fragmentMain(FragmentInput input) : SV_Target {
 	float sampleWeight = 1.0 / AA_SAMPLE_COUNT;
 	float alpha = coverage * sampleWeight;
 	float3 color = accum * sampleWeight + background * (1.0 - alpha);
-	color = lerp(color, color * (0.94 + noise * 0.08), 0.35);
 	color = pow(color, float3(0.9090));
 	return float4(color, 1.0);
 }

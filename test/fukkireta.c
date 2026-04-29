@@ -19,6 +19,12 @@ static const float fukkireta_fastnoiselite_frequency = 0.060f;
 #endif
 
 static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
+#if !SPOOPY_FUKKIRETA_FASTNOISELITE
+	(void)width;
+	(void)height;
+	SPOOPY_LOG_ERROR("fukkireta noise texture requested, but FastNoiseLite is disabled. Reconfigure with -Dfastnoiselite=true.");
+	return NULL;
+#else
 	const size_t pixel_count = (size_t)width * (size_t)height;
 	const size_t data_size = pixel_count * 4;
 	uint8_t* pixels = spoopy_heap_alloc(data_size);
@@ -28,21 +34,15 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 		return NULL;
 	}
 
-#if SPOOPY_FUKKIRETA_FASTNOISELITE
 	fnl_state noise = fnlCreateState();
 	noise.seed = fukkireta_fastnoiselite_seed;
 	noise.frequency = fukkireta_fastnoiselite_frequency;
-#endif
 
 	for(uint32_t y = 0; y < height; ++y) {
 		for(uint32_t x = 0; x < width; ++x) {
 			const size_t index = ((size_t)y * (size_t)width + (size_t)x) * 4;
-			uint8_t shade = 128;
-
-#if SPOOPY_FUKKIRETA_FASTNOISELITE
 			const float sample = fnlGetNoise2D(&noise, (float)x, (float)y);
-			shade = (uint8_t)((sample * 0.5f + 0.5f) * 255.0f);
-#endif
+			const uint8_t shade = (uint8_t)((sample * 0.5f + 0.5f) * 255.0f);
 
 			pixels[index + 0] = shade;
 			pixels[index + 1] = shade;
@@ -81,8 +81,8 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 			.mag = SPOOPY_TEXTURE_FILTER_LINEAR
 		},
 		.wrap = {
-			.u = SPOOPY_TEXTURE_WRAP_REPEAT,
-			.v = SPOOPY_TEXTURE_WRAP_REPEAT
+			.u = SPOOPY_TEXTURE_WRAP_CLAMP,
+			.v = SPOOPY_TEXTURE_WRAP_CLAMP
 		}
 	};
 
@@ -90,6 +90,7 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 	spoopy_api_texture_fill(tex, 0, 0, &image);
 	spoopy_heap_free(pixels);
 	return tex;
+#endif
 }
 
 static char* load_shader(const char* path) {
