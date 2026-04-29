@@ -1,12 +1,24 @@
 #include <spoopy_api.h>
 #include <SDL3/SDL_iostream.h>
 
+#if SPOOPY_FUKKIRETA_FASTNOISELITE
+    #define FNL_IMPL
+    #include <FastNoiseLite.h>
+#endif
+
 typedef struct vertex2d {
 	float pos[2];
 	float resolution[2];
 } vertex2d_t;
 
 static spoopy_event_handler_t* handler_ptr = NULL;
+
+#if SPOOPY_FUKKIRETA_FASTNOISELITE
+static void fukkireta_probe_fastnoiselite(void) {
+	fnl_state noise = fnlCreateState();
+	(void)fnlGetNoise2D(&noise, 0.0f, 0.0f);
+}
+#endif
 
 static char* load_shader(const char* path) {
 
@@ -106,6 +118,11 @@ static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shade
 int	main(void) {
 	const float window_width = 1280.0f;
 	const float window_height = 720.0f;
+
+#if SPOOPY_FUKKIRETA_FASTNOISELITE
+	fukkireta_probe_fastnoiselite();
+#endif
+
 	spoopy_memory_init_hooks();
 	spoopy_events_init(0, &handler_ptr);
 
