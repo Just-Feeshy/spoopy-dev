@@ -11,6 +11,9 @@ struct FragmentInput {
 	float2 resolution : TEXCOORD0;
 };
 
+Texture2D tex0;
+SamplerState samp0;
+
 float2 rot2(float2 p, float an) {
 	float cc = cos(an);
 	float ss = sin(an);
@@ -457,6 +460,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 [shader("fragment")]
 float4 fragmentMain(FragmentInput input) : SV_Target {
 	float2 fragCoord = input.position.xy;
+	float2 screenUv = fragCoord / input.resolution;
+	float noise = tex0.Sample(samp0, screenUv).r * 2.0 - 1.0;
 	float4 sample = 0.0;
 	float3 accum = 0.0;
 	float coverage = 0.0;
@@ -497,6 +502,7 @@ float4 fragmentMain(FragmentInput input) : SV_Target {
 	float sampleWeight = 1.0 / AA_SAMPLE_COUNT;
 	float alpha = coverage * sampleWeight;
 	float3 color = accum * sampleWeight + background * (1.0 - alpha);
+	color = lerp(color, color * (0.94 + noise * 0.08), 0.35);
 	color = pow(color, float3(0.9090));
 	return float4(color, 1.0);
 }
