@@ -26,7 +26,7 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 	return NULL;
 #else
 	const size_t pixel_count = (size_t)width * (size_t)height;
-	const size_t data_size = pixel_count * 4;
+	const size_t data_size = pixel_count;
 	uint8_t* pixels = spoopy_heap_alloc(data_size);
 
 	if(!pixels) {
@@ -40,14 +40,9 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 
 	for(uint32_t y = 0; y < height; ++y) {
 		for(uint32_t x = 0; x < width; ++x) {
-			const size_t index = ((size_t)y * (size_t)width + (size_t)x) * 4;
+			const size_t index = (size_t)y * (size_t)width + (size_t)x;
 			const float sample = fnlGetNoise2D(&noise, (float)x, (float)y);
-			const uint8_t shade = (uint8_t)((sample * 0.5f + 0.5f) * 255.0f);
-
-			pixels[index + 0] = shade;
-			pixels[index + 1] = shade;
-			pixels[index + 2] = shade;
-			pixels[index + 3] = 255;
+			pixels[index] = (uint8_t)((sample * 0.5f + 0.5f) * 255.0f);
 		}
 	}
 
@@ -56,7 +51,7 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 		.width = width,
 		.height = height,
 		.data_size = (uint32_t)data_size,
-		.format = SPOOPY_PIXEL_FORMAT_RGBA8,
+		.format = SPOOPY_PIXEL_FORMAT_R8,
 		.origin = SPOOPY_IMAGE_ORIGIN_TOP_LEFT,
 	};
 
