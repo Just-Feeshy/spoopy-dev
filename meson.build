@@ -89,6 +89,11 @@ endif
 spoopy_deps += libpng_dep
 spoopy_deps += dependency('cglm', required: true)
 
+fastnoiselite_dep = disabler()
+if get_option('fastnoiselite')
+    fastnoiselite_dep = dependency('fastnoiselite', fallback: ['fastnoiselite', 'fastnoiselite_dep'], required: true)
+endif
+
 if sokol_requested
     sokol_dep = dependency('sokol', fallback: ['sokol', 'sokol_dep'], required: true)
     sokol_dep = declare_dependency(
