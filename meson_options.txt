@@ -76,9 +76,3 @@ option('sokol_backend',
     choices: ['auto', 'metal', 'd3d11', 'wgpu'],
     description: 'Sokol backend to enable (maps to SPOOPY_RENDERER_* defines)'
 )
-
-option('fastnoiselite',
-    type: 'boolean',
-    value: false,
-    description: 'Enable the FastNoiseLite dependency'
-)

@@ -1,30 +1,25 @@
 #include <spoopy_api.h>
 #include <SDL3/SDL_iostream.h>
 
-#if SPOOPY_FUKKIRETA_FASTNOISELITE
-    #define FNL_IMPL
-    #include <FastNoiseLite.h>
-#endif
-
 typedef struct vertex2d {
 	float pos[2];
 	float resolution[2];
 } vertex2d_t;
 
 static spoopy_event_handler_t* handler_ptr = NULL;
+static const int fukkireta_noise_seed = 1337;
 
-#if SPOOPY_FUKKIRETA_FASTNOISELITE
-static const int fukkireta_fastnoiselite_seed = 1337;
-static const float fukkireta_fastnoiselite_frequency = 0.060f;
-#endif
+static uint32_t fukkireta_noise_hash(uint32_t x, uint32_t y, uint32_t seed) {
+	uint32_t v = seed ^ (x * 0x9E3779B9u) ^ (y * 0x85EBCA6Bu);
+	v ^= v >> 16;
+	v *= 0x7FEB352Du;
+	v ^= v >> 15;
+	v *= 0x846CA68Bu;
+	v ^= v >> 16;
+	return v;
+}
 
 static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
-#if !SPOOPY_FUKKIRETA_FASTNOISELITE
-	(void)width;
-	(void)height;
-	SPOOPY_LOG_ERROR("fukkireta noise texture requested, but FastNoiseLite is disabled. Reconfigure with -Dfastnoiselite=true.");
-	return NULL;
-#else
 	const size_t pixel_count = (size_t)width * (size_t)height;
 	const size_t data_size = pixel_count;
 	uint8_t* pixels = spoopy_heap_alloc(data_size);
@@ -34,15 +29,10 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 		return NULL;
 	}
 
-	fnl_state noise = fnlCreateState();
-	noise.seed = fukkireta_fastnoiselite_seed;
-	noise.frequency = fukkireta_fastnoiselite_frequency;
-
 	for(uint32_t y = 0; y < height; ++y) {
 		for(uint32_t x = 0; x < width; ++x) {
 			const size_t index = (size_t)y * (size_t)width + (size_t)x;
-			const float sample = fnlGetNoise2D(&noise, (float)x, (float)y);
-			pixels[index] = (uint8_t)((sample * 0.5f + 0.5f) * 255.0f);
+			pixels[index] = (uint8_t)(fukkireta_noise_hash(x, y, (uint32_t)fukkireta_noise_seed) & 0xFFu);
 		}
 	}
 
@@ -72,12 +62,12 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 		.stage = SPOOPY_STAGE_FRAGMENT,
 		.depth_texture = false,
 		.filter = {
-			.min = SPOOPY_TEXTURE_FILTER_LINEAR,
-			.mag = SPOOPY_TEXTURE_FILTER_LINEAR
+			.min = SPOOPY_TEXTURE_FILTER_NEAREST,
+			.mag = SPOOPY_TEXTURE_FILTER_NEAREST
 		},
 		.wrap = {
-			.u = SPOOPY_TEXTURE_WRAP_CLAMP,
-			.v = SPOOPY_TEXTURE_WRAP_CLAMP
+			.u = SPOOPY_TEXTURE_WRAP_REPEAT,
+			.v = SPOOPY_TEXTURE_WRAP_REPEAT
 		}
 	};
 
@@ -85,12 +75,10 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 	spoopy_api_texture_fill(tex, 0, 0, &image);
 	spoopy_heap_free(pixels);
 	return tex;
-#endif
 }
 
 static char* load_shader(const char* path) {
 
-	// Read the Slang source from disk so this test covers file-backed shader loading.
 	SDL_IOStream* io = SDL_IOFromFile(path, "rb");
 
 	if(!io) {
@@ -144,7 +132,6 @@ static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shade
 		.compile.optimization_level = SPOOPY_OPTIMIZATION_LEVEL_NONE,
 	};
 
-	// Resolve the active backend target before asking Slang to emit backend code.
 	if(!spoopy_api_shader_supported(&source, &transpile_opts)) {
 		SPOOPY_LOG_ERROR("Shader is not supported: %s", path);
 		spoopy_heap_free(src);
@@ -155,7 +142,6 @@ static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shade
 	spoopy_mem_arena_t transpile_arena = {0};
 	spoopy_arena_init(&transpile_arena, source.content_size + (1 << 11));
 
-	// Transpile once into runtime shader code, then materialize the backend object immediately.
 	if(!spoopy_api_shader_transpile(&source, &transpiled, &transpile_opts, &transpile_arena)) {
 		SPOOPY_LOG_ERROR("Failed to transpile shader: %s", path);
 		spoopy_arena_deinit(&transpile_arena);
@@ -200,7 +186,7 @@ int	main(void) {
 	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta/vertex.slang", SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta/fragment.slang", SPOOPY_STAGE_FRAGMENT);
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
-	spoopy_texture_t* noise_texture = create_noise_texture(256, 256);
+	spoopy_texture_t* noise_texture = create_noise_texture(64, 64);
 
 	if(!noise_texture) {
 		return 1;

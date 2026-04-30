@@ -493,6 +493,14 @@ static bool spoopy_shader_object_init_uniforms(spoopy_shader_object_t* shader, c
 	const uint16_t pair_count = texture_count < sampler_count ? texture_count : sampler_count;
 	for(uint16_t i = 0; i < pair_count; ++i) {
 		texture_uniforms[i]->sampler.paired_binding = sampler_bindings[i];
+		// Temporary debug logging for texture/sampler reflection pairing.
+		SPOOPY_LOG_INFO(
+			"Texture/sampler pair: stage=%d uniform='%s' texture_binding=%u sampler_binding=%u",
+			shader->stage,
+			texture_uniforms[i]->name ? texture_uniforms[i]->name : "(unnamed)",
+			texture_uniforms[i]->sampler.binding,
+			texture_uniforms[i]->sampler.paired_binding
+		);
 	}
 
 	if(texture_count != sampler_count) {
@@ -1410,6 +1418,19 @@ void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_n
 	if(!spoopy_sokol_texture_set_binding_indices(tex, tex_slot, sampler_slot)) {
 		return;
 	}
+
+	// Temporary debug logging for runtime texture binding.
+	SPOOPY_LOG_INFO(
+		"Texture bind: uniform='%s' texture_slot=%u sampler_slot=%u image=%u view=%u sampler=%u format=%d stage=%d",
+		uniform_name ? uniform_name : "(null)",
+		tex_slot,
+		sampler_slot,
+		tex->image.id,
+		tex->view.id,
+		tex->sampler_state.id,
+		tex->params.format,
+		tex->params.stage
+	);
 
 	pipeline->bindings.views[tex_slot] = tex->view;
 	pipeline->bindings.samplers[sampler_slot] = tex->sampler_state;

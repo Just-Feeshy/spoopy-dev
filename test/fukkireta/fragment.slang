@@ -5,6 +5,7 @@
 #define PI 3.14159265359
 #define HASHSCALE1 .1031
 #define SMOOTH_EYE 0.3
+#define TAU_INV 0.15915735
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -25,6 +26,19 @@ float2 shear(float2 p, float k) {
 	float2x2 I2 = float2x2(1.0, 0.0, 0.0, 1.0);
 	I2[0][1] = k;
 	return mul(I2, p);
+}
+
+float2 iCylinderY(float3 ro, float3 rd, float rad) {
+	float3 oc = ro;
+	float a = dot(rd.xz, rd.xz);
+	float b = dot(oc.xz, rd.xz);
+	float c = dot(oc.xz, oc.xz) - rad * rad;
+	float h = b * b - a * c;
+	if(h < 0.0) {
+		return float2(-1.0, -1.0);
+	}
+	h = sqrt(h);
+	return float2(-b - h, -b + h) / a;
 }
 
 float hash(float p) {
@@ -432,11 +446,17 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		float r = length(eos.xy)+0.005;
 		float a = atan2(eos.y, ss * eos.x);
+		float irisMask = 1.0 - smoothstep(0.25, 0.31, r);
 		float3 iris = float3(0.9, 0.15, 0.3);
-		iris *= 0.3 + 0.7 * tex0.SampleLevel(samp0, float2(r, a * 0.15915735), 0.0).r;
-		color = float3(0.94);
-		color *= 0.1 + 0.9 * smoothstep(0.27, 0.31, r);
-		color = mix(color, iris, 1.0-smoothstep(0.25, 0.31, r));
+
+		[branch]
+		if(irisMask > TRACER_EPSILON) {
+			float2 irisUV = float2(r, frac(a * TAU_INV));
+			float n = tex0.Sample(samp0, irisUV).r;
+			iris *= 0.3 + 0.7 * n;
+		}
+
+		color = mix(color, iris, irisMask);
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
