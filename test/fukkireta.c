@@ -7,8 +7,11 @@ typedef struct vertex2d {
 } vertex2d_t;
 
 static spoopy_event_handler_t* handler_ptr = NULL;
-static const int fukkireta_noise_seed = 1337;
 
+// static const int fukkireta_noise_seed = 1337;
+
+#if 0
+// Temporary: texture experiment disabled while isolating fragment performance.
 static uint32_t fukkireta_noise_hash(uint32_t x, uint32_t y, uint32_t seed) {
 	uint32_t v = seed ^ (x * 0x9E3779B9u) ^ (y * 0x85EBCA6Bu);
 	v ^= v >> 16;
@@ -76,6 +79,7 @@ static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
 	spoopy_heap_free(pixels);
 	return tex;
 }
+#endif
 
 static char* load_shader(const char* path) {
 
@@ -186,11 +190,13 @@ int	main(void) {
 	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta/vertex.slang", SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta/fragment.slang", SPOOPY_STAGE_FRAGMENT);
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
+	/* Temporary: texture experiment disabled.
 	spoopy_texture_t* noise_texture = create_noise_texture(64, 64);
 
 	if(!noise_texture) {
 		return 1;
 	}
+	*/
 
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
 		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT },
@@ -198,7 +204,9 @@ int	main(void) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 2, vertex_spec, 0);
+	/* Temporary: texture experiment disabled.
 	spoopy_api_texture_set(pipeline, "tex0", noise_texture);
+	*/
 
 	// Fullscreen clip-space quad.
 	vertex2d_t vertices[] = {
@@ -240,8 +248,10 @@ int	main(void) {
 		spoopy_api_swap_buffers();
 	}
 
+	/* Temporary: texture experiment disabled.
 	spoopy_api_texture_destroy(noise_texture);
 	spoopy_heap_free(noise_texture);
+	*/
 	spoopy_heap_free(handler_ptr);
 	spoopy_api_video_shutdown();
 	return 0;

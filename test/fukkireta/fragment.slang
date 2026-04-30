@@ -12,8 +12,9 @@ struct FragmentInput {
 	float2 resolution : TEXCOORD0;
 };
 
-Texture2D tex0;
-SamplerState samp0;
+// Temporary: texture experiment disabled.
+// Texture2D tex0;
+// SamplerState samp0;
 
 float2 rot2(float2 p, float an) {
 	float cc = cos(an);
@@ -447,10 +448,10 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		float r = length(eos.xy)+0.005;
 		float a = atan2(eos.y, ss * eos.x);
-		float3 iris = float3(0.9, 0.15, 0.3);
+		float3 iris = float3(0.95, 0.1, 0.1);
 		color = float3(0.94);
 		color *= 0.1 + 0.9 * smoothstep(0.27, 0.31, r);
-		color = mix(color, iris, 1.0-smoothstep(0.25, 0.31, r));
+		color = mix(color, iris, 1.0-smoothstep(0.20, 0.31, r));
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
