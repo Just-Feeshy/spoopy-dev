@@ -1,7 +1,7 @@
 #define MAX_STEPS 256
 #define MAX_DISTANCE 10
 #define TRACER_EPSILON 0.001
-#define AA_SAMPLE_COUNT 8
+#define AA_SAMPLE_COUNT 4
 #define PI 3.14159265359
 #define HASHSCALE1 .1031
 #define SMOOTH_EYE 0.3
@@ -332,36 +332,37 @@ float2 makeUv(float2 fragCoord, float2 resolution) {
 }
 
 float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
-	float t = 0.0;
 	uvw = float3(0.0);
-	float3 hitPos = rayOrigin;
-	float3 closestPos = rayOrigin;
-	float closestDist = MAX_DISTANCE;
 	float matID = -1.0;
+	float t = 1.0;
+	float tmax = MAX_DISTANCE;
+
+	float2 cyl = iCylinderY(rayOrigin, rayDir, 1.5);
+	if(cyl.y < 0.0) {
+		return float2(-1.0, -1.0);
+	}
+
+	tmax = min(tmax, cyl.y);
+	t = max(1.0, cyl.x);
 
 	[loop]
 	for(int i = 0; i < MAX_STEPS; ++i) {
 		float tmp;
-		hitPos = rayOrigin + rayDir * t;
-		float dist = mapScene(hitPos, tmp, uvw);
-
-		if(dist < closestDist) {
-			closestDist = dist;
-			closestPos = hitPos;
-		}
+		float3 pos = rayOrigin + rayDir * t;
+		float dist = mapScene(pos, tmp, uvw);
 
 		if(dist < TRACER_EPSILON) {
 			matID = tmp;
 			break;
 		}
 
-		t += dist;
-		if(t > MAX_DISTANCE) {
+		t += dist * 0.95;
+		if(t > tmax) {
 			break;
 		}
 	}
 
-	return float2(t,matID);
+	return float2(t, matID);
 }
 
 float4 renderTeto(float2 fragCoord, float2 resolution) {
@@ -485,45 +486,23 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 [shader("fragment")]
 float4 fragmentMain(FragmentInput input) : SV_Target {
 	float2 fragCoord = input.position.xy;
-	float2 screenUv = fragCoord / input.resolution;
 	float4 sample = 0.0;
 	float3 accum = 0.0;
 	float coverage = 0.0;
 	const float3 background = float3(1.0, 1.0, 1.0);
 
-	sample = renderTeto(fragCoord + float2(-0.5625, -0.4375), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
+	[loop]
+	for(int m = 0; m < AA_SAMPLE_COUNT; ++m) {
+		[loop]
+		for(int n = 0; n < AA_SAMPLE_COUNT; ++n) {
+			float2 offset = (float2((float)m, (float)n) / (float)AA_SAMPLE_COUNT) - 0.5;
+			sample = renderTeto(fragCoord + offset, input.resolution);
+			accum += sample.rgb * sample.a;
+			coverage += sample.a;
+		}
+	}
 
-	sample = renderTeto(fragCoord + float2(-0.0625, -0.1875), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2( 0.4375, -0.3125), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2( 0.1875,  0.0625), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2(-0.3125,  0.1875), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2(-0.4375,  0.5625), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2( 0.0625,  0.3125), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	sample = renderTeto(fragCoord + float2( 0.5625,  0.4375), input.resolution);
-	accum += sample.rgb * sample.a;
-	coverage += sample.a;
-
-	float sampleWeight = 1.0 / AA_SAMPLE_COUNT;
+	float sampleWeight = 1.0 / ((float)AA_SAMPLE_COUNT * (float)AA_SAMPLE_COUNT);
 	float alpha = coverage * sampleWeight;
 	float3 color = accum * sampleWeight + background * (1.0 - alpha);
 	color = pow(color, float3(0.9090));
