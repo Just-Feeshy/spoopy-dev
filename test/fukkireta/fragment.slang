@@ -451,12 +451,28 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		float3 iris = float3(0.85, 0.1, 0.1);
 		float ringGradient = 1.0 - saturate((eos.y + 0.31) / 0.62);
 		color = float3(0.94);
+
+		// Gradient of the Eye
+		float eyeGradientT = 1.0 - saturate((eos.y + 0.31) / 0.62);
+		float3 eyeTopValue = float3(0.05, 0.85, 0.85);
+		float3 eyeMiddleValue = float3(0.0);
+		float3 eyeBottomValue = float3(0.0);
+		float eyeMiddleMin = 0.35;
+		float eyeMiddleMax = 0.55;
+		float3 eyeGradientValue = (eyeGradientT > eyeMiddleMax)
+			? lerp(eyeMiddleValue, eyeTopValue, (eyeGradientT - eyeMiddleMax) / (1.0 - eyeMiddleMax))
+			: ((eyeGradientT < eyeMiddleMin)
+			? lerp(eyeBottomValue, eyeMiddleValue, eyeGradientT / eyeMiddleMin)
+			: eyeMiddleValue);
+		iris += float3(eyeGradientValue);
+
+		// Final Iris Color
 		color = mix(iris * ringGradient, color, smoothstep(0.27, 0.31, r));
 		color = mix(color, iris, 1.0-smoothstep(0.21, 0.31, r));
 
 		// Fake Occlusion Backed In
-		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
-		color *= mix(float3(1.0), float3(0.4, 0.2, 0.2), linearstep(0.07, 0.16, edis)) * 1.1;
+		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
+		color *= mix(float3(1.0), float3(0.2, 0.1, 0.1), linearstep(0.07, 0.16, edis)) * 1.1;
 	}
 
 	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
