@@ -450,8 +450,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		float a = atan2(eos.y, ss * eos.x);
 		float3 iris = float3(0.95, 0.1, 0.1);
 		color = float3(0.94);
-		color *= 0.1 + 0.9 * smoothstep(0.27, 0.31, r);
-		color = mix(color, iris, 1.0-smoothstep(0.20, 0.31, r));
+		color = mix(float3(0.5, 0.05, 0.05), color, smoothstep(0.27, 0.31, r));
+		color = mix(color, iris, 1.0-smoothstep(0.21, 0.31, r));
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.49))/float2(4.2,3.3));
