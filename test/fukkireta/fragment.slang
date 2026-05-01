@@ -78,7 +78,7 @@ float calcOcclusion(float3 pos, float3 nor) {
 }
 
 float sdfTorus(float3 p, float2 t) {
-  float2 q = float2(length(p.xz)-t.x,p.y);
+  float2 q = float2(length(p.xz)-t.x, p.y);
   return length(q)-t.y;
 }
 
@@ -90,6 +90,11 @@ float sdfEllipsoid(float3 p, float3 c, float3 r) {
 	float k1 = length((p-c)/r);
     float k2 = length((p-c)/(r*r));
     return k1*(k1-1.0)/k2;
+}
+
+float fakeBottomHighlight(float2 qos, float2 c, float r, float off) {
+	float2 q = float2(r * abs(qos.x - off), qos.y);
+	return length(q-c);
 }
 
 float f_k(float x, float y, float k) {
@@ -441,10 +446,17 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	}else if(tm.y < 2.5) {
 		sss = 1.0;
 
+		const float3 eyeMiddleValue = float3(0.0);
+		const float3 eyeBottomValue = float3(-0.05);
+		const float eyeMiddleMin = 0.35;
+		const float eyeMiddleMax = 0.55;
+		const float3 eyeTopValue = float3(0.05, 0.85, 0.85);
+
 		float3 qos = float3(abs(uvw.x), uvw.yz);
 		float ss = sign(uvw.x);
-		float3 eos = qos - float3(0.63, -0.39, 0.45);
-		eos.x *= 1.175;
+		qos.xz = rot2(qos.xz, -0.002 * ss + 0.02);
+		float3 eos = qos - float3(0.57, -0.39, 0.45);
+		eos.x *= 1.2;
 
 		float r = length(eos.xy)+0.005;
 		float a = atan2(eos.y, ss * eos.x);
@@ -454,21 +466,26 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		// Gradient of the Eye
 		float eyeGradientT = 1.0 - saturate((eos.y + 0.31) / 0.62);
-		float3 eyeTopValue = float3(0.05, 0.85, 0.85);
-		float3 eyeMiddleValue = float3(0.0);
-		float3 eyeBottomValue = float3(0.0);
-		float eyeMiddleMin = 0.35;
-		float eyeMiddleMax = 0.55;
 		float3 eyeGradientValue = (eyeGradientT > eyeMiddleMax)
 			? lerp(eyeMiddleValue, eyeTopValue, (eyeGradientT - eyeMiddleMax) / (1.0 - eyeMiddleMax))
 			: ((eyeGradientT < eyeMiddleMin)
 			? lerp(eyeBottomValue, eyeMiddleValue, eyeGradientT / eyeMiddleMin)
 			: eyeMiddleValue);
 		iris += float3(eyeGradientValue);
+		float irisRing = smoothstep(0.162, 0.172, r) - smoothstep(0.184, 0.187, r);
+		iris *= 1.0 - 0.1 * saturate(irisRing);
 
 		// Final Iris Color
 		color = mix(iris * ringGradient, color, smoothstep(0.27, 0.31, r));
-		color = mix(color, iris, 1.0-smoothstep(0.21, 0.31, r));
+		color = mix(color, iris, 1.0-smoothstep(0.24, 0.31, r));
+		color *= smoothstep(0.04, 0.1, r);
+
+		// Fake Bottom Highlight
+		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(qos.xy, float2(0.58, -0.57), 1.0, 0.1));
+
+		// Fake Highlight
+		qos = float3(abs(uvw.x), uvw.yz);
+		color += 1.0 - smoothstep(0.0, 0.06, length(qos.xy - float2(0.59 - 0.08 * ss, -0.27)));
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
