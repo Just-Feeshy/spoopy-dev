@@ -92,9 +92,9 @@ float sdfEllipsoid(float3 p, float3 c, float3 r) {
     return k1*(k1-1.0)/k2;
 }
 
-float fakeBottomHighlight(float2 qos, float2 c, float r, float off) {
-	float2 q = float2(r * abs(qos.x - off), qos.y);
-	return length(q-c);
+float fakeBottomHighlight(float2 p, float xCenter, float xInset, float yCenter) {
+	float2 q = float2(abs(abs(p.x) - xCenter) - xInset, p.y - yCenter);
+	return length(q);
 }
 
 float f_k(float x, float y, float k) {
@@ -481,7 +481,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		color *= smoothstep(0.04, 0.1, r);
 
 		// Fake Bottom Highlight
-		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(qos.xy, float2(0.58, -0.57), 1.0, 0.1));
+		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(float2(uvw.x, uvw.y), 0.58, 0.1, -0.57));
 
 		// Fake Highlight
 		qos = float3(abs(uvw.x), uvw.yz);
