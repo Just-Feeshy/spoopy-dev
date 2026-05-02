@@ -93,7 +93,7 @@ float sdfEllipsoid(float3 p, float3 c, float3 r) {
 }
 
 float fakeBottomHighlight(float2 p, float xCenter, float xInset, float yCenter) {
-	float2 q = float2(abs(abs(p.x) - xCenter) - xInset, p.y - yCenter);
+	float2 q = float2(2.0 * abs(abs(p.x) - xCenter) - xInset, p.y - yCenter);
 	return length(q);
 }
 
@@ -450,7 +450,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		const float3 eyeBottomValue = float3(-0.05);
 		const float eyeMiddleMin = 0.35;
 		const float eyeMiddleMax = 0.55;
-		const float3 eyeTopValue = float3(0.05, 0.85, 0.85);
+		const float3 eyeTopValue = float3(0.05, 0.75, 0.55);
 
 		float3 qos = float3(abs(uvw.x), uvw.yz);
 		float ss = sign(uvw.x);
@@ -460,7 +460,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		float r = length(eos.xy)+0.005;
 		float a = atan2(eos.y, ss * eos.x);
-		float3 iris = float3(0.85, 0.1, 0.1);
+		float3 iris = float3(0.9, 0.2, 0.35);
 		float ringGradient = 1.0 - saturate((eos.y + 0.31) / 0.62);
 		color = float3(0.94);
 
@@ -481,7 +481,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		color *= smoothstep(0.04, 0.1, r);
 
 		// Fake Bottom Highlight
-		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(float2(uvw.x, uvw.y), 0.58, 0.1, -0.57));
+		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(qos.xy, 0.58, 0.2, -0.55));
 
 		// Fake Highlight
 		qos = float3(abs(uvw.x), uvw.yz);
