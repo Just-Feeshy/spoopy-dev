@@ -93,7 +93,9 @@ float sdfEllipsoid(float3 p, float3 c, float3 r) {
 }
 
 float fakeBottomHighlight(float2 p, float xCenter, float xInset, float yCenter) {
-	float2 q = float2(2.0 * abs(abs(p.x) - xCenter) - xInset, p.y - yCenter);
+	float2 q = float2(abs(abs(p.x) - xCenter) - xInset, p.y - yCenter);
+	q = rot2(q, -0.56);
+	q.x *= 1.5;
 	return length(q);
 }
 
@@ -188,6 +190,7 @@ float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
 }
 
 
+
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
 	p.x *= 1.03;
@@ -197,7 +200,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.87, 0.25);
-	static const float3 c_4  = float3(-0.45, 0.24, -0.455);
+	static const float3 c_4  = float3(-0.45, 0.24, -0.465);
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
@@ -292,7 +295,20 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	// Cheeks
 	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71), 0.1), 0.4);
 
+	// Neck
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
+
+	// Hair
+	{
+		d_2 = sdfEllipsoid(qos, float3(0.6, 0.0, -0.15), float3(1.25, 1.52, 1.45));
+		d_2 = max(d_2, dot(p, float3(0.0, 0.0, 1.0)));
+
+		d = min(d, d_2);
+		if(d_2 < d) {
+			outMat = 3.0;
+		}
+	}
+
 	return d;
 }
 
@@ -481,15 +497,19 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		color *= smoothstep(0.04, 0.1, r);
 
 		// Fake Bottom Highlight
-		color += 1.0 - smoothstep(0.0, 0.06, fakeBottomHighlight(qos.xy, 0.58, 0.2, -0.55));
+		{
+		color += 1.0 - smoothstep(0.0, 0.035, fakeBottomHighlight(qos.xy, 0.58, 0.13, -0.56));
+		}
 
 		// Fake Highlight
 		qos = float3(abs(uvw.x), uvw.yz);
-		color += 1.0 - smoothstep(0.0, 0.06, length(qos.xy - float2(0.59 - 0.08 * ss, -0.27)));
+		color += 1.0 - smoothstep(0.01, 0.04, length(qos.xy - float2(0.59 - 0.08 * ss, -0.27)));
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
 		color *= mix(float3(1.0), float3(0.2, 0.1, 0.1), linearstep(0.07, 0.16, edis)) * 1.1;
+	}else if(tm.y < 3.5) {
+		color = float3(1.0, 0.0, 0.0);
 	}
 
 	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
