@@ -189,7 +189,25 @@ float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
 	return float4(sqrt(d2 + q.z * q.z), t, q.z, -sign(f) * sqrt(d2));
 }
 
+float4 sdfHair(in float3 pos, float3 qos) {
+	float d_1 = sdfEllipsoid(qos, float3(0.22, 0.0, -0.03), float3(1.27, 1.52, 1.45));
+	float d_2 = dot(pos - float3(0.0, 0.0, 0.65), normalize(float3(0.0, -0.05, 1.0)));
+	float d = max(d_1, d_2);
 
+	float4 be = sdfBezier(qos,
+		float3(0.0, 1.18, 0.65),
+		float3(0.5, 1.8, 0.65),
+		float3(1.0, 1.18, 0.65)
+	);
+	float beT = saturate(be.y);
+	float beProfile = sqrt(beT * (1.0 - beT));
+	float beRadius = 0.16 * beProfile;
+	float d_be = be.x - beRadius;
+
+	d = smin(d, d_be, 0.02);
+
+	return float4(d, pos);
+}
 
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
@@ -299,14 +317,11 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
 
 	// Hair
-	{
-		d_2 = sdfEllipsoid(qos, float3(0.6, 0.0, -0.15), float3(1.25, 1.52, 1.45));
-		d_2 = max(d_2, dot(p, float3(0.0, 0.0, 1.0)));
-
-		d = min(d, d_2);
-		if(d_2 < d) {
-			outMat = 3.0;
-		}
+	float4 tmp = sdfHair(p, qos);
+	if(tmp.x < d) {
+		d = tmp.x;
+		outMat = 3.0;
+		uvw = tmp.yzw;
 	}
 
 	return d;
@@ -509,7 +524,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
 		color *= mix(float3(1.0), float3(0.2, 0.1, 0.1), linearstep(0.07, 0.16, edis)) * 1.1;
 	}else if(tm.y < 3.5) {
-		color = float3(1.0, 0.0, 0.0);
+		sss = 1.0;
+		color = float3(0.9, 0.1, 0.3);
 	}
 
 	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
