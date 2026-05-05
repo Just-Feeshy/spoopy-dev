@@ -6,7 +6,7 @@
 #define HASHSCALE1 .1031
 #define SMOOTH_EYE 0.3
 #define TAU_INV 0.15915735
-#define WORLD_ROT_Y 0.5
+#define WORLD_ROT_Y 0.0
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -335,7 +335,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
-	static const float3 c_2  = float3(0.0, -0.88, 0.25 - jawZ.x);
+	static const float3 c_2  = float3(0.0, -0.885, 0.25 - jawZ.x);
 	static const float3 c_4  = float3(-0.45, 0.24, -0.465);
 
 	const float3 qos = float3(abs(p.x), p.yz);
@@ -429,10 +429,10 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.05);
 
 	// Cheeks
-	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71 - jawZ.x), 0.1), 0.4);
+	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71 + jawZ.x), 0.1), 0.3);
 
 	// Neck
-	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.5), float3(0.0, -2.5, -0.67)) - 0.55, 0.5);
+	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.14), float3(0.0, -2.5, -0.5)) - 0.55, 0.5);
 
 	// Hair
 	float4 tmp = sdfHair(p, qos);
