@@ -1,6 +1,7 @@
 #define MAX_STEPS 256
 #define MAX_DISTANCE 10
 #define TRACER_EPSILON 0.001
+#define DOT_EPSILON 0.0001
 #define AA_SAMPLE_COUNT 2
 #define PI 3.14159265359
 #define HASHSCALE1 .1031
@@ -159,7 +160,7 @@ float3 sabsx(float3 p) {
 
 float eyeSockets(float3 p) {
 	static const float3 R_3A = float3(0.31,0.32,0.3);
-	static const float3 c_3  = float3(-0.61, 0.38, -0.91);
+	static const float3 c_3  = float3(-0.57, 0.38, -0.91);
 
 	const float3 r_3 = R_3A + float3(0.03,0.0,0.0) * (p.y + 0.41);
 	float d_2 = sdfEllipsoid(p+float3(abs(c_3.x), c_3.yz), float3(0.0), r_3);
@@ -197,6 +198,15 @@ float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
 
 // TODO (MATH): Write this out in LaTeX
 
+float3 quadBezierPoint(float3 p0, float3 p1, float3 p2, float t) {
+    float u = 1.0 - t;
+    return u*u*p0 + 2.0*u*t*p1 + t*t*p2;
+}
+
+float3 quadBezierTangent(float3 p0, float3 p1, float3 p2, float t) {
+    return normalize(2.0*(1.0 - t)*(p1 - p0) + 2.0*t*(p2 - p1));
+}
+
 float3 cubicBezierPoint(float3 p0, float3 p1, float3 p2, float3 p3, float t) {
 	float u = 1.0 - t;
 	return u*u*u*p0
@@ -218,28 +228,54 @@ float3 cubicBezierD2(float3 p0, float3 p1, float3 p2, float3 p3, float t) {
 	     + 6.0*t*(p3 - 2.0*p2 + p1);
 }
 
-float4 sdfCubicBezier(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
-	float bestT = 0.0;
-	float bestD2 = 1e20;
+float3 cubicBezierTangent(float3 p0, float3 p1, float3 p2, float3 p3, float t) {
+	return normalize(cubicBezierD1(p0, p1, p2, p3, t));
+}
 
-	// Coarse search for a good starting t
-	[unroll]
-	for(int i = 0; i <= 8; ++i) {
-		float t = (float)i / 8.0;
-		float3 q = cubicBezierPoint(p0, p1, p2, p3, t);
-		float d2 = dot(q - p, q - p);
+float segmentProjection01(float3 p, float3 a, float3 b) {
+	float3 v = b - a;
+	float vv = dot(v, v);
+	return vv < 1e-8 ? 0.0 : saturate(dot(p - a, v) / vv);
+}
 
-		if(d2 < bestD2) {
-			bestD2 = d2;
-			bestT = t;
-		}
+float initialTControlPolygon(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
+	float h0 = segmentProjection01(p, p0, p1);
+	float h1 = segmentProjection01(p, p1, p2);
+	float h2 = segmentProjection01(p, p2, p3);
+
+	float3 c0 = lerp(p0, p1, h0);
+	float3 c1 = lerp(p1, p2, h1);
+	float3 c2 = lerp(p2, p3, h2);
+
+	float d0 = dot(c0 - p, c0 - p);
+	float d1 = dot(c1 - p, c1 - p);
+	float d2 = dot(c2 - p, c2 - p);
+
+	float t0 = h0 / 3.0;
+	float t1 = (1.0 + h1) / 3.0;
+	float t2 = (2.0 + h2) / 3.0;
+
+	float bestT = t0;
+	float bestD = d0;
+
+	if(d1 < bestD) {
+		bestD = d1;
+		bestT = t1;
 	}
 
-	float t = bestT;
+	if(d2 < bestD) {
+		bestT = t2;
+	}
+
+	return bestT;
+}
+
+float2 sdfCubicBezier(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
+	float t = initialTControlPolygon(p, p0, p1, p2, p3);
 
 	// Newton refinement on squared distance
 	[unroll]
-	for(int i = 0; i < 6; ++i) {
+	for(int i = 0; i < 4; ++i) {
 		float3 q  = cubicBezierPoint(p0, p1, p2, p3, t);
 		float3 q1 = cubicBezierD1(p0, p1, p2, p3, t);
 		float3 q2 = cubicBezierD2(p0, p1, p2, p3, t);
@@ -249,94 +285,176 @@ float4 sdfCubicBezier(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
 		float numerator = dot(r, q1);
 		float denominator = dot(q1, q1) + dot(r, q2);
 
-		denominator = abs(denominator) < 1e-5 ? 1e-5 : denominator;
-
-		t = saturate(t - numerator / denominator);
+		if(abs(denominator) > 1e-5) {
+			t = saturate(t - numerator / denominator);
+		}
 	}
 
 	float3 q = cubicBezierPoint(p0, p1, p2, p3, t);
-	bestD2 = dot(q - p, q - p);
-
-	return float4(sqrt(bestD2), t, 0.0, 0.0);
+	return float2(length(q - p), t);
 }
 
-float3 quadBezierPoint(float3 p0, float3 p1, float3 p2, float t) {
-	float u = 1.0 - t;
-	return u*u*p0 + 2.0*u*t*p1 + t*t*p2;
-}
-
-float sdfHalfTaperedBezier(in float3 q, float3 p0, float3 p1, float3 p2) {
-	float4 be = sdfBezier(q, p0, p1, p2);
-
+float sdfHairStrand(float4x3 mp, in float3 p, float flatten, float r1, float angle) {
+	float2 be = sdfCubicBezier(p, mp[0], mp[1], mp[2], mp[3]);
 	float t = saturate(be.y);
 
-	// Same idea as your Desmos radius profile:
-	// thick in the middle, thin at both ends.
-	float profile = pow(saturate(4.0 * t * (1.0 - t)), 0.9);
-	float radius = 0.1 * profile;
+	float3 c = cubicBezierPoint  (mp[0], mp[1], mp[2], mp[3], t);
+	float3 T = cubicBezierTangent(mp[0], mp[1], mp[2], mp[3], t);
 
-	float d_bezier = be.x - radius;
+	float3 Braw = cross(mp[1] - mp[0], mp[2] - mp[0]);
+	float3 B = dot(Braw, Braw) < DOT_EPSILON
+		? float3(0.0, 0.0, 1.0)
+		: normalize(Braw);
 
-	// Closest point on the Bezier centerline
-	float3 c = quadBezierPoint(p0, p1, p2, t);
+	float3 N = normalize(cross(B, T));
 
-	// Half-revolve cut.
-	// Keeps only the q.z >= c.z half.
-	float cut = c.z - q.z;
+	// Rotate the flattening frame around the tangent
+	float ca = cos(angle);
+	float sa = sin(angle);
 
-	return max(d_bezier, cut);
+	float3 Nrot = ca * N + sa * B;
+	float3 Brot = -sa * N + ca * B;
+
+	float3 q = p - c;
+
+	float axialDist = dot(q, T);
+	float profile = saturate(4.0 * t * (1.0 - t));
+	float radius = r1 * profile;
+
+	float capDist = 0.0;
+
+	if(t <= DOT_EPSILON) {
+		capDist = max(-axialDist, 0.0);
+	}
+
+	if(t >= 1.0 - DOT_EPSILON) {
+		capDist = max(axialDist, 0.0);
+	}
+
+	float qN = dot(q, Nrot);
+	float qB = dot(q, Brot);
+
+	// Flatten along Nrot
+	float d = (length(float3(qN / flatten, capDist, qB)) - radius) * flatten;
+
+	return d;
 }
 
 float4 sdfHair(in float3 pos, float3 qos) {
-	float d_1 = sdfEllipsoid(qos, float3(0.21, 0.0, -0.03), float3(1.27, 1.5, 1.45));
-	float d_2 = dot(pos - float3(0.0, 0.0, 0.74), float3(0.0, 0.0, 1.0));
+	float3 opos = pos;
+	float d_1 = sdfEllipsoid(qos, float3(0.22, 0.05, -0.03), float3(1.25, 1.43, 1.45));
+	float d_2 = dot(pos - float3(0.0, 0.0, 0.7), float3(0.0, 0.0, 1.0));
+	float d   = max(d_1, d_2);
 
 	{
-		float4 be = sdfCubicBezier(qos - float3(0.05, 0.05, 0.0),
+		float2 be = sdfCubicBezier(qos - float3(0.05, 0.05, 0.0),
 			float3(-0.3, 1.25, 0.7),
 			float3(0.4, 1.15, 0.65),
 			float3(1.9, 0.7, 0.6),
-			float3(0.84, -1.4, 0.75)
+			float3(0.84, -1.32, 0.75)
 		);
 
 		float h = saturate(be.y);
 		float profile = pow(saturate(4.0 * h * (1.0 - h)), 1.25);
 		float radius = 0.20 * profile;
 		float d_be = be.x - radius;
-		// d = smin(d, d_be, 0.02);
+		d = smin(d, d_be, 0.02);
 	}
 
-	// {
-		float3 p0 = float3(-0.1, 1.25, 0.7);
-		float3 p1 = float3(1.9, 0.8, 0.85);
-		float3 p2 = float3(1.0, -0.8, 0.87);
+	{
+		float2 be = sdfCubicBezier(qos - float3(0.05, 0.05, 0.0),
+			float3(-0.3, 1.25, 0.7),
+			float3(0.5, 0.95, 1.05),
+			float3(1.77, 0.7, 0.8),
+			float3(0.84, -1.02, 0.85)
+		);
 
-		float4 be = sdfBezier(qos, p0, p1, p2);
+		float h = saturate(be.y);
+		float profile = saturate(6.0 * h * (1.0 - h));
+		float radius = 0.095 * profile;
+		float d_be = be.x - radius;
+		d = min(d, d_be);
+	}
 
-		float t = saturate(be.y);
-		float profile = saturate(4.0 * t * (1.0 - t));
-		float radius = 0.48 * profile;
+	{
+		float3 p0 = float3(-0.1, 1.29, 0.7);
+		float3 p1 = float3(0.87, 0.9, 1.6);
+		float3 p2 = float3(1.01, -0.1, 0.9);
+		float3 p3 = float3(1.36, -0.48, 0.91);
 
-		float d_be = length(float2(be.w, be.z / 0.35)) - radius;
+		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), qos, 0.24, 0.41, 0.04);
+		d = min(d, s);
+	}
 
-		float d = d_be;
-	// }
+	{
+		float3 p0 = float3(0.0, 1.29, 0.7);
+		float3 p1 = float3(0.15, 0.7, 1.615);
+		float3 p2 = float3(-0.15, -0.07, 1.535);
+		float3 p3 = float3(-0.21, -0.45, 1.635);
 
+		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), opos, 0.22, 0.38, 0.01);
+		d_2 = s;
+	}
+
+
+	// Attention to Detail
+
+	{
+		float3 p0 = float3(-0.06, 1.295, 0.7);
+		float3 p1 = float3(0.295, 0.73, 1.555);
+		float3 p2 = float3(0.4, -0.065, 1.32);
+		float3 p3 = float3(-0.05, -0.43, 1.615);
+		float2 be = sdfCubicBezier(pos, p0, p1, p2, p3);
+
+		float h = saturate(be.y);
+		float profile = saturate(3.4 * h * (1.0 - h));
+		float radius = 0.095 * profile;
+		float d_be = be.x - radius;
+		d_2 = min(d_2, d_be);
+	}
+
+	{
+		float3 p0 = float3(-0.06, 1.295, 0.7);
+		float3 p1 = float3(0.375, 0.79, 1.565);
+		float3 p2 = float3(0.545, -0.04, 1.31);
+		float3 p3 = float3(0.76, -0.34, 1.625);
+		float2 be = sdfCubicBezier(pos, p0, p1, p2, p3);
+
+		float h = saturate(be.y);
+		float profile = pow(saturate(3.0 * h * (1.0 - h)), 1.25);
+		float radius = 0.1 * profile;
+		float d_be = be.x - radius;
+		d_2 = min(d_2, d_be);
+	}
+
+	{
+		float3 p0 = float3(0.0, 1.285, 0.7);
+		float3 p1 = float3(0.285, 1.56, 0.72);
+		float3 p2 = float3(-0.05, 1.72, 0.68);
+		float4 be = sdfBezier(pos, p0, p1, p2);
+
+		float profile = saturate(be.y * (1.0 - be.y));
+		float radius = 0.17 * profile;
+		float d_be = be.x - radius;
+		d_2 = min(d_2, d_be);
+	}
+
+	d = min(d, d_2);
 	return float4(d, pos);
 }
 
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
-	p.x *= 1.03;
-	p.y *= 1.01;
+	p.x *= 1.035;
+	p.y *= 1.005;
 	uvw = p;
 
-	static const float2 jawZ = float2(0.1, 0.02);
+	static const float2 jawZ = float2(0.125, 0.03);
 
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.885, 0.25 - jawZ.x);
-	static const float3 c_4  = float3(-0.45, 0.24, -0.465);
+	static const float3 c_4  = float3(-0.42, 0.24, -0.465);
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
@@ -432,15 +550,15 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71 + jawZ.x), 0.1), 0.3);
 
 	// Neck
-	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.14), float3(0.0, -2.5, -0.5)) - 0.55, 0.5);
+	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.14), float3(0.0, -2.7, -0.5)) - 0.55, 0.5);
 
 	// Hair
 	float4 tmp = sdfHair(p, qos);
-	// if(tmp.x < d) {
-	// 	d = tmp.x;
-	// 	outMat = 3.0;
-	// 	uvw = tmp.yzw;
-	// }
+	if(tmp.x < d) {
+		d = tmp.x;
+		outMat = 3.0;
+		uvw = tmp.yzw;
+	}
 
 	return d;
 }
@@ -448,12 +566,14 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 float3 calcNormal(float3 p) {
 	float kk = 0.0;
 	float3 uvw = float3(0.0);
-	float2 e = float2(TRACER_EPSILON, 0.0);
-	return normalize(float3(
-		mapScene(p + float3(e.x, e.y, e.y), kk, uvw) - mapScene(p - float3(e.x, e.y, e.y), kk, uvw),
-		mapScene(p + float3(e.y, e.x, e.y), kk, uvw) - mapScene(p - float3(e.y, e.x, e.y), kk, uvw),
-		mapScene(p + float3(e.y, e.y, e.x), kk, uvw) - mapScene(p - float3(e.y, e.y, e.x), kk, uvw)
-	));
+	const float h = 0.0001;
+	const float2 k = float2(1.0, -1.0);
+	return normalize(
+		k.xyy * mapScene(p + k.xyy * h, kk, uvw) +
+		k.yyx * mapScene(p + k.yyx * h, kk, uvw) +
+		k.yxy * mapScene(p + k.yxy * h, kk, uvw) +
+		k.xxx * mapScene(p + k.xxx * h, kk, uvw)
+	);
 }
 
 float sdif(float d, float b) {
@@ -538,11 +658,11 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		// Eyeliner - follows upper eyelid edge
 		{
-			float4 be = sdfBezier(float3(qos.xy + float2(0.0, 0.05), 0.0),
+			float4 be = sdfBezier(float3(qos.xy + float2(0.03, 0.05), 0.0),
 						float3(0.39, -0.215, 0.0),
 						float3(0.77, 0.1, 0.0),
 						float3(0.99, -0.19, 0.0));
-			float4 be2 = sdfBezier(float3(qos.xy + float2(0.0, 0.05), 0.0),
+			float4 be2 = sdfBezier(float3(qos.xy + float2(0.03, 0.05), 0.0),
 						float3(1.05, -0.19, 0.0),
 						float3(0.935, -0.565, 0.0),
 						float3(0.7, -0.59, 0.0));
@@ -550,14 +670,14 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 			float ra = 0.01 + 0.05 * sqrt(be.y * (1.0 - be.y));
 			float ra2 = 0.003 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
 
-			float d = smin(be.x - ra, be2.x - ra2, 0.25);
+			float d = smin(be.x - ra, be2.x - ra2, 0.23);
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
 			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
 
 		// Eyebrows (Tiny)
 		{
-			float4 be = sdfBezier(float3(qos.xy + float2(0.05, 0.1), 0.0),
+			float4 be = sdfBezier(float3(qos.xy + float2(0.1, 0.1), 0.0),
 						float3(0.445, -0.065, 0.0),
 						float3(0.52, 0.025, 0.0),
 						float3(0.675, 0.065, 0.0));
@@ -572,11 +692,11 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Eyebrows
 		{
 			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.345, 0.145, 0.0),
-						float3(0.62, 0.265, 0.0),
-						float3(0.925, 0.205, 0.0));
+						float3(0.325, 0.14, 0.0),
+						float3(0.60, 0.26, 0.0),
+						float3(0.905, 0.20, 0.0));
 
-			float ra = 0.0002 + 0.035 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.035 * sqrt(be.y * (1.0 - be.y));
 
 			float d = be.x - ra;
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
@@ -594,7 +714,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		float3 qos = float3(abs(uvw.x), uvw.yz);
 		float ss = sign(uvw.x);
 		qos.xz = rot2(qos.xz, -0.002 * ss + 0.02);
-		float3 eos = qos - float3(0.57, -0.39, 0.45);
+		float3 eos = qos - float3(0.58, -0.39, 0.45);
 		eos.x *= 1.2;
 
 		float r = length(eos.xy)+0.005;

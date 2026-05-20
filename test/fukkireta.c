@@ -198,6 +198,8 @@ int	main(void) {
 	}
 	*/
 
+	spoopy_fps_counter_t* fps = SPOOPY_INIT_FPS_COUNTER(120, spoopy_stack);
+
 	spoopy_vertex_attr_spec_t vertex_spec[] = {
 		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT },
 		{ 2, SPOOPY_VA_FLOAT, SPOOPY_VA_CONV_FLOAT }
@@ -209,6 +211,7 @@ int	main(void) {
 	*/
 
 	// Fullscreen clip-space quad.
+	// TODO (Swapchain): Have resolution be a uniform and be iResolution like shadertoy
 	vertex2d_t vertices[] = {
 		{ { -1.0f, -1.0f }, { window_width, window_height } },
 		{ {  1.0f, -1.0f }, { window_width, window_height } },
@@ -238,7 +241,11 @@ int	main(void) {
 		.vertex_count = 1
 	};
 
+	size_t last_time = spoopy_time_get();
+	size_t last_print_time = last_time;
+
 	while(!spoopy_api_should_quit()) {
+		size_t t = spoopy_time_get();
 
 		// Keep the render path intentionally simple: clear, bind, draw, present.
 		spoopy_events_poll(handler_ptr, 0);
@@ -246,6 +253,15 @@ int	main(void) {
 		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_draw_mesh(&mesh, pipeline);
 		spoopy_api_swap_buffers();
+
+		spoopy_fps_counter_update(fps);
+
+		if(t - last_print_time > SPOOPY_TIME_RESOLUTION) {
+			last_print_time = t;
+			SPOOPY_LOG_INFO("%.02f FPS", fps->fps);
+		}
+
+		last_time = t;
 	}
 
 	/* Temporary: texture experiment disabled.
