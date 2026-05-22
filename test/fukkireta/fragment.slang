@@ -1,13 +1,15 @@
 #define MAX_STEPS 256
-#define MAX_DISTANCE 10
+#define MAX_DISTANCE 8
 #define TRACER_EPSILON 0.001
 #define DOT_EPSILON 0.0001
-#define AA_SAMPLE_COUNT 2
-#define PI 3.14159265359
-#define HASHSCALE1 .1031
 #define SMOOTH_EYE 0.3
-#define TAU_INV 0.15915735
 #define WORLD_ROT_Y 0.0
+#define INV_N_SPIRAL 0.0
+#define HAIR_ROT 0.11
+#define B_SPIRAL 0.0318309886184
+#define PC_PI 3.14159265358979323846
+
+#define AA_SAMPLE_COUNT 1
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -18,9 +20,34 @@ struct FragmentInput {
 // Texture2D tex0;
 // SamplerState samp0;
 
+float fastSin(in float n) {
+	n *= 0.3183098862;
+
+	if(n > 1.0) {
+		n -= ((int)ceil(n) >> 1) << 1;
+	}else if(n < -1) {
+		n += ((int)ceil(-n) >> 1) << 1;
+	}
+
+	return n > 0.0 ? n * (3.1 + n * (0.5 + n * (-7.2 + n * 3.6)))
+				: n * (3.1 - n * (0.5 + n * (7.2 + n * 3.6)));
+}
+
+float fastCos(in float n) {
+	return fastSin(n + 1.570796327);
+}
+
+float2 pc_convert_to_polar(float2 p) {
+    return float2(sqrt(dot(p, p)), atan2(p.y, p.x));
+}
+
+float pc_euclidean_distance(float2 p, float2 q) {
+    return sqrt(p.x * p.x + q.x * q.x - 2.0 * p.x * q.x * cos(p.y - q.y));
+}
+
 float2 rot2(float2 p, float an) {
-	float cc = cos(an);
-	float ss = sin(an);
+	float cc = fastCos(an);
+	float ss = fastSin(an);
 	float2x2 m = float2x2(cc, -ss, ss, cc);
 	return mul(m, p);
 }
@@ -49,10 +76,12 @@ float2 iCylinderY(float3 ro, float3 rd, float rad) {
 	return float2(-b - h, -b + h) / a;
 }
 
-float hash(float p) {
-	float3 p3  = frac(float3(p) * HASHSCALE1);
-    p3 += dot(p3, p3.yzx + 19.19);
-    return frac((p3.x + p3.y) * p3.z);
+float bnoise( in float x ) {
+    float i = floor(x);
+    float f = fract(x);
+    float s = sign(fract(x/2.0)-0.5);
+    float k = 0.5+0.5*sin(i);
+    return s*f*(f-1.0)*((16.0*k-4.0)*f*(f-1.0)-1.0);
 }
 
 float det2(float2 a, float2 b) {
@@ -195,6 +224,118 @@ float4 sdfBezier(float3 p, float3 va, float3 vb, float3 vc) {
 	return float4(sqrt(d2 + q.z * q.z), t, q.z, -sign(f) * sqrt(d2));
 }
 
+float drillProfile(float y, float c1) {
+	return max(0.0, min(2.0, y * y)) * c1;
+}
+
+float sdfSpiralTurnDrillCompact(
+	float3 p,
+	float2 polar,
+	float a,
+	float bRadius,
+	float bRange,
+	float bHeight,
+	float turn,
+	float thickness,
+	float heightScale,
+	float c1
+) {
+	// q_by(p) = theta + 2π turn
+	float qby = polar.y + turn * 2.0 * PC_PI;
+
+	// Radial spiral equation:
+	// r = a + bRadius * theta
+	float qbx = a + bRadius * qby;
+
+	float2 q = float2(qbx, qby);
+
+	// Spiral ribbon thickness
+	float d_spiral = pc_euclidean_distance(polar, q) - thickness;
+
+	// Turn/range limiter.
+	// This is now independent from radial spacing.
+	float d_range = abs(qby * bRange) - 1.0;
+
+	// Helical base height.
+	// This is also independent from radial spacing.
+	float yBase = heightScale * bHeight * qby;
+
+	float h = drillProfile(yBase, c1);
+	h = max(h, 0.025);
+
+	// Height band
+	float d_lower = yBase - p.y;
+	float d_upper = p.y - (yBase + h);
+
+	// Intersection of constraints for one turn
+	float d = max(d_spiral, d_range);
+	d = max(d, d_lower);
+	d = max(d, d_upper);
+
+	return d;
+}
+
+float4 sdfDrills(in float3 pos, float3 qos) {
+	static const float a = 0.0;
+	static const float A = 0.05;
+
+	// Controls how many visible turns/segments you keep.
+	static const float activeTurns = 11.0;
+
+	// Range normalization:
+	// qby is allowed roughly between -activeTurns*pi and +activeTurns*pi.
+	static const float bRange = 1.0 / (activeTurns * PC_PI);
+
+	// Smaller = tighter radial spacing between turns.
+	static const float radialCompact = 1.72;
+	static const float bRadius = bRange / radialCompact;
+
+	// Keep height independent from radial compactness.
+	static const float bHeight = bRange;
+
+	static const float thickness = 0.02;
+	static const float heightScale = 2.0;
+	static const float c1 = 0.275;
+
+	float3 mos = qos - float3(2.05, -1.45, 0.15);
+	mos.xz *= A * fastSin(15.0 * mos.y) + 1 - A;
+	mos.xy = rot2(mos.xy, -HAIR_ROT);
+
+	// Spiral lies in xz plane, y is vertical.
+	float2 polar = pc_convert_to_polar(mos.xz);
+
+	// IMPORTANT:
+	// baseTurn must use bRadius because bRadius controls the actual spiral radius.
+	float baseTurn = floor((polar.x - a - polar.y * bRadius) / (2.0 * bRadius * PC_PI));
+
+	float d = 1e20;
+
+	[unroll]
+	for(int i = -2; i <= 2; ++i) {
+		float turn = baseTurn + float(i);
+
+		float di = sdfSpiralTurnDrillCompact(
+			mos,
+			polar,
+			a,
+			bRadius,
+			bRange,
+			bHeight,
+			turn,
+			thickness,
+			heightScale,
+			c1
+		);
+
+		// Union across nearby turns
+		d = min(d, di);
+	}
+
+	d *= 0.35;
+
+	return float4(d, pos);
+}
+
 
 // TODO (MATH): Write this out in LaTeX
 
@@ -270,28 +411,70 @@ float initialTControlPolygon(float3 p, float3 p0, float3 p1, float3 p2, float3 p
 	return bestT;
 }
 
+float cubicBezierDist2(
+	float3 p,
+	float3 p0, float3 p1, float3 p2, float3 p3,
+	float t
+) {
+	float3 q = cubicBezierPoint(p0, p1, p2, p3, t);
+	float3 r = q - p;
+	return dot(r, r);
+}
+
 float2 sdfCubicBezier(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
 	float t = initialTControlPolygon(p, p0, p1, p2, p3);
 
-	// Newton refinement on squared distance
+	float bestT = t;
+	float bestD2 = cubicBezierDist2(p, p0, p1, p2, p3, t);
+
 	[unroll]
-	for(int i = 0; i < 4; ++i) {
+	for(int i = 0; i < 3; ++i) {
 		float3 q  = cubicBezierPoint(p0, p1, p2, p3, t);
-		float3 q1 = cubicBezierD1(p0, p1, p2, p3, t);
-		float3 q2 = cubicBezierD2(p0, p1, p2, p3, t);
+		float3 q1 = cubicBezierD1   (p0, p1, p2, p3, t);
+		float3 q2 = cubicBezierD2   (p0, p1, p2, p3, t);
 
 		float3 r = q - p;
 
-		float numerator = dot(r, q1);
+		float numerator   = dot(r, q1);
 		float denominator = dot(q1, q1) + dot(r, q2);
 
-		if(abs(denominator) > 1e-5) {
-			t = saturate(t - numerator / denominator);
+		if(abs(denominator) < DOT_EPSILON) {
+			break;
+		}
+
+		float step = numerator / denominator;
+
+		// Prevent Newton from teleporting across the curve.
+		step = clamp(step, -0.25, 0.25);
+
+		float newT = saturate(t - step);
+		float newD2 = cubicBezierDist2(p, p0, p1, p2, p3, newT);
+
+		// Only accept if it improved.
+		if(newD2 < bestD2) {
+			t = newT;
+			bestT = newT;
+			bestD2 = newD2;
+		} else {
+			break;
 		}
 	}
 
-	float3 q = cubicBezierPoint(p0, p1, p2, p3, t);
-	return float2(length(q - p), t);
+	// Endpoint fallback is cheap and important.
+	float d20 = cubicBezierDist2(p, p0, p1, p2, p3, 0.0);
+	float d21 = cubicBezierDist2(p, p0, p1, p2, p3, 1.0);
+
+	if(d20 < bestD2) {
+		bestD2 = d20;
+		bestT = 0.0;
+	}
+
+	if(d21 < bestD2) {
+		bestD2 = d21;
+		bestT = 1.0;
+	}
+
+	return float2(sqrt(max(bestD2, 0.0)), bestT);
 }
 
 float sdfHairStrand(float4x3 mp, in float3 p, float flatten, float r1, float angle) {
@@ -309,8 +492,8 @@ float sdfHairStrand(float4x3 mp, in float3 p, float flatten, float r1, float ang
 	float3 N = normalize(cross(B, T));
 
 	// Rotate the flattening frame around the tangent
-	float ca = cos(angle);
-	float sa = sin(angle);
+	float ca = fastCos(angle);
+	float sa = fastSin(angle);
 
 	float3 Nrot = ca * N + sa * B;
 	float3 Brot = -sa * N + ca * B;
@@ -388,7 +571,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 
 	{
 		float3 p0 = float3(0.0, 1.29, 0.7);
-		float3 p1 = float3(0.15, 0.7, 1.615);
+		float3 p1 = float3(0.17, 0.7, 1.615);
 		float3 p2 = float3(-0.15, -0.07, 1.535);
 		float3 p3 = float3(-0.21, -0.45, 1.635);
 
@@ -445,7 +628,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
-	p.x *= 1.035;
+	p.x *= 1.04;
 	p.y *= 1.005;
 	uvw = p;
 
@@ -560,6 +743,13 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 		uvw = tmp.yzw;
 	}
 
+	tmp = sdfDrills(p, qos);
+	if(tmp.x < d) {
+		d = tmp.x;
+		outMat = 3.1;
+		uvw = tmp.yzw;
+	}
+
 	return d;
 }
 
@@ -596,7 +786,7 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 	float t = 1.0;
 	float tmax = MAX_DISTANCE;
 
-	float2 cyl = iCylinderY(rayOrigin, rayDir, 1.75);
+	float2 cyl = iCylinderY(rayOrigin, rayDir, 3.25);
 	if(cyl.y < 0.0) {
 		return float2(-1.0, -1.0);
 	}
@@ -718,8 +908,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		eos.x *= 1.2;
 
 		float r = length(eos.xy)+0.005;
-		float a = atan2(eos.y, ss * eos.x);
-		float3 iris = float3(0.9, 0.2, 0.35);
+		float3 iris = float3(0.87, 0.175, 0.35);
 		float ringGradient = 1.0 - saturate((eos.y + 0.31) / 0.62);
 		color = float3(0.94);
 
@@ -737,11 +926,12 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Final Iris Color
 		color = mix(iris * ringGradient, color, smoothstep(0.27, 0.31, r));
 		color = mix(color, iris, 1.0-smoothstep(0.24, 0.31, r));
-		color *= smoothstep(0.04, 0.1, r);
+		color = mix(color, float3(0.35, 0.0, 0.15), 1.0 - smoothstep(0.055, 0.11, r));
+		color = mix(color, float3(0.89, 0.57, 0.57), 1.0 - smoothstep(0.002, 0.033, r));
 
 		// Fake Bottom Highlight
 		{
-		color += 1.0 - smoothstep(0.0, 0.035, fakeBottomHighlight(qos.xy, 0.58, 0.13, -0.56));
+			color += 1.0 - smoothstep(0.0, 0.035, fakeBottomHighlight(qos.xy, 0.58, 0.13, -0.56));
 		}
 
 		// Fake Highlight
@@ -751,13 +941,56 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
 		color *= mix(float3(1.0), float3(0.2, 0.1, 0.1), linearstep(0.07, 0.16, edis)) * 1.1;
-	}else if(tm.y < 3.5) {
-		sss = 1.0;
-		color = float3(0.9, 0.1, 0.3);
 	}
 
 	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
 	float occ = focc * calcOcclusion(pos, normal);
+
+	if(tm.y >= 3.0 && tm.y < 3.5) {
+		sss = 1.0;
+		color = float3(0.9, 0.1, 0.3);
+		occ = lerp(1.0, occ, 0.68);
+
+		if(tm.y == 3.0) {
+
+			// Fake Shadow
+			color *= 1.0 - max(abs(uvw.y - 0.3) * 0.3, 0.0);
+
+			// Fake Hair Highlight
+			color = max(
+				color + 0.25 * float3(min(1.8 - abs((12.9 + bnoise(dot(uvw.xz, uvw.xz))
+					* 10.0 * abs(fastSin(20.0 * uvw.x)))
+					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.5)
+				, color);
+
+			color = max(
+				color + 0.48 * float3(min(0.35 - abs((16.0 + bnoise(dot(uvw.xz, uvw.xz))
+					* 15.0 * abs(fastSin(30.0 * uvw.x)))
+					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.65)
+				, color);
+
+			// Pinkish bottom fake highlight
+			static const float ph = 0.48;
+			color *= 1.0 + smax(saturate(abs(uvw.y - ph) - ph), 0.0, 0.1) * occ;
+		}else if(tm.y == 3.1) {
+			float3 mos = float3(abs(uvw.x) - 1.85, uvw.yz);
+			mos.xy = rot2(mos.xy, -HAIR_ROT);
+
+			color = mix(min(color + float3(0.1), float3(1.0)), color, 1.0 - saturate(mos.y));
+
+			color = max(
+				color + 0.25 * float3(min(1.8 - abs((6.0 + bnoise(dot(mos.yz, mos.zx))
+					* 7.0 * abs(fastCos(20.0 * uvw.y)))
+					* mos.x), 1.5) * 0.4)
+				, color);
+
+			color = max(
+				color + 0.25 * float3(min(1.4 - abs((12.0 + bnoise(dot(mos.yz, mos.zx))
+					* 14.0 * abs(fastCos(40.0 * uvw.y)))
+					* mos.x), 1.5) * 0.5)
+				, color);
+		}
+	}
 
 	float3 lig = float3(0.57, 0.46, 0.68);
 	float3 light = color * (1.25 * float3(0.988, 0.757, 0.733) * sdif(dot(normal, lig), 0.67));
