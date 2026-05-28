@@ -8,6 +8,7 @@
 #define HAIR_ROT 0.11
 #define B_SPIRAL 0.0318309886184
 #define PC_PI 3.14159265358979323846
+#define Y_CYL_RAD 2.4
 
 #define AA_SAMPLE_COUNT 1
 
@@ -17,8 +18,15 @@ struct FragmentInput {
 };
 
 // Temporary: texture experiment disabled.
-// Texture2D tex0;
-// SamplerState samp0;
+Texture2D tex0;
+SamplerState samp0;
+
+float2 rot2(float2 p, float an) {
+	float cc = cos(an);
+	float ss = sin(an);
+	float2x2 m = float2x2(cc, -ss, ss, cc);
+	return mul(m, p);
+}
 
 float fastSin(in float n) {
 	n *= 0.3183098862;
@@ -37,19 +45,17 @@ float fastCos(in float n) {
 	return fastSin(n + 1.570796327);
 }
 
+float4 opElongate(in float3 p, in float3 h) {
+	float3 q = abs(p) - h;
+	return float4(max(q, 0.0), min(max(q.x, max(q.y, q.z)), 0.0));
+}
+
 float2 pc_convert_to_polar(float2 p) {
     return float2(sqrt(dot(p, p)), atan2(p.y, p.x));
 }
 
 float pc_euclidean_distance(float2 p, float2 q) {
     return sqrt(p.x * p.x + q.x * q.x - 2.0 * p.x * q.x * cos(p.y - q.y));
-}
-
-float2 rot2(float2 p, float an) {
-	float cc = fastCos(an);
-	float ss = fastSin(an);
-	float2x2 m = float2x2(cc, -ss, ss, cc);
-	return mul(m, p);
 }
 
 float2 shear(float2 p, float k) {
@@ -88,6 +94,46 @@ float det2(float2 a, float2 b) {
 	return a.x * b.y - a.y * b.x;
 }
 
+float3 calcNormal(float3 pos) {
+	const float eps = 0.001;
+
+    float3 n = float3(
+        mapD(pos + float3(eps, 0.0, 0.0)).x -
+        mapD(pos - float3(eps, 0.0, 0.0)).x,
+
+        mapD(pos + float3(0.0, eps, 0.0)).x -
+        mapD(pos - float3(0.0, eps, 0.0)).x,
+
+        mapD(pos + float3(0.0, 0.0, eps)).x -
+        mapD(pos - float3(0.0, 0.0, eps)).x
+	);
+
+    return normalize(n);
+}
+
+float calcSoftShadow(in float3 ro, in float3 rd, in float mint, in float tmax, float k) {
+	float2 sph = iCylinderY(ro, rd, Y_CYL_RAD);
+	tmax = min(tmax, sph.y);
+
+	float res = 1.0;
+	float t = mint;
+
+    [loop]
+	for(int i = 0; i < 128; i++) {
+		float kk;
+		float3 kk2;
+		float h = mapScene(ro + rd * t, kk, kk2).x;
+		res = min(res, k*h/t);
+		t += clamp(h, 0.005, 0.1);
+
+		if(res<0.002 || t>tmax) {
+			break;
+		}
+	}
+
+	return max(res, 0.0);
+}
+
 float calcOcclusion(float3 pos, float3 nor) {
     const float4 H4 = float4(0.1031, 0.11369, 0.13787, 0.09987);
     float occlusion = 0.0;
@@ -96,7 +142,7 @@ float calcOcclusion(float3 pos, float3 nor) {
     float4 k = float4(0.7012912, 0.3941462, 0.8294585, 0.109841);
 
     [loop]
-    for(int i = 0; i < 16; ++i) {
+    for(int i = 0; i < 16; i++) {
         k = frac(k + H4);
         float3 ap = normalize(-1.0 + 2.0 * k.xyz);
         float h = k.w * 0.1;
@@ -113,9 +159,14 @@ float calcOcclusion(float3 pos, float3 nor) {
     return clamp(1.0 - occlusion * 12.0, 0.0, 1.0);
 }
 
+float sdfBox(float3 p, float3 b) {
+	float3 q = abs(p) - b;
+	return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
 float sdfTorus(float3 p, float2 t) {
-  float2 q = float2(length(p.xz)-t.x, p.y);
-  return length(q)-t.y;
+	float2 q = float2(length(p.xz)-t.x, p.y);
+	return length(q)-t.y;
 }
 
 float sdfSphere(float3 p, float radius) {
@@ -165,9 +216,9 @@ float smax(float d_1, float d_2, float k) {
 	return max(d_1, d_2) + f_k(d_1, d_2, k);
 }
 
-float sdfSegment(float3 p, float3 a, float3 b) {
+float2 sdfSegment(float3 p, float3 a, float3 b) {
 	float h = sat(dot(p-a,b-a)/dot(b-a,b-a));
-	return length(p-a-(b-a)*h);
+	return float2(length(p-a-(b-a)*h), h);
 }
 
 float sdfCone( in float3 p, in float2 c ) {
@@ -182,8 +233,7 @@ float sdfCone( in float3 p, in float2 c ) {
 	return -sqrt(d.x)*sign(d.y);
 }
 
-float3 sabsx(float3 p) {
-	const float k = 0.002;
+float3 sabsx(float3 p, float k) {
 	return float3(sqrt(p.x * p.x + k), p.y, p.z);
 }
 
@@ -304,7 +354,6 @@ float4 sdfDrills(in float3 pos, float3 qos) {
 	// Spiral lies in xz plane, y is vertical.
 	float2 polar = pc_convert_to_polar(mos.xz);
 
-	// IMPORTANT:
 	// baseTurn must use bRadius because bRadius controls the actual spiral radius.
 	float baseTurn = floor((polar.x - a - polar.y * bRadius) / (2.0 * bRadius * PC_PI));
 
@@ -332,6 +381,32 @@ float4 sdfDrills(in float3 pos, float3 qos) {
 	}
 
 	d *= 0.35;
+
+	return float4(d, pos);
+}
+
+float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID) {
+	matID = 4.0;
+	float3 opos = pos;
+
+	float d = se.x - 0.49 * (1.0 - 0.3 * sqrt(se.y));
+	d = max(d,  abs(pos.x) - 1.15);
+
+	opos -= float3(0.0, -2.3, -0.3);
+	opos.x *= 0.05 * fastSin(8.0 * opos.y) + (1 - 0.05);
+	opos.z += 0.03 * fastSin(9.0 * opos.y);
+	opos.y += 0.38 * log(0.5 * opos.z + 1.0);
+	float4 w = opElongate(opos, float3(0.0, 0.45, 0.0));
+	float d_2 = w.w + sdfTorus(float3(w.xy, -w.z), float2(0.54, 0.02));
+	d = smin(d, d_2, 0.07);
+
+	float d_body = d;
+	d_2 = max(d_2 - 0.005, abs(pos.x) - 0.15);
+	d   = smin(d, d_2, 0.02);
+
+	if(d_2 < d_body) {
+		matID = 4.1;
+	}
 
 	return float4(d, pos);
 }
@@ -600,7 +675,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 		float3 p0 = float3(-0.06, 1.295, 0.7);
 		float3 p1 = float3(0.375, 0.79, 1.565);
 		float3 p2 = float3(0.545, -0.04, 1.31);
-		float3 p3 = float3(0.76, -0.34, 1.625);
+		float3 p3 = float3(0.69, -0.325, 1.625);
 		float2 be = sdfCubicBezier(pos, p0, p1, p2, p3);
 
 		float h = saturate(be.y);
@@ -622,12 +697,41 @@ float4 sdfHair(in float3 pos, float3 qos) {
 		d_2 = min(d_2, d_be);
 	}
 
+
+	// Bump to Detail
+
+	{
+		float3 p0 = float3(0.0, 1.29, 0.7);
+		float3 p1 = float3(0.185, 0.7, 1.715);
+		float3 p2 = float3(-0.21, -0.43, 1.635);
+		float4 be = sdfBezier(pos, p0, p1, p2);
+
+		float profile = saturate(be.y * (1.0 - be.y));
+		float radius = 0.19 * profile;
+		float d_be = be.x - radius;
+		d_2 = smin(d_2, d_be, 0.03);
+	}
+
+	{
+		float3 p0 = float3(0.5, 1.0, 0.7);
+		float3 p1 = float3(0.205, 0.8, 1.87);
+		float3 p2 = float3(0.815, -0.40, 1.17);
+		float3 p3 = float3(1.165, -0.495, 1.09);
+		float2 be = sdfCubicBezier(qos, p0, p1, p2, p3);
+
+		float profile = saturate(be.y * (1.0 - be.y));
+		float radius = 0.18 * profile;
+		float d_be = be.x - radius;
+		d = smin(d, d_be, 0.02);
+	}
+
 	d = min(d, d_2);
 	return float4(d, pos);
 }
 
 float mapScene(float3 p, out float outMat, out float3 uvw) {
 	outMat = 1.0;
+	float3 opos = p;
 	p.x *= 1.04;
 	p.y *= 1.005;
 	uvw = p;
@@ -641,7 +745,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
-	const float3 sos = sabsx(p);
+	float3 sos = sabsx(p, 0.002);
 
 	float d = sdfSphere(p, 1.45);
 
@@ -705,7 +809,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d_2 = sdfCone(cos, float2(0.08, -0.16)) - 0.01;
 	d = smin(d, d_2, 0.1);
 
-	mos = sabsx(mos) + float3(0.13, 0.0, 0.0);
+	mos = sabsx(mos, 0.005) + float3(0.13, 0.0, 0.0);
 	float3 lipEos = float3(mos.x, (mos.y + 0.04) / 1.05, mos.z - jawZ.y);
 	float3 uos = lipEos - float3(0.0, 0.17, 0.04);
 	float4 lip = sdfBezier(uos,
@@ -730,10 +834,20 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.05);
 
 	// Cheeks
-	d = smin(d, sdfSphere(qos - float3(0.52, -0.8, 0.71 + jawZ.x), 0.1), 0.3);
+	d = smin(d, sdfSphere(qos - float3(0.53, -0.82, 0.71 + jawZ.x), 0.1), 0.3);
+
 
 	// Neck
-	d = smin3(d, sdfSegment(p, float3(0.0, 0.0, -0.14), float3(0.0, -2.7, -0.5)) - 0.55, 0.5);
+	const float2 se_1 = float2(-0.65, -0.23);
+	const float2 se_2 = float2(-2.60, -0.35);
+	float2 se = sdfSegment(p, float3(0.0, se_1), float3(0.0, se_2));
+	d_2 = se.x - 0.53;
+
+	// Shoulders
+	sos.y *= 1.03;
+	se = sdfSegment(sos, float3(0.0, -2.7, -0.25), float3(1.75, -2.98, -0.17));
+	d_2 = smin(d_2, se.x - 0.34, 0.1);
+	d = smin(d, d_2, 0.4);
 
 	// Hair
 	float4 tmp = sdfHair(p, qos);
@@ -743,6 +857,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 		uvw = tmp.yzw;
 	}
 
+	// Drills
 	tmp = sdfDrills(p, qos);
 	if(tmp.x < d) {
 		d = tmp.x;
@@ -750,24 +865,37 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 		uvw = tmp.yzw;
 	}
 
+	// Clothes
+	float tempMat = 4.0;
+	tmp = sdfClothes(opos, qos, se, tempMat);
+	if(tmp.x < d) {
+		d = tmp.x;
+		outMat = tempMat;
+		uvw = tmp.yzw;
+	}
+
 	return d;
 }
 
-float3 calcNormal(float3 p) {
-	float kk = 0.0;
-	float3 uvw = float3(0.0);
-	const float h = 0.0001;
-	const float2 k = float2(1.0, -1.0);
-	return normalize(
-		k.xyy * mapScene(p + k.xyy * h, kk, uvw) +
-		k.yyx * mapScene(p + k.yyx * h, kk, uvw) +
-		k.yxy * mapScene(p + k.yxy * h, kk, uvw) +
-		k.xxx * mapScene(p + k.xxx * h, kk, uvw)
-	);
+float4 mapD(in float3 pos) {
+	float matID;
+	float3 uvw;
+	float4 h = mapScene(pos, matID, uvw);
+
+	// if(matID > 3.5 && matID < 4.0) {
+	// }
+
+	return h;
+}
+
+float3 sdif3(float ndl, float ir) {
+    float pndl = clamp( ndl, 0.0, 1.0 );
+    float nndl = clamp(-ndl, 0.0, 1.0 );
+    return float3(pndl) + float3(1.0,0.1,0.01)*0.7*pow(clamp(ir*0.75-nndl,0.0,1.0),2.0);
 }
 
 float sdif(float d, float b) {
-	return 0.5 + 0.5 * smoothstep(-b, b, d);
+	return lerp(0.5 + 0.5 * smoothstep(-b, b, d), sdif3(d, b).x, 0.15);
 }
 
 
@@ -786,7 +914,7 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 	float t = 1.0;
 	float tmax = MAX_DISTANCE;
 
-	float2 cyl = iCylinderY(rayOrigin, rayDir, 3.25);
+	float2 cyl = iCylinderY(rayOrigin, rayDir, Y_CYL_RAD);
 	if(cyl.y < 0.0) {
 		return float2(-1.0, -1.0);
 	}
@@ -816,7 +944,7 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 
 float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float2 uv = makeUv(fragCoord, resolution);
-	const float3 cameraTarget = float3(0.0, -0.15, 0.0);
+	const float3 cameraTarget = float3(0.0, -0.15, -0.6);
 	const float3 cameraBaseOffset = float3(0.0, 0.0, 4.5);
 	const float cameraFocalLength = 1.5;
 	float3 rayOrigin = cameraTarget + rotY(cameraBaseOffset, -WORLD_ROT_Y);
@@ -869,24 +997,24 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		{
 			float4 be = sdfBezier(float3(qos.xy + float2(0.1, 0.1), 0.0),
 						float3(0.445, -0.065, 0.0),
-						float3(0.52, 0.025, 0.0),
-						float3(0.675, 0.065, 0.0));
+						float3(0.52, 0.015, 0.0),
+						float3(0.615, 0.035, 0.0));
 
-			float ra = 0.0002 + 0.01 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.0001 + 0.01 * sqrt(be.y * (1.0 - be.y));
 
 			float d = be.x - ra;
-			float mask = 1.0-smoothstep(-0.006, 0.012, d);
-			color = mix(color, float3(0.4, 0.4, 0.4), mask * 0.67);
+			float mask = 1.0-smoothstep(-0.006, 0.011, d);
+			color = mix(color, float3(0.4, 0.2, 0.2), mask * 0.67);
 		}
 
 		// Eyebrows
 		{
 			float4 be = sdfBezier(float3(qos.xy, 0.0),
-						float3(0.325, 0.14, 0.0),
-						float3(0.60, 0.26, 0.0),
-						float3(0.905, 0.20, 0.0));
+						float3(0.315, 0.04, 0.0),
+						float3(0.59, 0.16, 0.0),
+						float3(0.895, 0.10, 0.0));
 
-			float ra = 0.035 * sqrt(be.y * (1.0 - be.y));
+			float ra = 0.025 * sqrt(be.y * (1.0 - be.y));
 
 			float d = be.x - ra;
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
@@ -903,8 +1031,8 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		float3 qos = float3(abs(uvw.x), uvw.yz);
 		float ss = sign(uvw.x);
-		qos.xz = rot2(qos.xz, -0.002 * ss + 0.02);
-		float3 eos = qos - float3(0.58, -0.39, 0.45);
+		qos.xz = rot2(qos.xz, 0.002 * ss + 0.02);
+		float3 eos = qos - float3(0.57, -0.39, 0.45);
 		eos.x *= 1.2;
 
 		float r = length(eos.xy)+0.005;
@@ -941,6 +1069,14 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
 		color *= mix(float3(1.0), float3(0.2, 0.1, 0.1), linearstep(0.07, 0.16, edis)) * 1.1;
+	}else if(tm.y > 3.5 && tm.y < 4.5) {
+		sss = 1.0;
+
+		if(tm.y == 4.0) {
+			color = float3(0.08, 0.2, 0.47);
+		}else {
+			color = float3(0.8, 0.05, 0.25);
+		}
 	}
 
 	float fre = clamp(1.0 + dot(normal, rayDir), 0.0, 1.0);
@@ -949,23 +1085,23 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	if(tm.y >= 3.0 && tm.y < 3.5) {
 		sss = 1.0;
 		color = float3(0.9, 0.1, 0.3);
-		occ = lerp(1.0, occ, 0.68);
 
 		if(tm.y == 3.0) {
+			occ = lerp(1.0, occ, 0.68);
 
 			// Fake Shadow
 			color *= 1.0 - max(abs(uvw.y - 0.3) * 0.3, 0.0);
 
 			// Fake Hair Highlight
 			color = max(
-				color + 0.25 * float3(min(1.8 - abs((12.9 + bnoise(dot(uvw.xz, uvw.xz))
+				color + 0.25 * float3(min(1.8 - abs((12.8 + bnoise(dot(uvw.xz, uvw.xz))
 					* 10.0 * abs(fastSin(20.0 * uvw.x)))
 					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.5)
 				, color);
 
 			color = max(
-				color + 0.48 * float3(min(0.35 - abs((16.0 + bnoise(dot(uvw.xz, uvw.xz))
-					* 15.0 * abs(fastSin(30.0 * uvw.x)))
+				color + 0.27 * float3(min(0.85 - abs((15.4 + bnoise(dot(uvw.xz, uvw.xz))
+					* 15.0 * abs(fastSin(22.5 * uvw.x)))
 					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.65)
 				, color);
 
@@ -973,7 +1109,9 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 			static const float ph = 0.48;
 			color *= 1.0 + smax(saturate(abs(uvw.y - ph) - ph), 0.0, 0.1) * occ;
 		}else if(tm.y == 3.1) {
-			float3 mos = float3(abs(uvw.x) - 1.85, uvw.yz);
+			occ = lerp(1.0, occ, 0.66);
+
+			float3 mos = float3(abs(uvw.x) - 1.84, uvw.yz);
 			mos.xy = rot2(mos.xy, -HAIR_ROT);
 
 			color = mix(min(color + float3(0.1), float3(1.0)), color, 1.0 - saturate(mos.y));
@@ -998,9 +1136,11 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 	// float bou = clamp(0.4 - 0.6 * normal.x, 0.0, 1.0);
 	float3 lin = float3(0.0);
-	lin += occ;
+	float sha = calcSoftShadow(pos + normal * 0.002, lig, 0.0001, 2.0, 5.0);
+	float3 amb = occ * (0.55 + 0.45 * normal.y) * 1.15;
 	lig = normalize(float3(-1.87, -0.86, -0.6));
-	lin += float3(1.0, 0.3, 0.1) * sss * fre * 0.2 * (0.5+0.5 * dot(normal, lig)) * (0.1 + 0.9 * focc);
+	lin += occ - amb * 0.01;
+	lin += float3(1.0, 0.3, 0.1) * sss * fre * 0.2 * (0.5+0.5 * saturate(dot(normal, lig)) * sha * amb) * (0.1 + 0.9 * focc);
 
 	color = color*lin + fre*fre*fre*0.07*occ;
 	// color = normal * 0.5 + 0.5;
