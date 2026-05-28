@@ -7,79 +7,6 @@ typedef struct vertex2d {
 } vertex2d_t;
 
 static spoopy_event_handler_t* handler_ptr = NULL;
-
-static const int fukkireta_noise_seed = 1337;
-
-#if 1
-static uint32_t fukkireta_noise_hash(uint32_t x, uint32_t y, uint32_t seed) {
-	uint32_t v = seed ^ (x * 0x9E3779B9u) ^ (y * 0x85EBCA6Bu);
-	v ^= v >> 16;
-	v *= 0x7FEB352Du;
-	v ^= v >> 15;
-	v *= 0x846CA68Bu;
-	v ^= v >> 16;
-	return v;
-}
-
-static spoopy_texture_t* create_noise_texture(uint32_t width, uint32_t height) {
-	const size_t pixel_count = (size_t)width * (size_t)height;
-	const size_t data_size = pixel_count;
-	uint8_t* pixels = spoopy_heap_alloc(data_size);
-
-	if(!pixels) {
-		SPOOPY_LOG_ERROR("Failed to allocate noise texture pixels");
-		return NULL;
-	}
-
-	for(uint32_t y = 0; y < height; ++y) {
-		for(uint32_t x = 0; x < width; ++x) {
-			const size_t index = (size_t)y * (size_t)width + (size_t)x;
-			pixels[index] = (uint8_t)(fukkireta_noise_hash(x, y, (uint32_t)fukkireta_noise_seed) & 0xFFu);
-		}
-	}
-
-	spoopy_image_t image = {
-		.pixels.raw_data = pixels,
-		.width = width,
-		.height = height,
-		.data_size = (uint32_t)data_size,
-		.format = SPOOPY_PIXEL_FORMAT_R8,
-		.origin = SPOOPY_IMAGE_ORIGIN_TOP_LEFT,
-	};
-
-	spoopy_texture_t* tex = spoopy_heap_alloc(spoopy_api_texture_size());
-	if(!tex) {
-		SPOOPY_LOG_ERROR("Failed to allocate noise texture object");
-		spoopy_heap_free(pixels);
-		return NULL;
-	}
-
-	const spoopy_texture_params_t params = {
-		.width = width,
-		.height = height,
-		.layers = 1,
-		.mipmaps = 1,
-		.format = image.format,
-		.texture_class = SPOOPY_TEXTURE_CLASS_2D,
-		.stage = SPOOPY_STAGE_FRAGMENT,
-		.depth_texture = false,
-		.filter = {
-			.min = SPOOPY_TEXTURE_FILTER_NEAREST,
-			.mag = SPOOPY_TEXTURE_FILTER_NEAREST
-		},
-		.wrap = {
-			.u = SPOOPY_TEXTURE_WRAP_REPEAT,
-			.v = SPOOPY_TEXTURE_WRAP_REPEAT
-		}
-	};
-
-	spoopy_api_texture_create(tex, &params);
-	spoopy_api_texture_fill(tex, 0, 0, &image);
-	spoopy_heap_free(pixels);
-	return tex;
-}
-#endif
-
 static char* load_shader(const char* path) {
 
 	SDL_IOStream* io = SDL_IOFromFile(path, "rb");
@@ -189,11 +116,6 @@ int	main(void) {
 	spoopy_shader_object_t* vert_obj = load_shader_object("test/fukkireta/vertex.slang", SPOOPY_STAGE_VERTEX);
 	spoopy_shader_object_t* frag_obj = load_shader_object("test/fukkireta/fragment.slang", SPOOPY_STAGE_FRAGMENT);
 	spoopy_pipeline_t* pipeline = spoopy_api_pipeline_link(2, (spoopy_shader_object_t*[]){ vert_obj, frag_obj });
-	spoopy_texture_t* noise_texture = create_noise_texture(64, 64);
-
-	if(!noise_texture) {
-		return 1;
-	}
 
 	spoopy_fps_counter_t* fps = SPOOPY_INIT_FPS_COUNTER(120, spoopy_stack);
 
@@ -203,7 +125,6 @@ int	main(void) {
 	};
 
 	spoopy_api_pipeline_compile(pipeline, 2, vertex_spec, 0);
-	spoopy_api_texture_set(pipeline, "tex0", noise_texture);
 
 	// Fullscreen clip-space quad.
 	// TODO (Swapchain): Have resolution be a uniform and be iResolution like shadertoy
@@ -259,8 +180,6 @@ int	main(void) {
 		last_time = t;
 	}
 
-	spoopy_api_texture_destroy(noise_texture);
-	spoopy_heap_free(noise_texture);
 	spoopy_heap_free(handler_ptr);
 	spoopy_api_video_shutdown();
 	return 0;

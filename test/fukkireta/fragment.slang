@@ -17,10 +17,6 @@ struct FragmentInput {
 	float2 resolution : TEXCOORD0;
 };
 
-// Temporary: texture experiment disabled.
-Texture2D tex0;
-SamplerState samp0;
-
 float2 rot2(float2 p, float an) {
 	float cc = cos(an);
 	float ss = sin(an);
@@ -881,9 +877,6 @@ float4 mapD(in float3 pos) {
 	float matID;
 	float3 uvw;
 	float4 h = mapScene(pos, matID, uvw);
-
-	// if(matID > 3.5 && matID < 4.0) {
-	// }
 
 	return h;
 }
