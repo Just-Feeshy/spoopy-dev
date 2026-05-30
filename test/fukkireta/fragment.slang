@@ -8,6 +8,7 @@
 #define HAIR_ROT 0.11
 #define B_SPIRAL 0.0318309886184
 #define PC_PI 3.14159265358979323846
+#define E 2.71828182845904523536
 #define Y_CYL_RAD 2.4
 
 #define AA_SAMPLE_COUNT 1
@@ -381,7 +382,7 @@ float4 sdfDrills(in float3 pos, float3 qos) {
 	return float4(d, pos);
 }
 
-float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID) {
+float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID, float m) {
 	matID = 4.0;
 	float3 opos = pos;
 
@@ -396,12 +397,25 @@ float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID) {
 	float d_2 = w.w + sdfTorus(float3(w.xy, -w.z), float2(0.54, 0.02));
 	d = smin(d, d_2, 0.07);
 
-	float d_body = d;
-	d_2 = max(d_2 - 0.005, abs(pos.x) - 0.15);
-	d   = smin(d, d_2, 0.02);
+	{
+		float3 mpos = opos - float3(0.0, -1.13, 0.0);
+		mpos.y = exp(-length(mpos.xz) + 1.05) - mpos.y;
+		float d_3 = sdfBox(mpos, float3(0.8, 0.005, 0.8));
+		d_3 = max(d_3, -length(opos.xz) + 0.56);
+		d_3 = max(d_3, length(opos.xz) - 0.8);
+		mpos.x *= 0.2;
+		d_3 = max(d_3, mpos.z - exp(7.5 * abs(mpos.x)) * abs(mpos.x) - 0.54);
+		d = smin(d, d_3 * 0.6, 0.02);
+	}
 
-	if(d_2 < d_body) {
-		matID = 4.1;
+	{
+		float d_3 = d;
+		d_2 = max(d_2 - 0.005, abs(pos.x) - 0.15);
+		d   = smin(d, d_2, 0.02);
+
+		if(d_2 < d_3) {
+			matID = 4.1;
+		}
 	}
 
 	return float4(d, pos);
@@ -492,6 +506,10 @@ float cubicBezierDist2(
 	return dot(r, r);
 }
 
+// So it's inspired off of https://www.shadertoy.com/view/MdKBWt
+// However, this iBezier takes wayyy too much unnecessary performance so
+// this cubic bezier is 5x less expensive and barely any drop in quality
+// Sorry iq, I just can't stand working at 2 FPS for me :(
 float2 sdfCubicBezier(float3 p, float3 p0, float3 p1, float3 p2, float3 p3) {
 	float t = initialTControlPolygon(p, p0, p1, p2, p3);
 
@@ -847,11 +865,11 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	// Hair
 	float4 tmp = sdfHair(p, qos);
-	if(tmp.x < d) {
-		d = tmp.x;
-		outMat = 3.0;
-		uvw = tmp.yzw;
-	}
+	// if(tmp.x < d) {
+	// 	d = tmp.x;
+	// 	outMat = 3.0;
+	// 	uvw = tmp.yzw;
+	// }
 
 	// Drills
 	tmp = sdfDrills(p, qos);
@@ -863,7 +881,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	// Clothes
 	float tempMat = 4.0;
-	tmp = sdfClothes(opos, qos, se, tempMat);
+	tmp = sdfClothes(opos, qos, se, tempMat, (se_2.y - se_1.y) / (se_2.x - se_1.x));
 	if(tmp.x < d) {
 		d = tmp.x;
 		outMat = tempMat;
@@ -888,7 +906,7 @@ float3 sdif3(float ndl, float ir) {
 }
 
 float sdif(float d, float b) {
-	return lerp(0.5 + 0.5 * smoothstep(-b, b, d), sdif3(d, b).x, 0.15);
+	return lerp(0.5 + 0.5 * smoothstep(-b, b, d), sdif3(d, b).x, 1.0);
 }
 
 

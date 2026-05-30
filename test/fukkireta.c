@@ -70,7 +70,7 @@ static spoopy_shader_object_t* load_shader_object(const char* path, spoopy_shade
 
 	spoopy_shader_source_t transpiled = {0};
 	spoopy_mem_arena_t transpile_arena = {0};
-	spoopy_arena_init(&transpile_arena, source.content_size + (1 << 11));
+	spoopy_arena_init(&transpile_arena, source.content_size + 1);
 
 	if(!spoopy_api_shader_transpile(&source, &transpiled, &transpile_opts, &transpile_arena)) {
 		SPOOPY_LOG_ERROR("Failed to transpile shader: %s", path);
