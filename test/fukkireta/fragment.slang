@@ -11,7 +11,7 @@
 #define E 2.71828182845904523536
 #define Y_CYL_RAD 2.4
 
-#define AA_SAMPLE_COUNT 1
+#define AA_SAMPLE_COUNT 2
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -154,6 +154,11 @@ float calcOcclusion(float3 pos, float3 nor) {
 
     occlusion /= 16.0;
     return clamp(1.0 - occlusion * 12.0, 0.0, 1.0);
+}
+
+float sdfHorCylinder( float3 p, float h, float r ) {
+	float2 d = abs(float2(length(p.xy),p.z)) - float2(r,h);
+	return min(max(d.x,d.y),0.0) + length(max(d,0.0));
 }
 
 float sdfBox(float3 p, float3 b) {
@@ -397,20 +402,34 @@ float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID, float m
 	float d_2 = w.w + sdfTorus(float3(w.xy, -w.z), float2(0.54, 0.02));
 	d = smin(d, d_2, 0.07);
 
+	// Collar
 	{
-		float3 mpos = opos - float3(0.0, -1.13, 0.0);
-		mpos.y = exp(-length(mpos.xz) + 1.05) - mpos.y;
-		float d_3 = sdfBox(mpos, float3(0.8, 0.005, 0.8));
+		float3 mpos = opos - float3(0.0, -1.36, 0.0);
+		float radii = 0.84 + 0.1 * log(2.0 * saturate(opos.z) + 1.0);
+		mpos.y = exp(-length(mpos.xz) + 1.17) - mpos.y;
+		float d_3 = sdfBox(mpos, float3(radii, 0.01, radii));
 		d_3 = max(d_3, -length(opos.xz) + 0.56);
-		d_3 = max(d_3, length(opos.xz) - 0.8);
+		d_3 = max(d_3, length(opos.xz) - radii);
 		mpos.x *= 0.2;
-		d_3 = max(d_3, mpos.z - exp(7.5 * abs(mpos.x)) * abs(mpos.x) - 0.54);
-		d = smin(d, d_3 * 0.6, 0.02);
+		float cut = -exp(7.5 * abs(mpos.x)) * abs(mpos.x) - 0.52;
+		d_3 = max(d_3, mpos.z + cut);
+		d_3 *= 0.55;
+		d = min(d, d_3);
+
+		float d_4 = d;
+		d_3 = max(d_3 - 0.005, abs(length(opos.xz) - radii + 0.07) - 0.02);
+		d_3 = max(d_3, mpos.z + cut + 0.005);
+		d   = smin(d, d_3, 0.02);
+
+		if(d_3 < d_4) {
+			matID = 4.1;
+		}
 	}
 
+	// Strap
 	{
 		float d_3 = d;
-		d_2 = max(d_2 - 0.005, abs(pos.x) - 0.15);
+		d_2 = max(d_2 - 0.005, abs(pos.x) - 0.17);
 		d   = smin(d, d_2, 0.02);
 
 		if(d_2 < d_3) {
@@ -865,11 +884,11 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 
 	// Hair
 	float4 tmp = sdfHair(p, qos);
-	// if(tmp.x < d) {
-	// 	d = tmp.x;
-	// 	outMat = 3.0;
-	// 	uvw = tmp.yzw;
-	// }
+	if(tmp.x < d) {
+		d = tmp.x;
+		outMat = 3.0;
+		uvw = tmp.yzw;
+	}
 
 	// Drills
 	tmp = sdfDrills(p, qos);
@@ -906,7 +925,7 @@ float3 sdif3(float ndl, float ir) {
 }
 
 float sdif(float d, float b) {
-	return lerp(0.5 + 0.5 * smoothstep(-b, b, d), sdif3(d, b).x, 1.0);
+	return lerp(0.5 + 0.5 * smoothstep(-b, b, d), sdif3(d, b).x, 0.2);
 }
 
 
@@ -955,7 +974,7 @@ float2 traceSample(in float3 rayOrigin, in float3 rayDir, out float3 uvw) {
 
 float4 renderTeto(float2 fragCoord, float2 resolution) {
 	float2 uv = makeUv(fragCoord, resolution);
-	const float3 cameraTarget = float3(0.0, -0.15, -0.6);
+	const float3 cameraTarget = float3(0.0, -0.25, -0.6);
 	const float3 cameraBaseOffset = float3(0.0, 0.0, 4.5);
 	const float cameraFocalLength = 1.5;
 	float3 rayOrigin = cameraTarget + rotY(cameraBaseOffset, -WORLD_ROT_Y);
@@ -1086,7 +1105,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		if(tm.y == 4.0) {
 			color = float3(0.08, 0.2, 0.47);
 		}else {
-			color = float3(0.8, 0.05, 0.25);
+			color = float3(0.83, 0.1, 0.35);
 		}
 	}
 
