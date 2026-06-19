@@ -21,35 +21,35 @@ uint32_t sdl_first_user_event;
 static bool spoopy_events_handler_quit(SDL_Event *event, void *arg);
 static bool spoopy_events_handle_video(SDL_Event *event, void *arg);
 
-static const EventHandler default_handlers[] = {
+static const spoopy_event_handler_t default_handlers[] = {
 	{ .proc = spoopy_events_handler_quit, .priority = EPRIO_SYSTEM, .event_type = SDL_EVENT_WINDOW_CLOSE_REQUESTED, .arg = NULL },
 	{ .proc = spoopy_events_handle_video, .priority = EPRIO_SYSTEM },
 	{ .proc = NULL, .priority = 0, .event_type = 0, .arg = NULL}
 };
 
-static EventHandler* spoopy_events_register_default_handlers(EventHandler* h);
+static spoopy_event_handler_t* spoopy_events_register_default_handlers(spoopy_event_handler_t* h);
 
 static inline int prio_index(EventPriority prio) {
 	return prio - EPRIO_FIRST;
 }
 
-EventHandler* spoopy_events_register_handlers(EventHandler* handler_ptr, uint32_t capacity, EventHandler handlers[capacity]) {
+spoopy_event_handler_t* spoopy_events_register_handlers(spoopy_event_handler_t* handler_ptr, uint32_t capacity, spoopy_event_handler_t handlers[capacity]) {
 	const size_t default_count = ARRAY_SIZE(default_handlers) - 1; // Exclude null terminator
 	const size_t total_count = default_count + capacity + 1; // +1 for null terminator
 
-	handler_ptr = spoopy_heap_realloc(handler_ptr, total_count * sizeof(EventHandler));
-	memcpy(handler_ptr, default_handlers, default_count * sizeof(EventHandler));
+	handler_ptr = spoopy_heap_realloc(handler_ptr, total_count * sizeof(spoopy_event_handler_t));
+	memcpy(handler_ptr, default_handlers, default_count * sizeof(spoopy_event_handler_t));
 
 	if(handlers) {
-		memcpy(handler_ptr + default_count, handlers, capacity * sizeof(EventHandler));
+		memcpy(handler_ptr + default_count, handlers, capacity * sizeof(spoopy_event_handler_t));
 	}
 
 	// Null terminate the handler array
-	handler_ptr[default_count + capacity] = (EventHandler){0};
+	handler_ptr[default_count + capacity] = (spoopy_event_handler_t){0};
 
 	uint32_t pcount[NUM_EPRIOS] = { 0 };
 
-	for(EventHandler* h = handler_ptr; h->proc; ++h) {
+	for(spoopy_event_handler_t* h = handler_ptr; h->proc; ++h) {
 		++pcount[prio_index(h->priority)];
 	}
 
@@ -59,8 +59,8 @@ EventHandler* spoopy_events_register_handlers(EventHandler* handler_ptr, uint32_
 		pos += count;
 	}
 
-	EventHandler temp[total_count];
-	memcpy(temp, handler_ptr, total_count * sizeof(EventHandler));
+	spoopy_event_handler_t temp[total_count];
+	memcpy(temp, handler_ptr, total_count * sizeof(spoopy_event_handler_t));
 
 	for(uint32_t i=0; i<total_count && temp[i].proc; ++i) {
 		handler_ptr[pcount[prio_index(temp[i].priority)]++] = temp[i];
@@ -69,7 +69,7 @@ EventHandler* spoopy_events_register_handlers(EventHandler* handler_ptr, uint32_
 	return handler_ptr;
 }
 
-void spoopy_events_init(int32_t NUM_USER_EVENTS, EventHandler** handler_ptr) {
+void spoopy_events_init(int32_t NUM_USER_EVENTS, spoopy_event_handler_t** handler_ptr) {
 	if(!handler_ptr) {
 		SPOOPY_LOG_ERROR("handler_ptr is NULL, cannot initialize events without a proper pointer.");
 		return;
@@ -97,7 +97,7 @@ void spoopy_events_init(int32_t NUM_USER_EVENTS, EventHandler** handler_ptr) {
  * Default Handlers
  * ============================================================================= */
 
-static EventHandler* spoopy_events_register_default_handlers(EventHandler* h) {
+static spoopy_event_handler_t* spoopy_events_register_default_handlers(spoopy_event_handler_t* h) {
 	return spoopy_events_register_handlers(h, 0, NULL);
 }
 
@@ -135,7 +135,7 @@ static bool spoopy_events_handle_video(SDL_Event *event, void *arg) {
 }
 
 
-static bool spoopy_events_invoke_handler(SDL_Event *event, EventHandler *handler) {
+static bool spoopy_events_invoke_handler(SDL_Event *event, spoopy_event_handler_t *handler) {
 	assert(handler->proc != NULL);
 
 	if(!handler->event_type || (uint32_t)handler->event_type == (uint32_t)event->type) {
@@ -145,7 +145,7 @@ static bool spoopy_events_invoke_handler(SDL_Event *event, EventHandler *handler
 	return false;
 }
 
-void spoopy_events_poll(EventHandler* handlers, EventFlags flags) {
+void spoopy_events_poll(spoopy_event_handler_t* handlers, EventFlags flags) {
 	for(;;) {
 		if(!(flags & EVENT_FLAG_NOPUMP)) {
 			SDL_PumpEvents();
@@ -163,7 +163,7 @@ void spoopy_events_poll(EventHandler* handlers, EventFlags flags) {
 		}
 
 		for(SDL_Event *e = events, *end = events + n_events; e < end; ++e) {
-			for(EventHandler *h = handlers; h->proc; ++h) {
+			for(spoopy_event_handler_t *h = handlers; h->proc; ++h) {
 				if(spoopy_events_invoke_handler(e, h)) {
 					SPOOPY_LOG_INFO("Event type=%d handled by handler", e->type);
 					break;

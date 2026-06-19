@@ -1,0 +1,8 @@
+[wrap-git]
+directory=opusfile
+url=https://github.com/xiph/opusfile.git
+push-url=git@github.com:xiph/opusfile.git
+revision=main
+
+[provide]
+opusfile=opusfile_dep

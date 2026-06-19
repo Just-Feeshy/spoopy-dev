@@ -12,7 +12,6 @@ sdl3_options.add_cmake_defines({
     'SDL_TESTS': false,                 # Don't build test suite
     'SDL_RENDER': false,                # No 2D rendering API
 
-    'SDL_AUDIO': false,                 # No audio playback/recording
     'SDL_POWER': false,                 # No battery/power management
     'SDL_HAPTIC': false,                # No force feedback/rumble
     'SDL_SENSOR': false,                # No accelerometer/gyroscope
@@ -35,6 +34,21 @@ foreach toggle : passthrough_toggles
         sdl3_options.add_cmake_defines({ 'SDL_@0@'.format(toggle.to_upper()) : opt.enabled() })
     endif
 endforeach
+
+# TODO (Framework): Have this be part of audio toggle between different
+# backends where we choose what backend audio, and the library will build
+# with that option
+# passthrough_toggles_opts = {
+# 	'audio' : 'audio_sdl'
+# }
+#
+# foreach aopt, toggle : passthrough_toggles_opts
+#     opt = get_option(toggle)
+#
+#     if not opt.auto()
+#         sdl3_options.add_cmake_defines({ 'SDL_@0@'.format(aopt.to_upper()) : opt.enabled() })
+#     endif
+# endforeach
 
 if host_machine.system() == 'emscripten'
     sdl3_options.add_cmake_defines({ 'EMSCRIPTEN' : true })
