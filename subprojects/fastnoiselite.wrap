@@ -1,9 +1,0 @@
-[wrap-git]
-directory = fastnoiselite
-url = https://github.com/Auburn/FastNoiseLite.git
-push-url = git@github.com:Auburn/FastNoiseLite.git
-revision = master
-patch_directory = fastnoiselite
-
-[provide]
-fastnoiselite = fastnoiselite_dep

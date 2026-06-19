@@ -491,6 +491,14 @@ static bool spoopy_shader_object_init_uniforms(spoopy_shader_object_t* shader, c
 	const uint16_t pair_count = texture_count < sampler_count ? texture_count : sampler_count;
 	for(uint16_t i = 0; i < pair_count; ++i) {
 		texture_uniforms[i]->sampler.paired_binding = sampler_bindings[i];
+		// Temporary debug logging for texture/sampler reflection pairing.
+		SPOOPY_LOG_INFO(
+			"Texture/sampler pair: stage=%d uniform='%s' texture_binding=%u sampler_binding=%u",
+			shader->stage,
+			texture_uniforms[i]->name ? texture_uniforms[i]->name : "(unnamed)",
+			texture_uniforms[i]->sampler.binding,
+			texture_uniforms[i]->sampler.paired_binding
+		);
 	}
 
 	if(texture_count != sampler_count) {
@@ -904,29 +912,35 @@ static void spoopy_sokol_pipeline_compile(spoopy_pipeline_t* pipeline, uint32_t 
 }
 
 static void spoopy_sokol_capabilities(spoopy_pipeline_t* pipeline, spoopy_capability_bits_t new_caps) {
+	assert(pipeline);
 	pipeline->state.caps = new_caps;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_capability_bits_t spoopy_sokol_capabilities_current(spoopy_pipeline_t* pipeline) {
+	assert(pipeline);
 	return pipeline->state.caps;
 }
 
 static void spoopy_sokol_blend(spoopy_pipeline_t* pipeline, spoopy_blend_mode_t mode) {
+	assert(pipeline);
 	pipeline->state.blend = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_blend_mode_t spoopy_sokol_blend_current(spoopy_pipeline_t* pipeline) {
+	assert(pipeline);
 	return pipeline->state.blend;
 }
 
 static void spoopy_sokol_cull(spoopy_pipeline_t* pipeline, spoopy_cull_face_mode_t mode) {
+	assert(pipeline);
 	pipeline->state.cull = mode;
 	spoopy_sokol_pipeline_apply_desc(pipeline);
 }
 
 static spoopy_cull_face_mode_t spoopy_sokol_cull_current(spoopy_pipeline_t* pipeline) {
+	assert(pipeline);
 	return pipeline->state.cull;
 }
 
@@ -1245,10 +1259,13 @@ static void spoopy_sokol_uniform_set_matrix4(spoopy_uniform_t* uniform, const fl
 }
 
 static void spoopy_sokol_pipeline_bind(spoopy_pipeline_t* pipeline) {
+	assert(pipeline);
 	sg_apply_pipeline(pipeline->pipeline);
 }
 
 static void spoopy_sokol_draw_mesh(const spoopy_mesh_t* mesh, spoopy_pipeline_t* pipeline) {
+	assert(mesh);
+	assert(pipeline);
 	memset(pipeline->bindings.vertex_buffers, 0, sizeof(pipeline->bindings.vertex_buffers));
 	memset(pipeline->bindings.vertex_buffer_offsets, 0, sizeof(pipeline->bindings.vertex_buffer_offsets));
 	pipeline->bindings.index_buffer = (sg_buffer){0};
@@ -1399,6 +1416,19 @@ void spoopy_sokol_texture_set(spoopy_pipeline_t* pipeline, const char* uniform_n
 	if(!spoopy_sokol_texture_set_binding_indices(tex, tex_slot, sampler_slot)) {
 		return;
 	}
+
+	// Temporary debug logging for runtime texture binding.
+	SPOOPY_LOG_INFO(
+		"Texture bind: uniform='%s' texture_slot=%u sampler_slot=%u image=%u view=%u sampler=%u format=%d stage=%d",
+		uniform_name ? uniform_name : "(null)",
+		tex_slot,
+		sampler_slot,
+		tex->image.id,
+		tex->view.id,
+		tex->sampler_state.id,
+		tex->params.format,
+		tex->params.stage
+	);
 
 	pipeline->bindings.views[tex_slot] = tex->view;
 	pipeline->bindings.samplers[sampler_slot] = tex->sampler_state;
