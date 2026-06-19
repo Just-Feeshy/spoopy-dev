@@ -19,7 +19,7 @@ spoopy_audio_file_t* _sp_aud_files[] = {
 	#undef AUDIO_FILE
 };
 
-static spoopy_audio_file_t* spoopy_audio_file_probe(SDL_IOStream* stream, uint8_t buf[AUDIO_FILE_PROBE_SIZE]) {
+static spoopy_audio_file_t* spoopy_audio_file_probe(uint8_t buf[AUDIO_FILE_PROBE_SIZE]) {
 	const size_t files_count = sizeof(_sp_aud_files)
 		/ sizeof(_sp_aud_files[0]);
 
@@ -51,7 +51,7 @@ bool spoopy_audio_file_open(spoopy_audio_stream_t* stream, SDL_IOStream* rw, spo
 	SDL_ReadIO(rw, buf, sizeof(buf));
 
 	if(file_format == SPOOPY_AUDIO_FILE_FORMAT_AUTO) {
-		handler = spoopy_audio_file_probe(rw, buf);
+		handler = spoopy_audio_file_probe(buf);
 	}else {
 		handler = spoopy_audio_file_from_format(file_format);
 	}
