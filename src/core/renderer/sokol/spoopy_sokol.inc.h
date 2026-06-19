@@ -202,8 +202,6 @@ static inline sg_pixel_format spoopy_sokol_pixel_format(spoopy_pixel_format_t fm
 			}
 			break;
 		case SPOOPY_PIXEL_LAYOUT_RGB:
-			SPOOPY_LOG_ERROR("RGB formats are not directly supported by Sokol (use RGBA).");
-			return SG_PIXELFORMAT_NONE;
 		case SPOOPY_PIXEL_LAYOUT_RGBA:
 			if(is_float) {
 				if(depth == 16) return SG_PIXELFORMAT_RGBA16F;

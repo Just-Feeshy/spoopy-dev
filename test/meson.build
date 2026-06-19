@@ -13,6 +13,7 @@ tests = [
     'triangle',
 	'texture',
 	'cube',
+	'audio',
 	'fukkireta',
 ]
 
@@ -20,16 +21,13 @@ if host_machine.system() != 'emscripten'
     tests += ['parallel']
 endif
 
-
-# Only testing gets access to SDL
-
 foreach test : tests
-    test_deps = [spoopy_deps] + [spoopy_sys_deps] + [spoopy_renderer_deps]
-    test_inc = [test_inc, spoopy_includes]
+    test_deps = [spoopy_deps]
+    test_inc  = [test_inc, spoopy_includes]
 
     executable(test,
         '@0@.c'.format(test),
-        dependencies: test_deps,
+        dependencies: test_deps, # TODO (Framework): Can't have deps for the framework portion
         link_with: [spoopy_core_lib],
         include_directories: test_inc,
         install: false,

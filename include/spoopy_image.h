@@ -109,6 +109,10 @@ static inline spoopy_pixel_layout_t spoopy_format_layout(spoopy_pixel_format_t f
 	return (spoopy_pixel_layout_t)SPOOPY_PIXEL_FORMAT_LAYOUT(fmt);
 }
 
+static inline uint32_t spoopy_pixel_format_size(spoopy_pixel_format_t fmt) {
+	return (spoopy_pixel_format_depth(fmt) >> 3) * spoopy_format_layout(fmt);
+}
+
 #ifdef __cplusplus
 }
 #endif

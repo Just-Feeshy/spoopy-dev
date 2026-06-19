@@ -9,6 +9,11 @@
 #include <spoopy.h>
 #include <spoopy_types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// TODO (Framework): Something needs to be done about this.
 typedef struct SDL_IOStream SDL_IOStream;
 
 typedef struct spoopy_fileformat_handler {
@@ -22,3 +27,7 @@ typedef struct spoopy_fileformat_handler {
 extern spoopy_fileformat_handler_t spoopy_fileformat_png;
 // extern spoopy_fileformat_handler_t spoopy_fileformat_jpeg;
 // extern spoopy_fileformat_handler_t spoopy_fileformat_svg;
+
+#ifdef __cplusplus
+}
+#endif

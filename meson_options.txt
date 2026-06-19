@@ -76,3 +76,37 @@ option('sokol_backend',
     choices: ['auto', 'metal', 'd3d11', 'wgpu'],
     description: 'Sokol backend to enable (maps to SPOOPY_RENDERER_* defines)'
 )
+
+option('fastnoiselite',
+    type: 'boolean',
+    value: false,
+    description: 'Enable the FastNoiseLite dependency'
+)
+
+option(
+    'audio_sdl',
+    type : 'feature',
+    value : 'auto',
+    description : 'Build the SDL audio backend'
+)
+
+option(
+    'audio_null',
+    type : 'feature',
+    value : 'auto',
+    description : 'Build the no-op audio backend (silence); you want this on!'
+)
+
+option(
+    'audio_default',
+    type : 'combo',
+    choices : ['auto', 'sdl', 'null'],
+    description : 'Which audio backend to use by default'
+)
+
+option(
+	'support_opus_files',
+	type : 'feature',
+	value : 'auto',
+	description : 'Build the Opus backend to allow Opus files'
+)

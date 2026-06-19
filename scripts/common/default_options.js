@@ -55,7 +55,6 @@ class Config {
         }
 
         options.push('default_library=static');
-        options.push('libpng:default_library=static');
 
         if (this.build_type === 'debug') {
             options.push(
@@ -122,6 +121,19 @@ class Config {
                 'prefer_static=true'
             );
         }
+
+		options.push(
+			'default_library=static',
+			'cglm:default_library=static',
+			'opus:default_library=static',
+			'opusfile:default_library=static',
+			'cglm:werror=false',
+			'cglm:install=false',
+			'cglm:build_tests=false',
+			'opus:docs=disabled',
+			'opus:extra-programs=disabled',
+			'opus:tests=disabled'
+		);
 
         return options;
     }
