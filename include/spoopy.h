@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef SPOOPY_FOURCC_OGGS
+#define SPOOPY_FOURCC_OGGS 0x4F676753
+#endif
+
 #ifndef SPOOPY_EPSILON
 #define SPOOPY_EPSILON 0.00001f
 #endif

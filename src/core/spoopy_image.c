@@ -1,5 +1,5 @@
 #include <format/spoopy_fileformats.h>
-#include <spoopy_image_cruft.h>
+#include <spoopy_image_mths.h>
 
 #include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_error.h>
@@ -66,4 +66,29 @@ bool spoopy_image_load_callbacks(spoopy_file_read_callbacks_t* callbacks, void* 
     SPOOPY_UNUSED(file_format);
     SPOOPY_UNUSED(dst);
     return false;
+}
+
+// TODO (Older Systems): Use uint instead
+uint32_t spoopy_image_data_size(spoopy_pixel_format_t format, uint32_t width, uint32_t height) {
+	assert(width >= 1);
+	assert(height >= 1);
+	uint64_t pixel_size = spoopy_pixel_format_size(format);
+	assert(pixel_size >= 1);
+	uint64_t s = (uint64_t)width * (uint64_t)height * pixel_size;
+	assert(s <= INT32_MAX);
+	return s;
+}
+
+void* spoopy_image_alloc_buffer(spoopy_pixel_format_t format, uint32_t width, uint32_t height, uint32_t* out_bufsize) {
+	uint32_t s = spoopy_image_data_size(format, width, height);
+
+	if(out_bufsize) {
+		*out_bufsize = s;
+	}
+
+	return spoopy_heap_alloc(s);
+}
+
+void* spoopy_image_alloc_buffer_for_copy(spoopy_image_t* src, uint32_t* out_bufsize) {
+	return spoopy_image_alloc_buffer(src->format, src->width, src->height, out_bufsize);
 }

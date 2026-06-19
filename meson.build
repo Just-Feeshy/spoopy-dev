@@ -63,31 +63,21 @@ if sokol_requested
     add_global_arguments(renderer_define, language: ['c', 'cpp', 'objc'])
 endif
 
-spoopy_sys_deps = dependency('sdl3', version: '>=3.2.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'], required: true)
 
 spoopy_deps = []
 if host_machine.system() == 'darwin'
     spoopy_deps += dependency('appleframeworks', modules: ['AppKit', 'Cocoa', 'Foundation', 'Metal', 'QuartzCore'])
 endif
-spoopy_deps += dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
-libpng_dep = dependency('libpng', 'libpng16', version: '>=1.5', required: false)
-if not libpng_dep.found()
-    cmake = import('cmake')
-    libpng_options = cmake.subproject_options()
-    libpng_options.set_install(false)
-    libpng_options.add_cmake_defines({
-        'PNG_SHARED': false,
-        'PNG_STATIC': true,
-        'PNG_FRAMEWORK': false,
-        'PNG_TESTS': false,
-        'PNG_TOOLS': false,
-    })
 
-    libpng_subproject = cmake.subproject('libpng', options: libpng_options)
-    libpng_dep = libpng_subproject.dependency('png_static')
-endif
-spoopy_deps += libpng_dep
-spoopy_deps += dependency('cglm', required: true)
+dep_sdl3 = dependency('sdl3', version: '>=3.4.0', fallback : ['sdl3-cmake-wrapper', 'sdl3_dep'])
+dep_slang = dependency('spoopy-slang-wrapper', fallback : ['spoopy-slang-wrapper', 'spoopy_slang_wrapper_dep'], required: true)
+dep_cglm  = dependency('cglm', version : '>=0.7.8', required: true)
+
+spoopy_deps += [
+	dep_sdl3,
+	dep_slang,
+	dep_cglm,
+]
 
 fastnoiselite_dep = disabler()
 if get_option('fastnoiselite')
@@ -203,6 +193,11 @@ spoopy_sys_threads_support = get_option('have_sdl_thread_support')
 if not spoopy_sys_threads_support
     config.set('SPOOPY_SUPPORT_SDL_THREADS', 0)
 endif
+
+# TODO (Summary): Put quite a bit more summaries here
+# Like: `system type`, `build type`, `memory allocator`,	`debug mode`
+# Plus: `audio backend`, `slang runtime toggle`
+# Final: `documentation` and the other stuff related to that
 
 summary({
     'System Type': systype,

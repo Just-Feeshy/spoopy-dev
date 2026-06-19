@@ -15,7 +15,6 @@
  * =============================================================================
  */
 
-
 /** Macro Definitions **/
 
 #ifdef __cplusplus
@@ -232,6 +231,24 @@ typedef enum spoopy_cull_face_mode {
 	SPOOPY_CULL_BACK  = 0x2,
 	SPOOPY_CULL_BOTH  = SPOOPY_CULL_BACK | SPOOPY_CULL_FRONT,
 } spoopy_cull_face_mode_t;
+
+typedef enum spoopy_audio_format {
+	SPOOPY_AUDIO_S16 = 0,
+	SPOOPY_AUDIO_F32,
+} spoopy_audio_format_t;
+
+typedef enum spoopy_audio_file_format {
+	SPOOPY_AUDIO_FILE_FORMAT_AUTO = -1,
+	SPOOPY_AUDIO_FILE_FORMAT_OPUS,
+	SPOOPY_AUDIO_NUM_FILE_FORMATS,
+} spoopy_audio_file_format_t;
+
+typedef struct spoopy_audio_request {
+	spoopy_audio_format_t format;
+	int freq;
+	int16_t device_index;
+	uint8_t channels;
+} spoopy_audio_request_t;
 
 // TODO (Viewport): Implement `spoopy_content_scale_aspect`
 

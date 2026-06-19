@@ -1,11 +1,13 @@
 #include <spoopy_api.h>
+
+#if SPOOPY_HAS_INCLUDE("../../spoopy_system_info.h")
+#include "../../spoopy_system_info.h"
+#endif
+
 #include <spoopy_backend.h>
 #include <spoopy_graphics.h>
-#include <SDL3/SDL.h>
 
-#if SPOOPY_HAS_INCLUDE("spoopy_system_info.h")
-#include "spoopy_system_info.h"
-#endif
+#include <SDL3/SDL.h>
 
 static struct {
 	spoopy_vec2_vec_int_t fs_modes;

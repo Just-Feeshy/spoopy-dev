@@ -8,14 +8,17 @@
 // components of C++'s STL
 
 #define SPOOPY_VECTOR(type_name, element_type) \
+	SPOOPY_VECTOR_LIMIT(type_name, element_type, size_t)
+
+#define SPOOPY_VECTOR_LIMIT(type_name, element_type, l_type) \
 typedef struct type_name { \
-	size_t size; \
-	size_t capacity; \
+	l_type size; \
+	l_type capacity; \
 	element_type* data; \
 } type_name##_t; \
-static inline void type_name##_init(type_name##_t* vector, size_t pool_size) { \
+static inline void type_name##_init(type_name##_t* vector, l_type pool_size) { \
 	if(!vector) return; \
-	const size_t real_pool_size = sizeof(element_type) * pool_size; \
+	const l_type real_pool_size = sizeof(element_type) * pool_size; \
 	vector->data = (element_type*)spoopy_heap_alloc(real_pool_size); \
 	if(!vector->data) { \
 		vector->capacity = 0; \
@@ -34,14 +37,14 @@ static inline void type_name##_destroy(type_name##_t* vector) { \
 		vector->capacity = 0; \
 	} \
 } \
-static inline void type_name##_resize(type_name##_t* vector, size_t new_size) { \
+static inline void type_name##_resize(type_name##_t* vector, l_type new_size) { \
 	if(!vector) return; \
-	const size_t real_new_size = sizeof(element_type) * new_size; \
+	const l_type real_new_size = sizeof(element_type) * new_size; \
 	element_type* new_data = (element_type*)spoopy_heap_realloc(vector->data, real_new_size); \
 	if(!new_data) return; \
 	vector->data = new_data; \
 	if(new_size > vector->size) { \
-		const size_t old_size = sizeof(element_type) * vector->size; \
+		const l_type old_size = sizeof(element_type) * vector->size; \
 		memset((uint8_t*)vector->data + old_size, 0, real_new_size - old_size); \
 	} \
 	vector->size = new_size; \
@@ -61,13 +64,13 @@ static inline void type_name##_add( \
 		type_name##_t* vector, \
 		element_type value) { \
 	if(!vector) return; \
-	for(size_t i=0; i<vector->capacity; ++i) { \
+	for(l_type i=0; i<vector->capacity; ++i) { \
 		if(memcmp(&vector->data[i], &value, sizeof(element_type)) == 0) { \
 			return; \
 		} \
 	} \
 	if(vector->capacity >= vector->size) { \
-		const size_t new_size = 8; \
+		const l_type new_size = 8; \
 		type_name##_resize(vector, new_size); \
 	} \
 	vector->data[vector->capacity] = value; \
