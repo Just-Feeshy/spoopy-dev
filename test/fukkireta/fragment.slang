@@ -252,7 +252,7 @@ float bWave(float x, float b) {
 }
 
 float eyeSockets(float3 p) {
-	static const float3 R_3A = float3(0.31,0.32,0.3);
+	static const float3 R_3A = float3(0.31,0.3,0.31);
 	static const float3 c_3  = float3(-0.55, 0.38, -0.91);
 
 	const float3 r_3 = R_3A + float3(0.03,0.0,0.0) * (p.y + 0.41);
@@ -687,7 +687,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 
 	{
 		float3 p0 = float3(-0.1, 1.29, 0.7);
-		float3 p1 = float3(0.87, 0.9, 1.6);
+		float3 p1 = float3(0.77, 0.9, 1.55);
 		float3 p2 = float3(1.01, -0.1, 0.9);
 		float3 p3 = float3(1.36, -0.48, 0.91);
 
@@ -701,7 +701,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 		float3 p2 = float3(-0.15, -0.07, 1.435);
 		float3 p3 = float3(-0.24, -0.51, 1.535);
 
-		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), opos, 0.23, 0.38, 0.42, 24.0, 0.029);
+		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), opos, 0.23, 0.38, 0.42, 20.0, 0.029);
 		d_2 = s;
 	}
 
@@ -777,7 +777,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	static const float3 R_2A = float3(1.05,0.61,1.20);
 	static const float3 c_1  = float3(0.7, -0.52, 1.38);
 	static const float3 c_2  = float3(0.0, -0.885, 0.25 - jawZ.x);
-	static const float3 c_4  = float3(-0.385, 0.24, -0.49);
+	static const float3 c_4  = float3(-0.385, 0.24, -0.5);
 
 	const float3 qos = float3(abs(p.x), p.yz);
 	const float3 tos = float3(p.xy, abs(p.z));
@@ -818,7 +818,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.02);
 
 	// Eyeballs
-	d_2 = sdfSphere(ebos, 0.69);
+	d_2 = sdfSphere(ebos, 0.67);
 	if(d_2 < d) {
 		outMat = 2.0;
 	}
@@ -1011,17 +1011,17 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 		{
 			float4 be = sdfBezier(float3(qos.xy + float2(0.05, 0.05), 0.0),
 						float3(0.41, -0.225, 0.0),
-						float3(0.77, 0.1, 0.0),
-						float3(0.99, -0.19, 0.0));
+						float3(0.77, 0.05, 0.0),
+						float3(0.92, -0.19, 0.0));
 			float4 be2 = sdfBezier(float3(qos.xy + float2(0.05, 0.05), 0.0),
-						float3(1.05, -0.19, 0.0),
-						float3(0.935, -0.565, 0.0),
-						float3(0.7, -0.6, 0.0));
+						float3(0.95, -0.21, 0.0),
+						float3(0.945, -0.465, 0.0),
+						float3(0.82, -0.54, 0.0));
 
 			float ra = 0.01 + 0.05 * sqrt(be.y * (1.0 - be.y));
 			float ra2 = 0.003 + 0.025 * sqrt(be2.y * (1.0 - be2.y));
 
-			float d = smin(be.x - ra, be2.x - ra2, 0.23);
+			float d = smin(be.x - ra, be2.x - ra2, 0.24);
 			float mask = 1.0-smoothstep(-0.006, 0.012, d);
 			color = mix(color, float3(0.04, 0.02, 0.02), mask);
 		}
