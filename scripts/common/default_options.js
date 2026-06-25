@@ -54,12 +54,9 @@ class Config {
             throw new FormatError(`Invalid build_type: ${this.build_type}. Must be 'debug', 'release', or 'auto'`);
         }
 
-        options.push('default_library=static');
-
         if (this.build_type === 'debug') {
             options.push(
                 'buildtype=debug',
-                'strip=false',
                 'b_lto=false',
                 'b_ndebug=false',
                 'optimization=0'
@@ -67,7 +64,6 @@ class Config {
         } else if (this.build_type === 'release') {
             options.push(
                 'buildtype=release',
-                'strip=true',
                 'b_lto=false',
                 'b_ndebug=if-release',
                 'optimization=3'
@@ -76,14 +72,12 @@ class Config {
             if (process.env.SPOOPY_DEBUG === '1') {
                 options.push(
                     'buildtype=debug',
-                    'strip=false',
                     'b_lto=false',
                     'b_ndebug=false'
                 );
             } else {
                 options.push(
                     'buildtype=release',
-                    'strip=true',
                     'b_lto=false',
                     'b_ndebug=if-release'
                 );
