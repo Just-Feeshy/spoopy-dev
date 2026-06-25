@@ -9,10 +9,12 @@ test_inc = include_directories('.')
 test_links = []
 
 tests = [
+	'null_pipeline',
     'triangle',
 	'texture',
 	'cube',
 	'audio',
+	'fukkireta',
 ]
 
 if host_machine.system() != 'emscripten'

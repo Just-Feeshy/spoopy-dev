@@ -45,9 +45,12 @@ spoopy_deps += [
 	dep_cglm,
 ]
 
-fastnoiselite_dep = disabler()
-if get_option('fastnoiselite')
-    fastnoiselite_dep = dependency('fastnoiselite', fallback: ['fastnoiselite', 'fastnoiselite_dep'], required: true)
+if sokol_requested
+    sokol_dep = dependency('sokol', fallback: ['sokol', 'sokol_dep'], required: true)
+    sokol_dep = declare_dependency(
+        dependencies: [sokol_dep],
+        compile_args: sokol_compile_args,
+    )
 endif
 
 has_posix = cc.has_header_symbol('unistd.h', '_POSIX_VERSION')

@@ -2,9 +2,7 @@
 
 #include <spoopy_log.h>
 
-#ifdef NDEBUG
-#define assert_unlikely(expr) ((void)sizeof(expr))
-#else
+#if SPOOPY_DEBUG
 #define assert_unlikely(expr) \
 	do { \
 		if (SPOOPY_UNLIKELY(!(expr))) { \
@@ -12,11 +10,11 @@
 			abort(); \
 		} \
 	} while(0)
+#else
+#define assert_unlikely(expr) ((void)sizeof(expr))
 #endif
 
-#ifdef NDEBUG
-#define spoopy_assert(expr) ((void)sizeof(expr))
-#else
+#if SPOOPY_DEBUG
 #define spoopy_assert(expr) \
 	do { \
 		if (!(expr)) { \
@@ -24,6 +22,8 @@
 			abort(); \
 		} \
 	} while(0)
+#else
+#define spoopy_assert(expr) ((void)sizeof(expr))
 #endif
 
 #ifdef assert
@@ -54,7 +54,7 @@ static inline void runtime_assert(bool expr, const char* message) {
  * - In release builds: Provides optimization hints to the compiler
  * ============================================================================= */
 
-#ifdef NDEBUG
+#if !SPOOPY_DEBUG
 
 #if defined(__clang__)
 #define spoopy_assume(expr) __builtin_assume(!!(expr))
