@@ -5,13 +5,13 @@
 #define SMOOTH_EYE 0.3
 #define WORLD_ROT_Y 0.0
 #define INV_N_SPIRAL 0.0
-#define HAIR_ROT 0.11
+#define HAIR_ROT 0.21
 #define B_SPIRAL 0.0318309886184
 #define PC_PI 3.14159265358979323846
 #define INV_PC_PI 0.31830988618379067154
 #define Y_CYL_RAD 2.4
 
-#define AA_SAMPLE_COUNT 2
+#define AA_SAMPLE_COUNT 1
 
 struct FragmentInput {
 	float4 position : SV_POSITION;
@@ -691,17 +691,17 @@ float4 sdfHair(in float3 pos, float3 qos) {
 		float3 p2 = float3(1.01, -0.1, 0.9);
 		float3 p3 = float3(1.36, -0.48, 0.91);
 
-		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), qos, 0.24, 0.41, 0.04, 16.0, 0.015);
+		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), qos, 0.24, 0.41, 0.04, 16.0, 0.017);
 		d = min(d, s);
 	}
 
 	{
 		float3 p0 = float3(0.0, 1.29, 0.7);
-		float3 p1 = float3(0.17, 0.75, 1.625);
-		float3 p2 = float3(-0.15, -0.07, 1.535);
-		float3 p3 = float3(-0.21, -0.5, 1.635);
+		float3 p1 = float3(0.17, 0.85, 1.525);
+		float3 p2 = float3(-0.15, -0.07, 1.435);
+		float3 p3 = float3(-0.24, -0.51, 1.535);
 
-		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), opos, 0.22, 0.38, 0.01, 24.0, 0.023);
+		float s = sdfHairStrand(float4x3(p0, p1, p2, p3), opos, 0.23, 0.38, 0.42, 24.0, 0.029);
 		d_2 = s;
 	}
 
@@ -710,9 +710,9 @@ float4 sdfHair(in float3 pos, float3 qos) {
 
 	{
 		float3 p0 = float3(-0.06, 1.295, 0.7);
-		float3 p1 = float3(0.295, 0.73, 1.555);
-		float3 p2 = float3(0.4, -0.065, 1.32);
-		float3 p3 = float3(-0.05, -0.43, 1.615);
+		float3 p1 = float3(0.515, 0.73, 1.505);
+		float3 p2 = float3(0.4, -0.065, 1.27);
+		float3 p3 = float3(-0.02, -0.47, 1.565);
 		float2 be = sdfCubicBezier(pos, p0, p1, p2, p3);
 
 		float h = saturate(be.y);
@@ -1123,19 +1123,13 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 			occ = lerp(1.0, occ, 0.68);
 
 			// Fake Shadow
-			color *= 1.0 - max(abs(uvw.y - 0.3) * 0.3, 0.0);
+			color *= 1.0 - max(abs(uvw.y - 0.2) * 0.3, 0.0);
 
 			// Fake Hair Highlight
 			color = max(
 				color + 0.25 * float3(min(1.8 - abs((12.8 + bnoise(dot(uvw.xz, uvw.xz))
 					* 10.0 * abs(fastSin(20.0 * uvw.x)))
-					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.5)
-				, color);
-
-			color = max(
-				color + 0.27 * float3(min(0.85 - abs((15.4 + bnoise(dot(uvw.xz, uvw.xz))
-					* 15.0 * abs(fastSin(22.5 * uvw.x)))
-					* (uvw.y - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.65)
+					* (uvw.y - 0.15 - 0.045 * fastSin(3.0 * uvw.x) - 0.3)), 1.5) * 0.5)
 				, color);
 
 			// Pinkish bottom fake highlight
