@@ -623,7 +623,7 @@ float sdfHairStrand(float4x3 mp, in float3 p, float flatten, float r1, float ang
 	float2 pol = float2(atan2(p.z, p.x), -mos.y);
 	mos.xz *= 1.0 - a * bWave(dot(pol, Bos), b);
 
-	float t2 = smax(4.0 * t * t - 3.0, 0.0, 0.1);
+	float t2 = smax(4.0 * t * t - 3.0, 0.0, 0.05);
 	float3 q = lerp(mos, p, t2) - c;
 
 	float axialDist = dot(q, T);
