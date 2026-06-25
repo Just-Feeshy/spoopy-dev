@@ -749,7 +749,7 @@ float4 sdfHair(in float3 pos, float3 qos) {
 	}
 
 	{
-		float3 p0 = float3(0.5, 1.0, 0.7);
+		float3 p0 = float3(0.35, 1.0, 0.65);
 		float3 p1 = float3(0.205, 0.8, 1.87);
 		float3 p2 = float3(0.815, -0.40, 1.17);
 		float3 p3 = float3(1.165, -0.495, 1.09);
