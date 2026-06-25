@@ -13,6 +13,7 @@ tests = [
 	'texture',
 	'cube',
 	'audio',
+	'ui',
 ]
 
 if host_machine.system() != 'emscripten'

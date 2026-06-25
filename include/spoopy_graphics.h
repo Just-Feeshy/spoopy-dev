@@ -4,7 +4,12 @@
 #include <spoopy_color.h>
 #include <utils/spoopy_geometry.h>
 #include <memory/spoopy_vector.h>
+
+#if SPOOPY_HAS_INCLUDE(<spoopy_renderer_config.h>)
 #include <spoopy_renderer_config.h>
+#else
+#error "Could not find <spoopy_renderer_config.h>"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

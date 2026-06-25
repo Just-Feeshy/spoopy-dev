@@ -1,4 +1,4 @@
-.PHONY: setup build clean install
+.PHONY: setup reconfigure build clean install
 
 # Detect OS
 UNAME_S := $(shell uname -s)
@@ -15,6 +15,17 @@ ifeq ($(UNAME_S),Darwin)
 		--native-file misc/cross/arm64-darwin.ini
 else
 	meson setup build/ \
+		--native-file misc/cross/common.ini
+endif
+
+reconfigure:
+ifeq ($(UNAME_S),Darwin)
+	meson setup build/ --reconfigure \
+		--native-file misc/cross/common.ini \
+		--native-file misc/cross/darwin-crappy-sdl3-hack.ini \
+		--native-file misc/cross/arm64-darwin.ini
+else
+	meson setup build/ --reconfigure \
 		--native-file misc/cross/common.ini
 endif
 
