@@ -4,25 +4,17 @@
 #include <spoopy_color.h>
 #include <utils/spoopy_geometry.h>
 #include <memory/spoopy_vector.h>
+#include <spoopy_renderer_config.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef enum spoopy_renderer {
-    SPOOPY_RENDERER_API_UNSURE = 0u,
-    SPOOPY_RENDERER_API_METAL = 1u << 0,
-    SPOOPY_RENDERER_API_WGPU = 1u << 1,
-    SPOOPY_RENDERER_AVAILABLE =
-#if defined(SPOOPY_RENDERER_METAL)
-        SPOOPY_RENDERER_API_METAL |
-#endif
-#if defined(SPOOPY_RENDERER_WGPU)
-        SPOOPY_RENDERER_API_WGPU |
-#endif
-
-        SPOOPY_RENDERER_API_UNSURE,
-		SPOOPY_RENDERER_API_BEST_OPTION = SPOOPY_RENDERER_AVAILABLE & (~SPOOPY_RENDERER_AVAILABLE + 1u),
+	SPOOPY_RENDERER_API_UNSURE = 0u,
+	SPOOPY_RENDERER_API_ENUMS
+	SPOOPY_RENDERER_AVAILABLE = SPOOPY_RENDERER_API_AVAILABLE_MASK,
+	SPOOPY_RENDERER_API_BEST_OPTION = SPOOPY_RENDERER_API_DEFAULT,
 } spoopy_renderer_t;
 
 typedef enum spoopy_buffer_kind {

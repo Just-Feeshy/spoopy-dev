@@ -3,6 +3,10 @@ spoopy_renderer_deps = []
 
 spoopy_renderer_src += files('spoopy_backend_stub.c')
 
-if sokol_requested
-    subdir('sokol')
-endif
+sokol_dep = dependency('sokol', fallback: ['sokol', 'sokol_dep'], required: true)
+sokol_dep = declare_dependency(
+	dependencies: [sokol_dep],
+	compile_args: sokol_compile_args,
+)
+
+subdir('sokol')

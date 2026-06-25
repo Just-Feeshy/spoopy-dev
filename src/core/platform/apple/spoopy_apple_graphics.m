@@ -58,7 +58,7 @@ spoopy_graphics_t* spoopy_graphics_new(spoopy_renderer_t renderer) {
 	@autoreleasepool {
 		spoopy_graphics_t* graphics = spoopy_heap_alloc(sizeof(spoopy_graphics_t));
 		graphics->child = (spoopy_graphics_child_t){ 0 };
-		graphics->child.renderer = renderer;
+		graphics->child.renderer = spoopy_graphics_pick_renderer(renderer);
 		return graphics;
 	}
 }
