@@ -186,7 +186,7 @@ static void video_update_mode_lists(void) {
 			SPOOPY_LOG_WARN("SDL_GetDesktopDisplayMode() - WARN: %s\n", SDL_GetError());
 		}else {
 #ifdef SPOOPY_BUILD_DEBUG
-			SPOOPY_LOG_INFO("Desktop mode: %ix%i @ %.2f Hz, scale: %.2f",
+			SPOOPY_LOG_INFO("Desktop mode: %ix%i@gHz, scale: %g",
 				desktop_mode->w, desktop_mode->h,
 				desktop_mode->refresh_rate, desktop_mode->pixel_density
 			);

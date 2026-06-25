@@ -21,14 +21,48 @@ if host_machine.system() == 'darwin'
     add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
 endif
 
+spoopy_includes = include_directories('include', 'include')
+
 is_debug_build = get_option('debug')
 deprecation_warnings = get_option('deprecation_warnings')
 
-spoopy_public_includes = include_directories('include', 'include')
+enable_sokol = get_option('enable_sokol')
+sokol_backend = get_option('sokol_backend')
+sokol_compile_args = []
+sokol_dep = disabler()
 
-subdir('src/core/renderer/config')
-subdir('include')
-spoopy_includes = [spoopy_public_includes, spoopy_generated_includes]
+if enable_sokol.disabled()
+    if sokol_backend != 'auto'
+        error('sokol_backend is set but enable_sokol is disabled; enable with -Denable_sokol=enabled')
+    endif
+endif
+
+sokol_requested = enable_sokol.enabled() or (enable_sokol.auto() and sokol_backend != 'auto')
+if sokol_requested
+    if sokol_backend == 'auto'
+        if host_machine.system() == 'darwin'
+            sokol_backend = 'metal'
+        elif host_machine.system() == 'windows'
+            sokol_backend = 'd3d11'
+        else
+            sokol_backend = 'wgpu'
+        endif
+    endif
+
+    sokol_backend_map = {
+        'metal': 'SPOOPY_RENDERER_METAL',
+        'd3d11': 'SPOOPY_RENDERER_D3D11',
+        'wgpu': 'SPOOPY_RENDERER_WGPU',
+    }
+
+    if not sokol_backend_map.has_key(sokol_backend)
+        error('Unknown Sokol backend: @0@'.format(sokol_backend))
+    endif
+    renderer_define = '-D@0@'.format(sokol_backend_map[sokol_backend])
+    sokol_compile_args += renderer_define
+    add_global_arguments(renderer_define, language: ['c', 'cpp', 'objc'])
+endif
+
 
 spoopy_deps = []
 if host_machine.system() == 'darwin'

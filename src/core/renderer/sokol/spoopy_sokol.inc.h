@@ -116,7 +116,7 @@ static inline void spoopy_sokol_update_swapchain(spoopy_graphics_t *graphics) {
 	switch(spoopy_graphics_get_renderer(graphics)) {
 		default:
 		case SPOOPY_RENDERER_API_METAL:
-			#if defined(SOKOL_METAL)
+			#if defined(SPOOPY_RENDERER_METAL)
 			spoopy_sokol.frame.swapchain.metal.current_drawable = spoopy_graphics_get_native_drawable(graphics);
 			spoopy_sokol.frame.swapchain.metal.depth_stencil_texture = NULL;
 			spoopy_sokol.frame.swapchain.metal.msaa_color_texture = NULL;
@@ -342,10 +342,10 @@ static inline sg_sampler_type spoopy_sokol_sampler_type_from_sampler_type(const 
 }
 
 static inline bool spoopy_sokol_bindslot_set_texture_view(sg_shader_texture_view* view, uint16_t binding) {
-#if defined(SOKOL_METAL)
+#if defined(SPOOPY_RENDERER_METAL)
 	view->msl_texture_n = (uint8_t)binding;
 	return true;
-#elif defined(SOKOL_WGPU)
+#elif defined(SPOOPY_RENDERER_WGPU)
 	view->wgsl_group1_binding_n = (uint8_t)binding;
 	return true;
 #else
@@ -357,10 +357,10 @@ static inline bool spoopy_sokol_bindslot_set_texture_view(sg_shader_texture_view
 }
 
 static inline bool spoopy_sokol_bindslot_set_sampler(sg_shader_sampler* sampler, uint16_t binding) {
-#if defined(SOKOL_METAL)
+#if defined(SPOOPY_RENDERER_METAL)
 	sampler->msl_sampler_n = (uint8_t)binding;
 	return true;
-#elif defined(SOKOL_WGPU)
+#elif defined(SPOOPY_RENDERER_WGPU)
 	sampler->wgsl_group1_binding_n = (uint8_t)binding;
 	return true;
 #else
@@ -372,10 +372,10 @@ static inline bool spoopy_sokol_bindslot_set_sampler(sg_shader_sampler* sampler,
 }
 
 static inline bool spoopy_sokol_bindslot_set_uniform_block(sg_shader_uniform_block* block, uint16_t binding) {
-#if defined(SOKOL_METAL)
+#if defined(SPOOPY_RENDERER_METAL)
 	block->msl_buffer_n = (uint8_t)binding;
 	return true;
-#elif defined(SOKOL_WGPU)
+#elif defined(SPOOPY_RENDERER_WGPU)
 	block->wgsl_group0_binding_n = (uint8_t)binding;
 	return true;
 #else
