@@ -16,8 +16,6 @@
 #error "Define SPOOPY_SOKOL_IMPLEMENTATION in exactly one translation unit instead of SOKOL_IMPL."
 #endif
 
-#define SOKOL_DEBUG
-
 #include <sokol_gfx.h>
 
 static inline void* spoopy_sokol_alloc(size_t size, void* user_data) {
