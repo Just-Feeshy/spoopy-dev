@@ -113,3 +113,9 @@ option(
 	value : 'auto',
 	description : 'Build the Opus backend to allow Opus files'
 )
+
+option(
+    'tests',
+    type : 'feature',
+    description : 'Build various test programs'
+)
