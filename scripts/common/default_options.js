@@ -54,12 +54,9 @@ class Config {
             throw new FormatError(`Invalid build_type: ${this.build_type}. Must be 'debug', 'release', or 'auto'`);
         }
 
-        options.push('default_library=static');
-
         if (this.build_type === 'debug') {
             options.push(
                 'buildtype=debug',
-                'strip=false',
                 'b_lto=false',
                 'b_ndebug=false',
                 'optimization=0'
@@ -67,7 +64,6 @@ class Config {
         } else if (this.build_type === 'release') {
             options.push(
                 'buildtype=release',
-                'strip=true',
                 'b_lto=false',
                 'b_ndebug=if-release',
                 'optimization=3'
@@ -76,14 +72,12 @@ class Config {
             if (process.env.SPOOPY_DEBUG === '1') {
                 options.push(
                     'buildtype=debug',
-                    'strip=false',
                     'b_lto=false',
                     'b_ndebug=false'
                 );
             } else {
                 options.push(
                     'buildtype=release',
-                    'strip=true',
                     'b_lto=false',
                     'b_ndebug=if-release'
                 );
@@ -117,23 +111,9 @@ class Config {
         } else if (process.platform.startsWith('linux')) {
             options.push(
                 'c_std=gnu11',
-                'cpp_std=gnu++20',
-                'prefer_static=true'
+                'cpp_std=gnu++20'
             );
         }
-
-		options.push(
-			'default_library=static',
-			'cglm:default_library=static',
-			'opus:default_library=static',
-			'opusfile:default_library=static',
-			'cglm:werror=false',
-			'cglm:install=false',
-			'cglm:build_tests=false',
-			'opus:docs=disabled',
-			'opus:extra-programs=disabled',
-			'opus:tests=disabled'
-		);
 
         return options;
     }
