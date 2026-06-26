@@ -33,5 +33,9 @@ if host_machine.system() == 'windows'
 	})
 endif
 
+if host_machine.system() == 'darwin'
+	mi_opts.add_cmake_defines({ 'CMAKE_OSX_ARCHITECTURES': 'arm64' })
+endif
+
 mimalloc_proj = cmake.subproject('mimalloc', options : mi_opts)
 mimalloc_dep = mimalloc_proj.dependency('mimalloc-static')

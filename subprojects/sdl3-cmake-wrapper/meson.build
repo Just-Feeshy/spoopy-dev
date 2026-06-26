@@ -54,5 +54,9 @@ if host_machine.system() == 'emscripten'
     sdl3_options.add_cmake_defines({ 'EMSCRIPTEN' : true })
 endif
 
+if host_machine.system() == 'darwin'
+    sdl3_options.add_cmake_defines({ 'CMAKE_OSX_ARCHITECTURES': 'arm64' })
+endif
+
 sdl3_subproject = cmake.subproject('sdl3', options : sdl3_options)
 sdl3_dep = sdl3_subproject.dependency('SDL3-static')

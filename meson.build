@@ -18,7 +18,11 @@ config = configuration_data()
 
 if host_machine.system() == 'darwin'
     add_languages('objc', native: false)
-    add_project_arguments('-mmacosx-version-min=10.15', language: ['c', 'objc'])
+
+    macos_min_version = meson.get_external_property('macos_min', '10.15')
+    macos_min_arg = '-mmacosx-version-min=' + macos_min_version
+    add_project_arguments(macos_min_arg, language: ['c', 'objc'])
+    add_project_link_arguments(macos_min_arg, language: ['c', 'objc'])
 endif
 
 spoopy_includes = include_directories('include', 'include')

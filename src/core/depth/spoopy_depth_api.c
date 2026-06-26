@@ -14,7 +14,6 @@
 static struct {
 	spoopy_vec2_vec_int_t fs_modes;
 
-	// Pointers (Assuming 8 bytes)
 	SDL_Mutex* display_mutex;
 	SDL_DisplayID* cached_displays;
 	SDL_Window* primary_window; // TODO (Multi-Window): Keep this
@@ -29,12 +28,9 @@ static struct {
 	// 8-byte types
 	double scaling_factor; // TODO (Mutli-Window): Move this to `spoopy_window_data_t`
 
-	// 4-byte types
 	SDL_AtomicInt should_quit;
 	SDL_AtomicInt warned_api_once_bits;
 	int32_t cached_display_count;
-
-	// 1-byte types
 	bool initialized;
 } app = { 0 };
 

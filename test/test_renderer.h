@@ -8,7 +8,7 @@
 
 static spoopy_event_handler_t* handler_ptr = NULL;
 
-SPOOPY_ATTR_UNUSED static const spoopy_vec2_int_t VIEWPORT = (spoopy_vec2_int_t) {
+SPOOPY_ATTR_UNUSED static spoopy_vec2_int_t VIEWPORT = (spoopy_vec2_int_t) {
 	.w = 800,
 	.h = 600,
 };
@@ -90,7 +90,7 @@ SPOOPY_ATTR_UNUSED static spoopy_shader_object_t* load_shader(const char* src, s
 
     spoopy_shader_source_t new_src = {0};
 	spoopy_mem_arena_t transpile_arena = {0};
-	spoopy_arena_init(&transpile_arena, source.content_size + (1 << 11));
+	spoopy_arena_init(&transpile_arena, source.content_size);
     bool result = spoopy_api_shader_transpile(
         &source,
         &new_src,

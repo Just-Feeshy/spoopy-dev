@@ -16,19 +16,6 @@
 #error "Define SPOOPY_SOKOL_IMPLEMENTATION in exactly one translation unit instead of SOKOL_IMPL."
 #endif
 
-#define SOKOL_DEBUG
-
-#if (defined(SPOOPY_RENDERER_METAL) + defined(SPOOPY_RENDERER_WGPU)) == 0
-#error "No SPOOPY_RENDERER_* backend defined for Sokol."
-#endif
-
-#if defined(SPOOPY_RENDERER_METAL)
-#define SOKOL_METAL
-#endif
-#if defined(SPOOPY_RENDERER_WGPU)
-#define SOKOL_WGPU
-#endif
-
 #include <sokol_gfx.h>
 
 static inline void* spoopy_sokol_alloc(size_t size, void* user_data) {

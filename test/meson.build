@@ -14,6 +14,7 @@ tests = [
 	'texture',
 	'cube',
 	'audio',
+	# 'ui',
 	'fukkireta',
 ]
 
@@ -22,6 +23,10 @@ if host_machine.system() != 'emscripten'
 endif
 
 foreach test : tests
+	# if test == 'ui'
+	# 	subdir('ui')
+	# endif
+
     test_deps = [spoopy_deps]
     test_inc  = [test_inc, spoopy_includes]
 
