@@ -11,8 +11,7 @@ Texture2D<float> font_tex : register(t0);
 SamplerState font_smp : register(s0);
 
 [shader("fragment")]
-float4 fragmentMain(FSInput input) : SV_Target
-{
+float4 fragmentMain(FSInput input) : SV_Target {
     float alpha = font_tex.Sample(font_smp, input.uv);
 
     return float4(
