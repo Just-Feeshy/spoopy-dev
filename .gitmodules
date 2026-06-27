@@ -1,3 +1,6 @@
 [submodule "subprojects/spoopy-slang-wrapper/bx"]
 	path = subprojects/spoopy-slang-wrapper/bx
 	url = https://github.com/bkaradzic/bx.git
+[submodule "test/ui/cimgui"]
+	path = test/ui/cimgui
+	url = https://github.com/cimgui/cimgui.git
