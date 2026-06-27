@@ -3,7 +3,7 @@ add_languages('cpp', native: false)
 fs = import('fs')
 cpp = meson.get_compiler('cpp')
 cimgui_dir = 'cimgui'
-cimgui_deps = []
+cimgui_deps = [dep_sdl3]
 cimgui_objcpp_args = []
 
 cimgui_srcs = [
@@ -12,6 +12,7 @@ cimgui_srcs = [
 	cimgui_dir / 'imgui/imgui_draw.cpp',
 	cimgui_dir / 'imgui/imgui_demo.cpp',
 	cimgui_dir / 'imgui/imgui_widgets.cpp',
+	cimgui_dir / 'imgui/backends/imgui_impl_sdl3.cpp',
 ]
 
 if host_machine.system() == 'darwin'
@@ -37,10 +38,20 @@ cimgui_inc = [
 cimgui_common_args = [
 	'-DIMGUI_USER_CONFIG="../cimconfig.h"',
 	'-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1',
+	'-DCIMGUI_USE_SDL3',
 ]
 
 cimgui_cpp_args = cimgui_common_args
 cimgui_objcpp_args = cimgui_common_args
+
+if host_machine.system() == 'windows'
+	cimgui_impl_api_arg = '-DIMGUI_IMPL_API=extern "C" __declspec(dllexport)'
+else
+	cimgui_impl_api_arg = '-DIMGUI_IMPL_API=extern "C"'
+endif
+
+cimgui_cpp_args += cimgui_impl_api_arg
+cimgui_objcpp_args += cimgui_impl_api_arg
 
 if host_machine.system() == 'darwin'
 	cimgui_objcpp_args += macos_min_arg
@@ -52,12 +63,6 @@ if host_machine.system() == 'darwin'
 endif
 
 cimgui_cpp_args += cpp.get_supported_arguments('-Wno-unused-function')
-
-if host_machine.system() == 'windows'
-	cimgui_cpp_args += '-DIMGUI_IMPL_API=extern "C" __declspec(dllexport)'
-else
-	cimgui_cpp_args += '-DIMGUI_IMPL_API=extern "C"'
-endif
 
 cimgui_lib = library(
 	'cimgui',

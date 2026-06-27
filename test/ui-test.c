@@ -96,6 +96,12 @@ static char* load_shader_file(const char* path) {
 	return source;
 }
 
+static bool ui_event_handler(SDL_Event* event, void* arg) {
+	(void)arg;
+	spoopy_ui_impl_process_event(event);
+	return false;
+}
+
 int main(int argc, char** argv) {
 	VIEWPORT = (spoopy_vec2_int_t) {
 		.w = 1280,
@@ -109,6 +115,11 @@ int main(int argc, char** argv) {
 		SPOOPY_LOG_ERROR("Failed to initialize ImGui UI backend");
 		return 1;
 	}
+
+	spoopy_event_handler_t ui_handlers[] = {
+		{ .proc = ui_event_handler, .priority = EPRIO_MISC, .event_type = 0, .arg = NULL },
+	};
+	handler_ptr = spoopy_events_register_handlers(handler_ptr, 1, ui_handlers);
 
 	ImGuiIO io = *igGetIO_Nil(); (void)io;
 	igStyleColorsDark(NULL);
@@ -158,11 +169,57 @@ int main(int argc, char** argv) {
 		.vertex_count = 1
 	};
 
+	bool show_demo_window = true;
+	bool show_another_window = false;
+	float f = 0.0f;
+	int counter = 0;
+	float clear_color[3] = { 0.45f, 0.55f, 0.60f };
+	const ImVec2 button_size = { 0.0f, 0.0f };
+
 	while(!spoopy_api_should_quit()) {
 		spoopy_events_poll(handler_ptr, 0);
 		spoopy_api_clear(SPOOPY_BUFFER_COLOR, SPOOPY_RGB(0.0, 0.0, 0.0), 0.0f);
+		spoopy_ui_impl_new_frame();
+
+		if(show_demo_window) {
+			igShowDemoWindow(&show_demo_window);
+		}
+
+		igBegin("Hello, world!", NULL, 0);
+		igText("This is some useful text.");
+		igCheckbox("Demo Window", &show_demo_window);
+		igCheckbox("Another Window", &show_another_window);
+		igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+		igColorEdit3("clear color", clear_color, 0);
+
+		if(igButton("Button", button_size)) {
+			counter++;
+		}
+
+		igSameLine(0.0f, -1.0f);
+		igText("counter = %d", counter);
+
+		ImGuiIO* frame_io = igGetIO_Nil();
+		igText("Application average %.3f ms/frame (%.1f FPS)",
+			1000.0f / frame_io->Framerate,
+			frame_io->Framerate
+		);
+		igEnd();
+
+		if(show_another_window) {
+			igBegin("Another Window", &show_another_window, 0);
+			igText("Hello from another window!");
+			if(igButton("Close Me", button_size)) {
+				show_another_window = false;
+			}
+			igEnd();
+		}
+
 		spoopy_api_pipeline_bind(pipeline);
 		spoopy_api_draw_mesh(&mesh, pipeline);
+
+		igRender();
+		spoopy_ui_impl_render();
 		spoopy_api_swap_buffers();
 	}
 
