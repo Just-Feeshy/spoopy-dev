@@ -3,6 +3,10 @@
 
 #include "test_renderer.h"
 
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
+#include "ui_impl.h"
+
 typedef struct imgui_packed_vertex_t {
     uint32_t packed0;
     uint32_t packed1;
@@ -100,6 +104,15 @@ int main(int argc, char** argv) {
 
 	test_init();
 
+	igCreateContext(NULL);
+	if(!spoopy_ui_impl_init()) {
+		SPOOPY_LOG_ERROR("Failed to initialize ImGui UI backend");
+		return 1;
+	}
+
+	ImGuiIO io = *igGetIO_Nil(); (void)io;
+	igStyleColorsDark(NULL);
+
 	char* shader_file = load_shader_file("test/ui/vertex.slang");
 	spoopy_shader_object_t* vert_obj = load_shader(shader_file, SPOOPY_STAGE_VERTEX);
 	spoopy_heap_free(shader_file);
@@ -153,6 +166,7 @@ int main(int argc, char** argv) {
 		spoopy_api_swap_buffers();
 	}
 
+	spoopy_ui_impl_shutdown();
 	spoopy_api_video_shutdown();
 	return 0;
 }
