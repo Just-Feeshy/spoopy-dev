@@ -238,6 +238,11 @@ float sdfCone( in float3 p, in float2 c ) {
 	return -sqrt(d.x)*sign(d.y);
 }
 
+float sdfCappedCylinder(float3 p, float r, float h) {
+	float2 d = abs(float2(length(p.xz), p.y)) - float2(r,h);
+	return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
 float sabs(float x, float k) {
 	return sqrt(x * x + k);
 }
@@ -449,11 +454,22 @@ float4 sdfClothes(in float3 pos, float3 qos, float2 se, out float matID, float m
 		}
 	}
 
+	// Button
+	{
+		float d_3 = d;
+		d_2 = sdfCappedCylinder(pos.xzy - float3(0.0, 0.0, -2.27), 0.07, 0.25) - 0.03;
+		d   = min(d, d_2);
+
+		if(d_2 < d_3) {
+			matID = 4.0;
+		}
+	}
+
 	return float4(d, pos);
 }
 
 
-// TODO (MATH): Write this out in LaTeX
+// TODO (MATH): Write this out in LaTeX (Plus ask professor for help on how to, specifically CS professor)
 
 float3 quadBezierPoint(float3 p0, float3 p1, float3 p2, float t) {
     float u = 1.0 - t;
@@ -1097,7 +1113,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 
 		// Fake Highlight
 		qos = float3(abs(uvw.x), uvw.yz);
-		color += 1.0 - smoothstep(0.01, 0.04, length(qos.xy - float2(0.59 - 0.08 * ss, -0.27)));
+		color += 1.0 - smoothstep(0.01, 0.04, length(qos.xy - float2(0.57 - 0.09 * ss, -0.27)));
 
 		// Fake Occlusion Backed In
 		float edis = length((float2(abs(uvw.x),uvw.y)-float2(0.68,-0.51))/float2(4.2,3.3));
