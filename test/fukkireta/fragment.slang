@@ -5,7 +5,7 @@
 #define SMOOTH_EYE 0.3
 #define WORLD_ROT_Y 0.0
 #define INV_N_SPIRAL 0.0
-#define HAIR_ROT 0.21
+#define HAIR_ROT 0.11
 #define B_SPIRAL 0.0318309886184
 #define PC_PI 3.14159265358979323846
 #define INV_PC_PI 0.31830988618379067154
@@ -725,8 +725,8 @@ float4 sdfHair(in float3 pos, float3 qos) {
 	{
 		float3 p0 = float3(-0.06, 1.295, 0.7);
 		float3 p1 = float3(0.375, 0.79, 1.565);
-		float3 p2 = float3(0.545, -0.06, 1.31);
-		float3 p3 = float3(0.69, -0.325, 1.625);
+		float3 p2 = float3(0.645, -0.16, 1.31);
+		float3 p3 = float3(0.57, -0.325, 1.625);
 		float2 be = sdfCubicBezier(pos, p0, p1, p2, p3);
 
 		float h = saturate(be.y);
@@ -840,9 +840,9 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	d = smin(d, d_2, 0.08 - 0.02 * h);
 
 	// Upper Lip
-	float3 cos = mos-float3(0.0, 0.015, 1.1 + jawZ.y);
-	cos.yz = rot2(cos.yz, 0.1);
-	d_2 = sdfCone(cos, float2(0.08, -0.16)) - 0.01;
+	float3 cos = mos-float3(0.0, 0.025, 1.1 + jawZ.y);
+	cos.yz = rot2(cos.yz, 0.06);
+	d_2 = sdfCone(cos, float2(0.08, -0.21)) - 0.01;
 	d = smin(d, d_2, 0.1);
 
 	mos = sabsx(mos, 0.005) + float3(0.13, 0.0, 0.0);
@@ -850,7 +850,7 @@ float mapScene(float3 p, out float outMat, out float3 uvw) {
 	float3 uos = lipEos - float3(0.0, 0.17, 0.04);
 	float4 lip = sdfBezier(uos,
 	  	float3(0.0, -0.264, 1.17),
-	  	float3(0.333, -0.269, 1.17),
+	  	float3(0.313, -0.269, 1.17),
 	  	float3(0.381, -0.4, 0.8));
 	float lipRa = 0.019 * (1.0 - lip.y * lip.y) * smoothstep(1.0, 0.4, lip.y);
 	d_2 = lip.x - lipRa;
@@ -1170,7 +1170,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	lin += float3(1.0, 0.3, 0.1) * sss * fre * 0.2 * (0.5+0.5 * saturate(dot(normal, lig)) * sha * amb) * (0.1 + 0.9 * focc);
 
 	color = color*lin + fre*fre*fre*0.07*occ;
-	// color = normal * 0.5 + 0.5;
+	color = normal * 0.5 + 0.5;
 	color *= 1.1;
 	return float4(color, 1.0);
 }
