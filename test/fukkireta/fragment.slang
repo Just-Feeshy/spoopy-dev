@@ -1170,7 +1170,7 @@ float4 renderTeto(float2 fragCoord, float2 resolution) {
 	lin += float3(1.0, 0.3, 0.1) * sss * fre * 0.2 * (0.5+0.5 * saturate(dot(normal, lig)) * sha * amb) * (0.1 + 0.9 * focc);
 
 	color = color*lin + fre*fre*fre*0.07*occ;
-	color = normal * 0.5 + 0.5;
+	// color = normal * 0.5 + 0.5;
 	color *= 1.1;
 	return float4(color, 1.0);
 }
